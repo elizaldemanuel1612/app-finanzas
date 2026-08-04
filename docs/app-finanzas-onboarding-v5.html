@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockups v5 — Onboarding</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4FA;--card:#FFF;--ink:#1A1B3A;--mid:#6B6F8D;--faint:#9AA0B8;--line:#E7E9F2;
+  --violet:#5B4BE8;--violet-soft:#EAE7FD;--green:#12B76A;--green-soft:#DCF6EA;
+  --amber:#F5A524;--amber-soft:#FDF0D8;--coral:#F4623A;--coral-soft:#FDE5DC;--r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+ font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+ -webkit-font-smoothing:antialiased;padding:0 0 60px}
+.page{max-width:430px;margin:0 auto;padding:0 16px}
+h1,h2{font-family:'Outfit'}
+.head{padding:34px 0 4px}
+.head h1{font-size:29px;font-weight:800;line-height:1.15;letter-spacing:-.02em}
+.head p{font-size:14.5px;color:var(--mid);line-height:1.6;margin-top:11px}
+.tag{display:inline-block;margin:38px 0 6px;padding:5px 12px;border-radius:99px;
+ background:var(--ink);color:#fff;font-size:11px;font-weight:700}
+.tag-note{font-size:13px;color:var(--mid);line-height:1.55;margin-bottom:14px}
+
+.scr{background:var(--card);border-radius:22px;padding:22px 18px;margin-bottom:12px}
+.scr.tint-v{background:var(--violet-soft)}
+.scr.tint-g{background:var(--green-soft)}
+.scr.dark{background:var(--ink);color:#fff}
+
+.dots{display:flex;gap:5px;justify-content:center;margin-bottom:22px}
+.dots i{width:6px;height:6px;border-radius:99px;background:var(--line);display:block}
+.dots i.on{width:20px;background:var(--violet)}
+.scr.dark .dots i{background:rgba(255,255,255,.22)}
+.scr.dark .dots i.on{background:#fff}
+
+.q{font-family:'Outfit';font-weight:800;font-size:23px;line-height:1.2;letter-spacing:-.02em;margin-bottom:8px}
+.sub{font-size:14.5px;line-height:1.55;color:var(--mid);margin-bottom:18px}
+.scr.dark .sub{color:#B4BACF}
+
+.opt{background:var(--bg);border-radius:14px;padding:15px;margin-bottom:9px;
+ display:flex;align-items:center;gap:12px}
+.opt.on{background:var(--violet);color:#fff}
+.opt .oe{font-size:19px;width:24px;text-align:center}
+.opt .ob{flex:1}
+.opt .ot{font-size:14.5px;font-weight:700}
+.opt .od{font-size:12.5px;color:var(--faint);margin-top:2px}
+.opt.on .od{color:rgba(255,255,255,.75)}
+.opt .ck{font-size:15px}
+
+.btn{display:block;width:100%;padding:16px;border-radius:14px;text-align:center;
+ font-weight:700;font-size:15px;border:0;margin-top:6px}
+.btn.primary{background:var(--violet);color:#fff}
+.btn.black{background:#000;color:#fff}
+.btn.ghost{background:transparent;color:var(--mid);font-size:14px;padding:12px}
+.btn.white{background:#fff;color:var(--ink)}
+
+/* slider */
+.sl{margin:6px 0 4px}
+.sl-v{font-family:'Outfit';font-weight:800;font-size:44px;letter-spacing:-.03em;text-align:center}
+.sl-c{font-size:13px;color:var(--faint);text-align:center;font-weight:600;margin-bottom:16px}
+.sl-t{height:10px;border-radius:99px;background:var(--line);position:relative;margin:0 6px 8px}
+.sl-t i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--violet);display:block}
+.sl-t b{position:absolute;top:-7px;width:24px;height:24px;border-radius:50%;background:#fff;
+ border:3px solid var(--violet);transform:translateX(-50%)}
+.sl-e{display:flex;justify-content:space-between;font-size:11.5px;color:var(--faint);font-weight:600;padding:0 6px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px}
+.sp{background:var(--bg);border-radius:13px;padding:13px;text-align:center}
+.sp .l{font-size:11.5px;font-weight:700;color:var(--mid);margin-bottom:4px}
+.sp .v{font-family:'Outfit';font-weight:800;font-size:19px}
+
+/* categorías */
+.cats{display:flex;flex-wrap:wrap;gap:8px}
+.ct{background:var(--bg);border-radius:12px;padding:11px 13px;font-size:13.5px;font-weight:700;
+ color:var(--mid);display:flex;align-items:center;gap:7px}
+.ct.on{background:var(--ink);color:#fff}
+
+/* presupuestos */
+.pr{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:12px 0;border-bottom:1px solid var(--line)}
+.pr:last-of-type{border-bottom:0}
+.pr-l{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700}
+.pr-v{font-family:'Outfit';font-weight:700;font-size:15.5px}
+.tg{flex:none;background:var(--bg);border-radius:9px;padding:6px 10px;font-size:11px;
+ font-weight:800;color:var(--faint);min-width:52px;text-align:center}
+.tg.fijo{background:#E4EAF2;color:#2C4460}
+.tot{background:var(--ink);color:#fff;border-radius:13px;padding:14px;display:flex;
+ justify-content:space-between;align-items:center;margin-top:12px}
+.tot .l{font-size:12.5px;font-weight:700;color:#B4BACF}
+.tot .v{font-family:'Outfit';font-weight:800;font-size:19px}
+
+/* import */
+.imp{background:var(--bg);border-radius:14px;padding:15px;display:flex;align-items:center;gap:12px;margin-bottom:9px}
+.imp .ie{font-size:22px}
+.imp .it{font-size:14px;font-weight:700}
+.imp .id{font-size:12.5px;color:var(--faint);margin-top:2px}
+
+/* captura */
+.amt{text-align:center;padding:6px 0 2px}
+.amt .v{font-family:'Outfit';font-weight:800;font-size:52px;letter-spacing:-.035em}
+.quick{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:14px 0 4px}
+.qb{background:var(--bg);border-radius:13px;padding:13px;display:flex;align-items:center;gap:9px;
+ font-size:13.5px;font-weight:700}
+.qb.on{background:var(--ink);color:#fff}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.key{background:var(--bg);border-radius:13px;padding:14px 0;text-align:center;
+ font-family:'Outfit';font-weight:600;font-size:20px}
+
+/* la marca */
+.lane{position:relative;height:40px;margin:16px 0 6px}
+.lane-t{position:absolute;top:15px;left:0;right:0;height:10px;border-radius:99px;background:rgba(255,255,255,.2)}
+.lane-f{position:absolute;top:15px;left:0;height:10px;border-radius:99px;background:var(--green)}
+.lane-m{position:absolute;top:7px;width:3px;height:26px;border-radius:2px;background:#fff}
+.lane-l{position:absolute;top:-4px;transform:translateX(-50%);font-size:11px;font-weight:700;white-space:nowrap}
+
+.ring{width:70px;height:70px;border-radius:50%;background:var(--green);color:#fff;
+ display:flex;align-items:center;justify-content:center;font-size:31px;margin:0 auto 14px}
+
+.note{background:#fff;border-left:4px solid var(--violet);border-radius:12px;padding:14px;margin:10px 0 4px}
+.note .nt{font-size:11px;font-weight:700;color:var(--violet);margin-bottom:6px}
+.note p{font-size:13px;line-height:1.6;color:var(--mid)}
+.note b{color:var(--ink)}
+.tiny{font-size:11.5px;color:var(--faint);text-align:center;margin-top:10px}
+
+
+.sec{display:block}
+.idx{display:none}
+@media(min-width:700px){
+  body{padding:26px 22px 70px}
+  .wrap{display:grid;grid-template-columns:206px minmax(0,1fr);gap:30px;
+        max-width:1180px;margin:0 auto;align-items:start}
+  .page{max-width:none;margin:0;padding:0}
+  .idx{display:block;position:sticky;top:26px;background:var(--card);
+       border-radius:16px;padding:16px 12px}
+  .idx h4{font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:var(--faint);
+          margin:0 0 10px 10px;letter-spacing:.05em}
+  .idx a{display:block;padding:9px 10px;border-radius:9px;font-size:12.5px;font-weight:700;
+         color:var(--mid);text-decoration:none;margin-bottom:2px;line-height:1.3}
+  .idx a.on{background:var(--ink);color:#fff}
+  .head{padding-top:0}
+  .head h1{font-size:34px}
+  .head p{max-width:64ch}
+  .sec{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+       gap:0 20px;align-items:start;margin-bottom:14px}
+  .sec > .tag,.sec > .tag-note{grid-column:1/-1}
+  .sec > .tag-note{max-width:70ch}
+  .sec > *{min-width:0}
+}
+@media(min-width:1180px){
+  .wrap{grid-template-columns:220px minmax(0,1fr);max-width:1440px;gap:36px}
+  .sec:has(> .note){grid-template-columns:repeat(2,minmax(270px,1fr)) 268px}
+  .sec:has(> .note) > .note{grid-column:3;grid-row:2/span 40;align-self:start;margin-top:0}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="idx" id="idx"><h4>SECCIONES</h4></nav>
+<div class="page">
+
+  <div class="head">
+    <h1>Primer uso</h1>
+    <p>Ocho pantallas de cero a tu primer gasto registrado: seis de configuración y dos de arranque. Ninguna pide algo que no se use de inmediato.</p>
+  </div>
+
+  <!-- 1 -->
+    <section class="sec"><span class="tag">1 · Bienvenida</span>
+  <p class="tag-note">Una promesa, no un recorrido de funciones. Nadie recuerda un tour; todos recuerdan para qué sirve.</p>
+
+  <div class="scr dark">
+    <div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div style="font-size:40px;margin-bottom:14px">💰</div>
+    <div class="q" style="font-size:27px">Sabe si vas a pasarte<br>antes de que pase</div>
+    <p class="sub">Registras en segundos. La app te dice cuánto puedes gastar hoy para cerrar el mes como quieres.</p>
+    <button class="btn white">Empezar</button>
+    <p class="tiny" style="color:#8990AC">Toma 2 minutos</p>
+  </div>
+
+  <!-- 2 -->
+  </section>
+  <section class="sec"><span class="tag">2 · Entrar</span>
+  <p class="tag-note">Sin formularios ni contraseñas nuevas. Dos opciones y listo.</p>
+
+  <div class="scr">
+    <div class="dots"><i></i><i class="on"></i><i></i><i></i><i></i><i></i></div>
+    <div class="q">Guarda todo en la nube</div>
+    <p class="sub">Para que no pierdas nada si cambias de teléfono.</p>
+    <button class="btn black"> Continuar con Apple</button>
+    <button class="btn ghost" style="background:var(--bg);color:var(--ink);font-size:15px;font-weight:700;padding:16px">Continuar con Google</button>
+  </div>
+
+  <!-- 3 -->
+  </section>
+  <section class="sec"><span class="tag">3 · Tu mes</span>
+  <p class="tag-note">La pregunta que casi ninguna app hace, y es la que hace que las cifras cuadren con el estado de cuenta.</p>
+
+  <div class="scr">
+    <div class="dots"><i></i><i></i><i class="on"></i><i></i><i></i><i></i></div>
+    <div class="q">¿Cuándo empieza tu mes?</div>
+    <p class="sub">Si llevas tus gastos con la tarjeta, conviene usar tu fecha de corte.</p>
+    <div class="opt on">
+      <span class="oe">💳</span>
+      <span class="ob"><span class="ot">Mi corte de tarjeta</span><span class="od">del 12 al 11</span></span>
+      <span class="ck">✓</span>
+    </div>
+    <div class="opt">
+      <span class="oe">📅</span>
+      <span class="ob"><span class="ot">Mes natural</span><span class="od">del 1 al 30</span></span>
+    </div>
+    <div class="opt">
+      <span class="oe">⚙️</span>
+      <span class="ob"><span class="ot">Otro día</span><span class="od">yo lo elijo</span></span>
+    </div>
+    <button class="btn primary">Siguiente</button>
+  </div>
+
+  <!-- 4 -->
+  </section>
+  <section class="sec"><span class="tag">4 · Tu meta</span>
+  <p class="tag-note">Aquí está el giro: en vez de pedirte presupuestos, te pregunta cuánto quieres guardar. El presupuesto sale solo.</p>
+
+  <div class="scr">
+    <div class="dots"><i></i><i></i><i></i><i class="on"></i><i></i><i></i></div>
+    <div class="q">¿Cuánto quieres apartar?</div>
+    <p class="sub">De lo que entra al mes, ¿cuánto no quieres tocar?</p>
+    <div class="sl">
+      <div class="sl-v">$34,800</div>
+      <div class="sl-c">40% de tus ingresos</div>
+      <div class="sl-t"><i style="width:40%"></i><b style="left:40%"></b></div>
+      <div class="sl-e"><span>0%</span><span>70%</span></div>
+    </div>
+    <div class="split">
+      <div class="sp"><div class="l">Para apartar</div><div class="v" style="color:var(--green)">$34,800</div></div>
+      <div class="sp"><div class="l">Para gastar</div><div class="v">$52,200</div></div>
+    </div>
+    <button class="btn primary" style="margin-top:16px">Siguiente</button>
+    <p class="tiny">Lo puedes cambiar cuando quieras</p>
+  </div>
+
+  <div class="note">
+    <div class="nt">POR QUÉ ESTE ORDEN</div>
+    <p>Pedir 20 presupuestos de arranque es donde la gente abandona. <b>Aquí se pregunta una sola cosa</b> y de ahí se reparte todo lo demás.</p>
+    <p style="margin-top:8px">Además arranca con la meta, no con la restricción: lo que se guarda es el protagonista, no lo que se recorta.</p>
+  </div>
+
+  <!-- 5 -->
+  </section>
+  <section class="sec"><span class="tag">5 · Categorías y presupuestos</span>
+  <p class="tag-note">Ya vienen propuestos a partir de tu meta. Se ajusta lo que haga falta y el resto se afina con el uso.</p>
+
+  <div class="scr">
+    <div class="dots"><i></i><i></i><i></i><i></i><i class="on"></i><i></i></div>
+    <div class="q">¿En qué se te va?</div>
+    <p class="sub">Elige las que uses. Marca cuáles son <b>fijas</b>: esas no se pronostican.</p>
+    <div class="cats">
+      <div class="ct on">🏠 Vivienda</div>
+      <div class="ct on">🛒 Súper</div>
+      <div class="ct on">🍿 Salidas</div>
+      <div class="ct on">🚗 Auto</div>
+      <div class="ct on">💊 Salud</div>
+      <div class="ct">👶 Hijos</div>
+      <div class="ct">🏋️ Gimnasio</div>
+      <div class="ct">🎵 Suscripciones</div>
+      <div class="ct">＋ Otra</div>
+    </div>
+
+    <div style="margin-top:20px">
+      <div class="pr"><span class="pr-l">🏠 Vivienda</span><span class="tg fijo">Fijo</span><span class="pr-v">$15,700</span></div>
+      <div class="pr"><span class="pr-l">🛒 Súper</span><span class="tg">Varía</span><span class="pr-v">$13,000</span></div>
+      <div class="pr"><span class="pr-l">🍿 Salidas</span><span class="tg">Varía</span><span class="pr-v">$10,400</span></div>
+      <div class="pr"><span class="pr-l">🚗 Auto</span><span class="tg">Varía</span><span class="pr-v">$7,800</span></div>
+      <div class="pr"><span class="pr-l">💊 Salud</span><span class="tg">Varía</span><span class="pr-v">$5,300</span></div>
+      <div class="tot"><span class="l">Total presupuestado</span><span class="v">$52,200</span></div>
+    </div>
+    <button class="btn primary" style="margin-top:14px">Siguiente</button>
+  </div>
+
+  <div class="note">
+    <div class="nt">DETALLE QUE EVITA UN ERROR CLÁSICO</div>
+    <p>El total <b>siempre está a la vista</b> mientras editas, y cuadra con lo que dijiste que querías gastar. Subir una categoría sin ver el efecto en el total es cómo se desarma un presupuesto sin darse cuenta.</p>
+    <p style="margin-top:8px">Las <b>fijas</b> se respetan tal cual y solo el sobrante se reparte entre las variables. Si las fijas se comen todo el disponible, se bloquea y se dice cuánto falta.</p>
+  </div>
+
+  <!-- 6 -->
+  </section>
+  <section class="sec"><span class="tag">6 · ¿Ya llevas control?</span>
+  <p class="tag-note">Opcional y salteable. Quien tiene historial arranca con pronóstico desde el día uno; quien no, empieza igual.</p>
+
+  <div class="scr">
+    <div class="dots"><i></i><i></i><i></i><i></i><i></i><i class="on"></i></div>
+    <div class="q">¿Traes historial?</div>
+    <p class="sub">Si ya llevas tus gastos en algún lado, los traemos y el pronóstico arranca afinado.</p>
+    <div class="imp">
+      <span class="ie">📊</span>
+      <span><span class="it">Subir un Excel o CSV</span><span class="id">Te digo si algo no cuadra antes de guardarlo</span></span>
+    </div>
+    <div class="imp">
+      <span class="ie">✨</span>
+      <span><span class="it">Empezar de cero</span><span class="id">El pronóstico se afina en 2 o 3 meses</span></span>
+    </div>
+    <button class="btn ghost">Ahora no, gracias</button>
+  </div>
+
+  <!-- 7 -->
+  </section>
+  <section class="sec"><span class="tag">7 · Tu primer gasto</span>
+  <p class="tag-note">Antes de soltar al usuario. Si sale del onboarding sin registrar uno, probablemente no vuelva.</p>
+
+  <div class="scr">
+    <div class="q" style="font-size:21px">Va el primero 👇</div>
+    <p class="sub">Algo que hayas gastado hoy. Lo que sea.</p>
+    <div class="amt"><div class="v">$480</div></div>
+    <div class="quick">
+      <div class="qb on">🛒 Súper</div>
+      <div class="qb">🍿 Salidas</div>
+      <div class="qb">🚗 Auto</div>
+      <div class="qb">💊 Salud</div>
+    </div>
+    <div class="keys">
+      <div class="key">1</div><div class="key">2</div><div class="key">3</div>
+      <div class="key">4</div><div class="key">5</div><div class="key">6</div>
+      <div class="key">7</div><div class="key">8</div><div class="key">9</div>
+      <div class="key">📷</div><div class="key">0</div><div class="key">🎙️</div>
+    </div>
+    <button class="btn primary" style="margin-top:12px">Listo</button>
+  </div>
+
+  <!-- 8 -->
+  </section>
+  <section class="sec"><span class="tag">8 · Lo único que hay que aprender</span>
+  <p class="tag-note">Se enseña una sola vez, con el gasto que el usuario acaba de registrar. No con un ejemplo inventado.</p>
+
+  <div class="scr dark">
+    <div class="ring">✓</div>
+    <div class="q" style="text-align:center">Listo, ya estás</div>
+    <p class="sub" style="text-align:center">Esto es lo único que necesitas entender:</p>
+
+    <div class="lane">
+      <div class="lane-l" style="left:55%">hoy toca ir aquí</div>
+      <div class="lane-t"></div>
+      <div class="lane-f" style="width:4%"></div>
+      <div class="lane-m" style="left:55%"></div>
+    </div>
+    <p class="sub" style="text-align:center;margin-top:4px">
+      Si tu barra <b style="color:#fff">no llega</b> a la línea, vas bien.<br>
+      Si la <b style="color:#fff">rebasa</b>, vas rápido y te aviso.
+    </p>
+    <button class="btn white" style="margin-top:8px">Entendido</button>
+  </div>
+
+  <div class="note">
+    <div class="nt">PERMISOS</div>
+    <p>El onboarding <b>no pide micrófono, cámara ni notificaciones.</b> Cada permiso se pide en el momento en que se va a usar por primera vez — al tocar el micrófono, al abrir la cámara.</p>
+    <p style="margin-top:8px">Pedirlos de golpe al inicio es la causa número uno de que la gente los niegue, y una app de gastos sin notificaciones pierde la mitad de su valor.</p>
+  </div>
+
+  <div class="note">
+    <div class="nt">LO QUE NO ESTÁ, A PROPÓSITO</div>
+    <p><b>No se pide el ingreso como dato obligatorio</b> ni se explica qué es un ciclo, ni hay tour de funciones. Todo lo que no se use en los siguientes 30 segundos, se pregunta después o se aprende usando.</p>
+  </div>
+
+  </section>
+  <section class="sec"><span class="tag">Siguiente</span>
+  <p class="tag-note" style="margin-bottom:40px">Cierre de ciclo: el resumen del mes y cómo se abre el siguiente.</p>
+
+</section>
+</div>
+</div>
+
+<div id="vw" style="position:fixed;right:10px;bottom:10px;z-index:99;background:#1A1B3A;color:#fff;
+ font:700 11px/1 'Plus Jakarta Sans',sans-serif;padding:8px 11px;border-radius:99px;opacity:.9"></div>
+<script>
+(function(){
+  // índice lateral generado desde las secciones (solo aparece en pantalla ancha)
+  var secs=[].slice.call(document.querySelectorAll('.sec')),
+      idx=document.getElementById('idx'), links=[];
+  secs.forEach(function(s,i){
+    var t=s.querySelector('.tag'); if(!t) return;
+    s.id='s'+i;
+    var a=document.createElement('a');
+    a.href='#s'+i; a.textContent=t.textContent; a.dataset.i=i;
+    a.onclick=function(e){e.preventDefault();s.scrollIntoView({behavior:'smooth',block:'start'});};
+    idx.appendChild(a); links.push(a);
+  });
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(l){l.classList.remove('on');});
+          var m=links.filter(function(l){return 's'+l.dataset.i===en.target.id;})[0];
+          if(m) m.classList.add('on');
+        }
+      });
+    },{rootMargin:'-10% 0px -75% 0px'});
+    secs.forEach(function(s){io.observe(s);});
+  }
+  // medidor de layout
+  var e=document.getElementById('vw');
+  function u(){var w=Math.round(document.documentElement.clientWidth);
+    e.textContent=w+'px · '+(w>=1180?'3 zonas':w>=700?'2 zonas':'teléfono');}
+  u();addEventListener('resize',u);
+  addEventListener('orientationchange',function(){setTimeout(u,300);});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockups v4 — Dictado por voz</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4FA;--card:#FFF;--ink:#1A1B3A;--mid:#6B6F8D;--faint:#9AA0B8;--line:#E7E9F2;
+  --violet:#5B4BE8;--violet-soft:#EAE7FD;--green:#12B76A;--green-soft:#DCF6EA;
+  --amber:#F5A524;--amber-soft:#FDF0D8;--coral:#F4623A;--coral-soft:#FDE5DC;--r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+ font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+ -webkit-font-smoothing:antialiased;padding:0 0 60px}
+.page{max-width:430px;margin:0 auto;padding:0 16px}
+h1{font-family:'Outfit'}
+.head{padding:34px 0 4px}
+.head h1{font-size:29px;font-weight:800;line-height:1.15;letter-spacing:-.02em}
+.head p{font-size:14.5px;color:var(--mid);line-height:1.6;margin-top:11px}
+.tag{display:inline-block;margin:38px 0 6px;padding:5px 12px;border-radius:99px;
+ background:var(--ink);color:#fff;font-size:11px;font-weight:700}
+.tag-note{font-size:13px;color:var(--mid);line-height:1.55;margin-bottom:14px}
+.card{background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:12px}
+.card.tint-v{background:var(--violet-soft)}
+.card.tint-g{background:var(--green-soft)}
+.card.tint-a{background:var(--amber-soft)}
+.card.dark{background:var(--ink);color:#fff}
+.kicker{font-size:12px;font-weight:700;color:var(--mid);margin-bottom:8px}
+.big{font-family:'Outfit';font-weight:800;font-size:34px;line-height:1.1;letter-spacing:-.025em}
+.lead{font-size:15px;line-height:1.55;color:var(--mid)}
+.lead b{color:var(--ink);font-weight:700}
+.small{font-size:13px;line-height:1.5;color:var(--mid)}
+.tiny{font-size:11.5px;color:var(--faint)}
+
+/* ---- escuchando ---- */
+.mic-wrap{text-align:center;padding:22px 0 8px}
+.mic{width:82px;height:82px;border-radius:50%;background:var(--violet);color:#fff;
+ display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 16px;
+ box-shadow:0 0 0 10px rgba(91,75,232,.16),0 0 0 22px rgba(91,75,232,.07)}
+.wave{display:flex;align-items:center;justify-content:center;gap:4px;height:34px;margin-bottom:14px}
+.wave i{width:4px;border-radius:99px;background:var(--violet);display:block}
+.trans{background:var(--card);border-radius:14px;padding:16px;font-size:16px;line-height:1.6;
+ text-align:left;font-weight:500}
+.trans .done{color:var(--ink)}
+.trans .live{color:var(--faint)}
+.hint{font-size:12.5px;color:var(--faint);text-align:center;margin-top:12px;font-weight:600}
+
+/* ---- resultado ---- */
+.gcard{background:var(--card);border-radius:15px;padding:14px;margin-bottom:9px;
+ display:flex;align-items:center;gap:12px}
+.gcard.warn{background:var(--amber-soft)}
+.g-e{width:40px;height:40px;border-radius:12px;flex:none;display:flex;align-items:center;
+ justify-content:center;font-size:19px;background:var(--bg)}
+.gcard.warn .g-e{background:#fff}
+.g-b{flex:1;min-width:0}
+.g-n{font-size:14.5px;font-weight:700}
+.g-s{font-size:12px;color:var(--faint);font-weight:600;margin-top:2px;display:flex;gap:6px;flex-wrap:wrap}
+.g-s em{font-style:normal;background:var(--bg);padding:2px 7px;border-radius:6px}
+.gcard.warn .g-s em{background:#fff}
+.g-v{font-family:'Outfit';font-weight:700;font-size:17px;white-space:nowrap}
+.sumrow{display:flex;justify-content:space-between;align-items:center;padding:14px 4px 4px}
+.sumrow .l{font-size:13.5px;font-weight:700;color:var(--mid)}
+.sumrow .v{font-family:'Outfit';font-weight:800;font-size:20px}
+
+.ask{background:var(--card);border-radius:13px;padding:14px;margin-top:8px}
+.ask-q{font-size:13.5px;font-weight:700;margin-bottom:11px}
+.ask-o{display:flex;gap:8px}
+.ask-o div{flex:1;background:var(--bg);border-radius:11px;padding:12px;text-align:center;
+ font-size:13.5px;font-weight:700}
+.ask-o div.on{background:var(--violet);color:#fff}
+
+.btn{display:block;width:100%;padding:16px;border-radius:14px;text-align:center;
+ font-weight:700;font-size:15px;border:0}
+.btn.primary{background:var(--violet);color:#fff}
+.btn.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--line)}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ---- confirmación ---- */
+.cel{text-align:center;padding:6px 0}
+.cel .ring{width:72px;height:72px;border-radius:50%;background:var(--green);color:#fff;
+ display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 14px}
+.impact{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(0,0,0,.07)}
+.impact:last-child{border-bottom:0}
+.impact .l{font-size:13.5px;font-weight:600;color:#0A7A47}
+.impact .v{font-family:'Outfit';font-weight:700;font-size:14.5px;color:#0A7A47}
+
+/* ---- ejemplos ---- */
+.ex{background:var(--card);border-radius:13px;padding:13px 15px;margin-bottom:8px;
+ font-size:14px;line-height:1.5;font-weight:500}
+.ex b{color:var(--violet);font-weight:700}
+
+/* ---- límites ---- */
+.lim{display:flex;gap:11px;padding:13px 0;border-bottom:1px solid var(--line)}
+.lim:last-child{border-bottom:0}
+.lim-i{width:26px;flex:none;font-size:16px;text-align:center}
+.lim-b .t{font-size:13.5px;font-weight:700;margin-bottom:3px}
+.lim-b .d{font-size:12.5px;color:var(--mid);line-height:1.5}
+
+.note{background:#fff;border-left:4px solid var(--violet);border-radius:12px;padding:14px;margin:10px 0 4px}
+.note .nt{font-size:11px;font-weight:700;color:var(--violet);margin-bottom:6px}
+.note p{font-size:13px;line-height:1.6;color:var(--mid)}
+.note b{color:var(--ink)}
+
+
+.sec{display:block}
+.idx{display:none}
+@media(min-width:700px){
+  body{padding:26px 22px 70px}
+  .wrap{display:grid;grid-template-columns:206px minmax(0,1fr);gap:30px;
+        max-width:1180px;margin:0 auto;align-items:start}
+  .page{max-width:none;margin:0;padding:0}
+  .idx{display:block;position:sticky;top:26px;background:var(--card);
+       border-radius:16px;padding:16px 12px}
+  .idx h4{font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:var(--faint);
+          margin:0 0 10px 10px;letter-spacing:.05em}
+  .idx a{display:block;padding:9px 10px;border-radius:9px;font-size:12.5px;font-weight:700;
+         color:var(--mid);text-decoration:none;margin-bottom:2px;line-height:1.3}
+  .idx a.on{background:var(--ink);color:#fff}
+  .head{padding-top:0}
+  .head h1{font-size:34px}
+  .head p{max-width:64ch}
+  .sec{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+       gap:0 20px;align-items:start;margin-bottom:14px}
+  .sec > .tag,.sec > .tag-note{grid-column:1/-1}
+  .sec > .tag-note{max-width:70ch}
+  .sec > *{min-width:0}
+}
+@media(min-width:1180px){
+  .wrap{grid-template-columns:220px minmax(0,1fr);max-width:1440px;gap:36px}
+  .sec:has(> .note){grid-template-columns:repeat(2,minmax(270px,1fr)) 268px}
+  .sec:has(> .note) > .note{grid-column:3;grid-row:2/span 40;align-self:start;margin-top:0}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="idx" id="idx"><h4>SECCIONES</h4></nav>
+<div class="page">
+
+  <div class="head">
+    <h1>Dictado por voz</h1>
+    <p>Un solo dictado, varios gastos. Hablas normal, la app separa cada uno y tú solo confirmas.</p>
+  </div>
+
+  <!-- ===== 1 ===== -->
+    <section class="sec"><span class="tag">1 · Hablando</span>
+  <p class="tag-note">La transcripción se ve mientras hablas. Si el teléfono entendió mal un monto, lo cachas ahí mismo — no después.</p>
+
+  <div class="card">
+    <div class="mic-wrap">
+      <div class="mic">🎙️</div>
+      <div class="wave">
+        <i style="height:12px"></i><i style="height:24px"></i><i style="height:32px"></i>
+        <i style="height:18px"></i><i style="height:28px"></i><i style="height:14px"></i>
+        <i style="height:26px"></i><i style="height:20px"></i><i style="height:10px"></i>
+      </div>
+      <div class="trans">
+        <span class="done">Gasté 480 de súper con tarjeta, 200 de estacionamiento en efectivo</span>
+        <span class="live"> y mil doscientos de cena ayer…</span>
+      </div>
+      <div class="hint">Se detiene sola al terminar · o toca para parar</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="nt">DECISIÓN CLAVE</div>
+    <p>La transcripción corre <b>en tu iPhone</b>, no en la nube. Es instantánea, funciona sin señal y el audio nunca sale del teléfono.</p>
+  </div>
+
+  <!-- ===== 2 ===== -->
+  </section>
+  <section class="sec"><span class="tag">2 · Lo que entendió</span>
+  <p class="tag-note">Tres gastos de un solo dictado. Todo ya viene lleno; tocas cualquier campo si algo no cuadra.</p>
+
+  <div class="gcard">
+    <div class="g-e">🛒</div>
+    <div class="g-b">
+      <div class="g-n">Súper</div>
+      <div class="g-s"><em>Tarjeta</em><em>Hoy</em></div>
+    </div>
+    <div class="g-v">$480</div>
+  </div>
+
+  <div class="gcard">
+    <div class="g-e">🚗</div>
+    <div class="g-b">
+      <div class="g-n">Estacionamiento</div>
+      <div class="g-s"><em>Auto</em><em>Efectivo</em><em>Hoy</em></div>
+    </div>
+    <div class="g-v">$200</div>
+  </div>
+
+  <div class="gcard">
+    <div class="g-e">🍿</div>
+    <div class="g-b">
+      <div class="g-n">Cena</div>
+      <div class="g-s"><em>Salidas</em><em>Tarjeta</em><em>Ayer, 27 jul</em></div>
+    </div>
+    <div class="g-v">$1,200</div>
+  </div>
+
+  <div class="sumrow">
+    <span class="l">3 gastos</span>
+    <span class="v">$1,880</span>
+  </div>
+
+  <button class="btn primary" style="margin-top:6px">Registrar los 3</button>
+  <p class="tiny" style="text-align:center;margin-top:9px">Se guardan de inmediato · sin bandeja de pendientes</p>
+
+  <div class="note">
+    <div class="nt">POR QUÉ NO HAY "PENDIENTES"</div>
+    <p>Lo que tú dictas <b>entra directo</b>. La confirmación pasa aquí, en el mismo momento, no en una lista que hay que limpiar después.</p>
+    <p style="margin-top:8px">Solo pide confirmación lo que <b>la app inventó sola</b>: los gastos fijos que genera al abrir el ciclo. Eso sí no lo escribiste tú.</p>
+  </div>
+
+  <!-- ===== 3 ===== -->
+  </section>
+  <section class="sec"><span class="tag">3 · Cuando algo no queda claro</span>
+  <p class="tag-note">No se guarda mal ni se manda a revisar después. Se pregunta ahí, con dos opciones y un tap.</p>
+
+  <div class="gcard warn">
+    <div class="g-e">❓</div>
+    <div class="g-b">
+      <div class="g-n">"500 de la comida"</div>
+      <div class="g-s"><em>Tarjeta</em><em>Hoy</em></div>
+    </div>
+    <div class="g-v">$500</div>
+  </div>
+
+  <div class="ask">
+    <div class="ask-q">¿La comida fue despensa o salida?</div>
+    <div class="ask-o">
+      <div class="on">🛒 Súper</div>
+      <div>🍿 Salidas</div>
+    </div>
+    <p class="tiny" style="margin-top:11px">La próxima vez que digas "comida" ya no te pregunto.</p>
+  </div>
+
+  <div class="note">
+    <div class="nt">APRENDE DE TI</div>
+    <p>Cada vez que resuelves una ambigüedad, la app guarda la regla. <b>Las preguntas bajan mes con mes</b> hasta desaparecer casi por completo.</p>
+  </div>
+
+  <!-- ===== 4 ===== -->
+  </section>
+  <section class="sec"><span class="tag">4 · Listo</span>
+  <p class="tag-note">La confirmación no dice "guardado". Dice qué cambió para ti.</p>
+
+  <div class="card tint-g">
+    <div class="cel">
+      <div class="ring">✓</div>
+      <div style="font-family:'Outfit';font-weight:800;font-size:20px">3 gastos registrados</div>
+      <p class="small" style="color:#0A7A47;margin:7px 0 14px">Van 13 días seguidos 🔥</p>
+    </div>
+    <div class="impact"><span class="l">🛒 Súper</span><span class="v">te quedan $2,546</span></div>
+    <div class="impact"><span class="l">🚗 Auto</span><span class="v">$1,680 arriba del tope</span></div>
+    <div class="impact"><span class="l">🍿 Salidas</span><span class="v">$3,131 arriba del tope</span></div>
+  </div>
+
+  <!-- ===== 5 ===== -->
+  </section>
+  <section class="sec"><span class="tag">5 · Qué le puedes decir</span>
+  <p class="tag-note">Se muestra la primera vez y queda en el micrófono con un "¿qué puedo decir?".</p>
+
+  <div class="ex">"<b>480 de súper</b> con tarjeta"</div>
+  <div class="ex">"<b>100 de gasolina, 250 de terapia y 30 de café</b>"</div>
+  <div class="ex">"<b>mil doscientos</b> de cena <b>ayer</b>"</div>
+  <div class="ex">"<b>3 mil 132</b> del servicio del coche"</div>
+  <div class="ex">"pagué <b>700 al pediatra</b> en efectivo"</div>
+  <div class="ex">"<b>200 en pañales</b> para Victoria"</div>
+
+  <!-- ===== 6 ===== -->
+  </section>
+  <section class="sec"><span class="tag">6 · Lo que todavía se le atora</span>
+  <p class="tag-note">Probé el motor con 15 frases reales. Acierta 13. Estas son las dos que falla y cómo lo resuelve la app.</p>
+
+  <div class="card">
+    <div class="lim">
+      <div class="lim-i">🔢</div>
+      <div class="lim-b">
+        <div class="t">Centavos hablados</div>
+        <div class="d">"cuarenta y ocho cincuenta" lo entiende como $98, no $48.50. <b>Solución:</b> el dictado captura pesos completos. Los centavos entran solos cuando el monto viene en dígitos o del ticket.</div>
+      </div>
+    </div>
+    <div class="lim">
+      <div class="lim-i">✖️</div>
+      <div class="lim-b">
+        <div class="t">Cantidad por precio</div>
+        <div class="d">"doce tacos de treinta pesos" detecta dos montos, no la multiplicación. <b>Solución:</b> te muestra los dos y te deja corregir con un tap, en lugar de adivinar y guardar $360 mal.</div>
+      </div>
+    </div>
+    <div class="lim">
+      <div class="lim-i">🔁</div>
+      <div class="lim-b">
+        <div class="t">Doble registro</div>
+        <div class="d">Si tocas "Registrar" dos veces o se corta la red a media escritura, no se duplica: cada gasto lleva una llave única desde tu teléfono.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="nt">EL CRITERIO</div>
+    <p>Ante la duda, la app <b>pregunta en el momento</b> en vez de adivinar. Un gasto mal clasificado que se guarda callado envenena el pronóstico y nadie se entera hasta que las cifras dejan de cuadrar.</p>
+  </div>
+
+  </section>
+  <section class="sec"><span class="tag">Siguiente</span>
+  <p class="tag-note" style="margin-bottom:40px">Onboarding de primer uso: de cero a tu primer gasto registrado.</p>
+
+</section>
+</div>
+</div>
+
+<div id="vw" style="position:fixed;right:10px;bottom:10px;z-index:99;background:#1A1B3A;color:#fff;
+ font:700 11px/1 'Plus Jakarta Sans',sans-serif;padding:8px 11px;border-radius:99px;opacity:.9"></div>
+<script>
+(function(){
+  // índice lateral generado desde las secciones (solo aparece en pantalla ancha)
+  var secs=[].slice.call(document.querySelectorAll('.sec')),
+      idx=document.getElementById('idx'), links=[];
+  secs.forEach(function(s,i){
+    var t=s.querySelector('.tag'); if(!t) return;
+    s.id='s'+i;
+    var a=document.createElement('a');
+    a.href='#s'+i; a.textContent=t.textContent; a.dataset.i=i;
+    a.onclick=function(e){e.preventDefault();s.scrollIntoView({behavior:'smooth',block:'start'});};
+    idx.appendChild(a); links.push(a);
+  });
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(l){l.classList.remove('on');});
+          var m=links.filter(function(l){return 's'+l.dataset.i===en.target.id;})[0];
+          if(m) m.classList.add('on');
+        }
+      });
+    },{rootMargin:'-10% 0px -75% 0px'});
+    secs.forEach(function(s){io.observe(s);});
+  }
+  // medidor de layout
+  var e=document.getElementById('vw');
+  function u(){var w=Math.round(document.documentElement.clientWidth);
+    e.textContent=w+'px · '+(w>=1180?'3 zonas':w>=700?'2 zonas':'teléfono');}
+  u();addEventListener('resize',u);
+  addEventListener('orientationchange',function(){setTimeout(u,300);});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockups v11 — Ingresos y ajustes</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4FA;--card:#FFF;--ink:#1A1B3A;--mid:#6B6F8D;--faint:#9AA0B8;--line:#E7E9F2;
+  --violet:#5B4BE8;--violet-soft:#EAE7FD;--green:#12B76A;--green-soft:#DCF6EA;
+  --amber:#F5A524;--amber-soft:#FDF0D8;--coral:#F4623A;--coral-soft:#FDE5DC;
+  --steel:#3D5A80;--steel-soft:#E4EAF2;--r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+ font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+ -webkit-font-smoothing:antialiased;padding:0 0 60px}
+.page{max-width:430px;margin:0 auto;padding:0 16px}
+h1{font-family:'Outfit'}
+.head{padding:34px 0 4px}
+.head h1{font-size:29px;font-weight:800;line-height:1.15;letter-spacing:-.02em}
+.head p{font-size:14.5px;color:var(--mid);line-height:1.6;margin-top:11px}
+.tag{display:inline-block;margin:38px 0 6px;padding:5px 12px;border-radius:99px;
+ background:var(--ink);color:#fff;font-size:11px;font-weight:700}
+.tag-note{font-size:13px;color:var(--mid);line-height:1.55;margin-bottom:14px}
+.card{background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:12px}
+.card.tint-v{background:var(--violet-soft)}
+.card.tint-g{background:var(--green-soft)}
+.card.tint-a{background:var(--amber-soft)}
+.card.tint-c{background:var(--coral-soft)}
+.card.tint-s{background:var(--steel-soft)}
+.card.dark{background:var(--ink);color:#fff}
+.kicker{font-size:12px;font-weight:700;color:var(--mid);margin-bottom:8px}
+.big{font-family:'Outfit';font-weight:800;font-size:34px;line-height:1.1;letter-spacing:-.025em}
+.mega{font-family:'Outfit';font-weight:800;font-size:48px;line-height:1;letter-spacing:-.03em}
+.lead{font-size:15px;line-height:1.55;color:var(--mid)}
+.lead b{color:var(--ink);font-weight:700}
+.small{font-size:13px;line-height:1.5;color:var(--mid)}
+.tiny{font-size:11.5px;color:var(--faint)}
+.kv{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.kv:last-child{border-bottom:0}
+.kv .k{font-size:13.5px;font-weight:600;color:var(--mid)}
+.kv .val{font-family:'Outfit';font-weight:700;font-size:15px}
+.btn{display:block;width:100%;padding:16px;border-radius:14px;text-align:center;
+ font-weight:700;font-size:15px;border:0;margin-top:8px}
+.btn.primary{background:var(--violet);color:#fff}
+.btn.grey{background:var(--bg);color:var(--ink)}
+.btn.white{background:#fff;color:var(--ink)}
+.btn.dark{background:var(--ink);color:#fff}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.alert{border-radius:13px;padding:14px;margin-top:10px;font-size:13.5px;line-height:1.55}
+.alert.warn{background:var(--amber-soft);color:#8A5A05}
+.alert.ok{background:var(--green-soft);color:#0A7A47}
+.alert.bad{background:var(--coral-soft);color:#8A3A1C}
+.alert.info{background:var(--steel-soft);color:#2C4460}
+.alert b{font-weight:800}
+.note{background:#fff;border-left:4px solid var(--violet);border-radius:12px;padding:14px;margin:10px 0 4px}
+.note .nt{font-size:11px;font-weight:700;color:var(--violet);margin-bottom:6px}
+.note p{font-size:13px;line-height:1.6;color:var(--mid)}
+.note b{color:var(--ink)}
+.bar{height:8px;border-radius:99px;background:#EDEFF6;position:relative;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;display:block}
+.bar-g{background:var(--green)}
+.bar-a{background:var(--amber)}
+.bar-c{background:var(--coral)}
+.bar-v{background:var(--violet)}
+.row{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line)}
+.row:last-of-type{border-bottom:0}
+.row-e{width:38px;height:38px;border-radius:12px;flex:none;display:flex;align-items:center;
+ justify-content:center;font-size:18px;background:var(--bg)}
+.row-b{flex:1;min-width:0}
+.row-n{font-size:14.5px;font-weight:700}
+.row-s{font-size:12px;color:var(--faint);font-weight:600;margin-top:2px}
+.row-v{font-family:'Outfit';font-weight:700;font-size:15.5px;text-align:right;white-space:nowrap}
+.empty{text-align:center;padding:26px 12px}
+.empty .ico{font-size:42px;margin-bottom:14px}
+.empty h3{font-family:'Outfit';font-weight:800;font-size:19px;margin-bottom:8px}
+.empty p{font-size:14px;line-height:1.6;color:var(--mid);max-width:34ch;margin:0 auto}
+
+.set{background:var(--card);border-radius:14px;overflow:hidden;margin-bottom:12px}
+.si{display:flex;align-items:center;gap:12px;padding:14px 15px;border-bottom:1px solid var(--line)}
+.si:last-child{border-bottom:0}
+.si-e{width:30px;flex:none;font-size:17px;text-align:center}
+.si-b{flex:1;min-width:0}
+.si-t{font-size:14px;font-weight:700}
+.si-d{font-size:12px;color:var(--faint);font-weight:600;margin-top:2px}
+.si-v{font-size:13px;font-weight:700;color:var(--mid);white-space:nowrap}
+.si-v.go::after{content:' ›';color:var(--faint)}
+.sw{width:44px;height:26px;border-radius:99px;background:var(--line);position:relative;flex:none}
+.sw.on{background:var(--green)}
+.sw i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;display:block}
+.sw.on i{left:21px}
+.set-h{font-size:11.5px;font-weight:800;color:var(--faint);margin:18px 0 8px 4px;letter-spacing:.04em}
+.opt3{background:var(--card);border-radius:13px;padding:15px;margin-bottom:9px}
+.opt3.on{background:var(--violet-soft);border:2px solid var(--violet)}
+.opt3 .t{font-size:14px;font-weight:800;margin-bottom:5px}
+.opt3 .d{font-size:12.5px;line-height:1.55;color:var(--mid)}
+.opt3 .c{font-family:'Outfit';font-weight:700;font-size:13px;color:var(--violet);margin-top:8px;display:block}
+.money{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;
+ background:var(--bg);border-radius:12px;margin-bottom:8px}
+.money .k{font-size:13px;font-weight:700;color:var(--mid)}
+.money .v{font-family:'Outfit';font-weight:700;font-size:16px}
+.money.tot{background:var(--ink);color:#fff}
+.money.tot .k{color:#B4BACF}
+.danger{color:var(--coral)!important}
+.sec{display:block}
+.idx{display:none}
+@media(min-width:700px){
+  body{padding:26px 22px 70px}
+  .wrap{display:grid;grid-template-columns:206px minmax(0,1fr);gap:30px;
+        max-width:1180px;margin:0 auto;align-items:start}
+  .page{max-width:none;margin:0;padding:0}
+  .idx{display:block;position:sticky;top:26px;background:var(--card);
+       border-radius:16px;padding:16px 12px}
+  .idx h4{font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:var(--faint);
+          margin:0 0 10px 10px;letter-spacing:.05em}
+  .idx a{display:block;padding:9px 10px;border-radius:9px;font-size:12.5px;font-weight:700;
+         color:var(--mid);text-decoration:none;margin-bottom:2px;line-height:1.3}
+  .idx a.on{background:var(--ink);color:#fff}
+  .head{padding-top:0}
+  .head h1{font-size:34px}
+  .head p{max-width:64ch}
+  .sec{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+       gap:0 20px;align-items:start;margin-bottom:14px}
+  .sec > .tag,.sec > .tag-note{grid-column:1/-1}
+  .sec > .tag-note{max-width:70ch}
+  .sec > *{min-width:0}
+}
+@media(min-width:1180px){
+  .wrap{grid-template-columns:220px minmax(0,1fr);max-width:1440px;gap:36px}
+  .sec:has(> .note){grid-template-columns:repeat(2,minmax(270px,1fr)) 268px}
+  .sec:has(> .note) > .note{grid-column:3;grid-row:2/span 40;align-self:start;margin-top:0}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="idx" id="idx"><h4>SECCIONES</h4></nav>
+<div class="page">
+
+  <div class="head">
+    <h1>Ingresos extra y ajustes</h1>
+    <p>Dónde se editan los ingresos, qué pasa con el dinero que no esperabas, y todo lo que definimos reunido en un solo lugar.</p>
+  </div>
+
+
+  <section class="sec">
+  <span class="tag">1 · Ingresos, desde el Inicio</span>
+  <p class="tag-note">Editable con un toque desde la pantalla principal. No escondido en ajustes: los ingresos cambian más seguido de lo que uno cree.</p>
+
+  <div class="card">
+    <div class="kicker">Este ciclo entró</div>
+    <div class="big">$102,000</div>
+    <div class="small" style="margin-top:6px">$87,000 de siempre + <b>$15,000 extra</b></div>
+    <button class="btn grey">Editar mis ingresos</button>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Ingresos del ciclo Jul</div>
+    <div class="money"><span class="k">💼 Ingreso base</span><span class="v">$87,000</span></div>
+    <div class="money"><span class="k">🎁 Bono trimestral · 18 jul</span><span class="v">$15,000</span></div>
+    <div class="money tot"><span class="k">Total</span><span class="v">$102,000</span></div>
+    <button class="btn primary">＋ Registrar otro ingreso</button>
+  </div>
+
+  <div class="note">
+    <div class="nt">POR QUÉ VIVE EN EL INICIO</div>
+    <p>Un bono, un aguinaldo o un trabajo extra <b>cambian todo el cálculo del ciclo</b>: presupuesto, meta y pronóstico. Si registrarlo cuesta tres pantallas, no se registra, y las cifras dejan de cuadrar.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">2 · Qué hacer con lo extra</span>
+  <p class="tag-note">La pregunta se hace en el momento. Si no, el dinero extra se diluye en gasto sin que nadie lo decida.</p>
+
+  <div class="card">
+    <div class="kicker">Entraron $15,000 extra</div>
+
+    <div class="opt3 on">
+      <div class="t">Todo al apartado</div>
+      <div class="d">Tu presupuesto de gasto no se mueve. Apartas $49,897 este ciclo en vez de $34,800.</div>
+      <span class="c">Recomendada · es dinero que no tenías planeado gastar</span>
+    </div>
+
+    <div class="opt3">
+      <div class="t">Repartir como tu meta</div>
+      <div class="d">40% al apartado ($6,000) y 60% a gasto ($9,000), igual que tu regla normal.</div>
+      <span class="c">Consistente con lo que ya decidiste</span>
+    </div>
+
+    <div class="opt3">
+      <div class="t">Todo a gasto</div>
+      <div class="d">Tu presupuesto sube a $64,476. Útil si el extra era justo para algo que ya venía.</div>
+      <span class="c">Válido si tenías un plan para ese dinero</span>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="nt">EL SESGO QUE ESTO EVITA</div>
+    <p>Cuando entra dinero extra y nadie decide nada, <b>se gasta solo</b>. Preguntar en el momento convierte un ingreso inesperado en una decisión, que es exactamente el punto de la app.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">3 · Cómo afecta tus métricas</span>
+  <p class="tag-note">Aquí está la parte incómoda: un ingreso extra puede hacerte ver mejor de lo que fuiste. La app no lo esconde.</p>
+
+  <div class="card">
+    <div class="kicker">Cierre del ciclo Jul</div>
+    <div class="kv"><span class="k">Apartaste</span><span class="val" style="color:var(--green)">$49,897</span></div>
+    <div class="kv"><span class="k">Alcance</span><span class="val" style="color:var(--green)">143%</span></div>
+    <div class="kv"><span class="k">Alcance sin el extra</span><span class="val">100%</span></div>
+    <div class="kv"><span class="k">Tasa de ahorro</span><span class="val">49% de lo que entró</span></div>
+    <div class="alert info">
+      Llegaste a 143% <b>gracias al bono</b>. Tu conducta de gasto cerró justo en meta, que también es un buen resultado.
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="nt">DOS CIFRAS, NO UNA</div>
+    <p>Mostrar solo el 143% haría ver como logro lo que fue suerte. Mostrar solo el 100% escondería que sí tienes $49,897 apartados. <b>Las dos son verdad</b> y las dos aparecen.</p>
+    <p style="margin-top:8px">En la gráfica de evolución, los ciclos con ingreso extra van marcados, para que las comparaciones entre meses sigan significando algo.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">4 · Reembolsos no son ingreso</span>
+  <p class="tag-note">Respuesta directa a la duda: van por otro camino, a propósito.</p>
+
+  <div class="card tint-s">
+    <div class="kv" style="border-color:rgba(0,0,0,.08)"><span class="k">💼 Ingreso extra</span><span class="val">Dinero nuevo que sí es tuyo</span></div>
+    <div class="kv" style="border-color:rgba(0,0,0,.08)"><span class="k">💸 Reembolso</span><span class="val">Dinero que ya era tuyo, de vuelta</span></div>
+    <p class="small" style="margin-top:12px;color:#2C4460">Si el reembolso contara como ingreso extra, tu tasa de ahorro subiría sin que hayas ahorrado nada, y el ciclo en que pagaste se vería peor de lo que fue. <b>Por eso se empareja con su gasto y ninguno de los dos toca tus métricas.</b></p>
+  </div>
+
+  <div class="card">
+    <div class="kicker">La excepción</div>
+    <p class="small">Si alguien te devuelve <b>más</b> de lo que pagaste, la diferencia sí entra como ingreso extra y te pregunta qué hacer con ella.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">5 · Cuando el ingreso no es fijo</span>
+  <p class="tag-note">Para quien cobra por proyecto o por comisión, la pregunta del onboarding no aplica igual.</p>
+
+  <div class="card">
+    <div class="kicker">Tipo de ingreso</div>
+    <div class="opt3">
+      <div class="t">Fijo</div>
+      <div class="d">Entra lo mismo cada ciclo. La meta se calcula desde el día uno.</div>
+    </div>
+    <div class="opt3 on">
+      <div class="t">Variable</div>
+      <div class="d">Cambia cada mes. La meta se recalcula conforme entra el dinero, y el presupuesto arranca con el promedio de tus últimos 3 ciclos.</div>
+      <span class="c">Se ajusta solo, sin que tengas que editarlo</span>
+    </div>
+    <div class="alert warn">
+      Con ingreso variable, el pronóstico marca su confianza como <b>media</b> hasta tener 4 ciclos. Es honesto: no se puede planear bien sobre un ingreso que aún no se conoce.
+    </div>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">6 · Ajustes · cuenta</span>
+  <p class="tag-note">Lo que la gente busca cuando entra aquí: dónde están sus datos y cómo sacarlos.</p>
+
+  <div class="set-h">CUENTA</div>
+  <div class="set">
+    <div class="si"><span class="si-e">🍎</span><span class="si-b"><span class="si-t">Entraste con Apple</span><span class="si-d">manuel@icloud.com</span></span></div>
+    <div class="si"><span class="si-e">📱</span><span class="si-b"><span class="si-t">Dispositivos</span><span class="si-d">iPhone 15 · iPad · sincronizados hace 2 min</span></span><span class="si-v go">2</span></div>
+    <div class="si"><span class="si-e">☁️</span><span class="si-b"><span class="si-t">Respaldo</span><span class="si-d">al día · 1,336 movimientos</span></span><span class="si-v">✓</span></div>
+  </div>
+
+  <div class="set-h">TUS DATOS</div>
+  <div class="set">
+    <div class="si"><span class="si-e">📤</span><span class="si-b"><span class="si-t">Exportar a Excel</span><span class="si-d">todo tu historial, con el mismo formato de tu hoja</span></span><span class="si-v go"></span></div>
+    <div class="si"><span class="si-e">📥</span><span class="si-b"><span class="si-t">Importar</span><span class="si-d">agregar movimientos de otro archivo</span></span><span class="si-v go"></span></div>
+    <div class="si"><span class="si-e">🗑️</span><span class="si-b"><span class="si-t danger">Borrar todo y empezar de cero</span><span class="si-d">te exporto una copia antes</span></span><span class="si-v go"></span></div>
+  </div>
+
+  <div class="note">
+    <div class="nt">EXPORTAR NO ES UN TRÁMITE</div>
+    <p>Está arriba y sin fricción a propósito. <b>Saber que puedes irte cuando quieras</b> es lo que hace cómodo dejar el Excel, y una app que dificulta salirse pierde la confianza que tardó meses en ganar.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">7 · Ajustes · la app</span>
+  <p class="tag-note">Todo lo que definimos en el camino, reunido donde se puede cambiar.</p>
+
+  <div class="set-h">MI DINERO</div>
+  <div class="set">
+    <div class="si"><span class="si-e">💰</span><span class="si-b"><span class="si-t">Ingresos</span><span class="si-d">base $87,000 · fijo</span></span><span class="si-v go"></span></div>
+    <div class="si"><span class="si-e">🎯</span><span class="si-b"><span class="si-t">Meta de apartado</span><span class="si-d">40% · $34,800 al mes</span></span><span class="si-v go"></span></div>
+    <div class="si"><span class="si-e">🛡️</span><span class="si-b"><span class="si-t">Destinos</span><span class="si-d">Reserva</span></span><span class="si-v go">1</span></div>
+    <div class="si"><span class="si-e">📅</span><span class="si-b"><span class="si-t">Mi ciclo</span><span class="si-d">corte de tarjeta · del 12 al 11</span></span><span class="si-v go"></span></div>
+  </div>
+
+  <div class="set-h">CATEGORÍAS</div>
+  <div class="set">
+    <div class="si"><span class="si-e">🗂️</span><span class="si-b"><span class="si-t">Editar categorías</span><span class="si-d">20 activas · 4 fijas, 16 variables</span></span><span class="si-v go"></span></div>
+    <div class="si"><span class="si-e">🧠</span><span class="si-b"><span class="si-t">Reglas aprendidas</span><span class="si-d">"carnicería" → Súper, y 23 más</span></span><span class="si-v go">24</span></div>
+    <div class="si"><span class="si-e">🔁</span><span class="si-b"><span class="si-t">Gastos fijos</span><span class="si-d">4 · $11,126 al mes</span></span><span class="si-v go"></span></div>
+  </div>
+
+  <div class="set-h">AVISOS</div>
+  <div class="set">
+    <div class="si"><span class="si-e">📊</span><span class="si-b"><span class="si-t">Cuando voy fuera de ritmo</span></span><span class="sw on"><i></i></span></div>
+    <div class="si"><span class="si-e">🔁</span><span class="si-b"><span class="si-t">Recordar mis gastos fijos</span></span><span class="sw on"><i></i></span></div>
+    <div class="si"><span class="si-e">🎉</span><span class="si-b"><span class="si-t">Resumen al cerrar el ciclo</span></span><span class="sw on"><i></i></span></div>
+    <div class="si"><span class="si-e">💸</span><span class="si-b"><span class="si-t">Reembolsos sin cobrar</span></span><span class="sw on"><i></i></span></div>
+    <div class="si"><span class="si-e">🔥</span><span class="si-b"><span class="si-t">Mi racha de registro</span></span><span class="sw"><i></i></span></div>
+  </div>
+
+  <div class="set-h">PRIVACIDAD</div>
+  <div class="set">
+    <div class="si"><span class="si-e">🔒</span><span class="si-b"><span class="si-t">Face ID al abrir</span></span><span class="sw on"><i></i></span></div>
+    <div class="si"><span class="si-e">🤖</span><span class="si-b"><span class="si-t">Clasificar con IA</span><span class="si-d">solo cuando mis reglas no alcanzan</span></span><span class="sw on"><i></i></span></div>
+    <div class="si"><span class="si-e">🖼️</span><span class="si-b"><span class="si-t">Guardar fotos de tickets</span><span class="si-d">3 meses · luego se borran solas</span></span><span class="si-v go"></span></div>
+  </div>
+
+  <div class="note">
+    <div class="nt">CADA AVISO SE APAGA POR SEPARADO</div>
+    <p>Un solo interruptor de "notificaciones" hace que la gente <b>apague todo por culpa de uno solo</b> que le molesta. Separados, el usuario conserva los que sí le sirven.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">Cierre</span>
+  <p class="tag-note" style="margin-bottom:40px">Con esto queda cubierto el diseño completo de la app. Lo que sigue es armar el paquete de especificación final para construirla.</p>
+  </section>
+
+</div>
+</div>
+<div id="vw" style="position:fixed;right:10px;bottom:10px;z-index:99;background:#1A1B3A;color:#fff;
+ font:700 11px/1 'Plus Jakarta Sans',sans-serif;padding:8px 11px;border-radius:99px;opacity:.9"></div>
+<script>
+(function(){
+  var secs=[].slice.call(document.querySelectorAll('.sec')),
+      idx=document.getElementById('idx'), links=[];
+  secs.forEach(function(s,i){
+    var t=s.querySelector('.tag'); if(!t) return;
+    s.id='s'+i;
+    var a=document.createElement('a');
+    a.href='#s'+i; a.textContent=t.textContent; a.dataset.i=i;
+    a.onclick=function(e){e.preventDefault();s.scrollIntoView({behavior:'smooth',block:'start'});};
+    idx.appendChild(a); links.push(a);
+  });
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(l){l.classList.remove('on');});
+          var m=links.filter(function(l){return 's'+l.dataset.i===en.target.id;})[0];
+          if(m) m.classList.add('on');
+        }
+      });
+    },{rootMargin:'-10% 0px -75% 0px'});
+    secs.forEach(function(s){io.observe(s);});
+  }
+  var e=document.getElementById('vw');
+  function u(){var w=Math.round(document.documentElement.clientWidth);
+    e.textContent=w+'px \u00b7 '+(w>=1180?'3 zonas':w>=700?'2 zonas':'tel\u00e9fono');}
+  u();addEventListener('resize',u);
+  addEventListener('orientationchange',function(){setTimeout(u,300);});
+})();
+</script>
+</body>
+</html>

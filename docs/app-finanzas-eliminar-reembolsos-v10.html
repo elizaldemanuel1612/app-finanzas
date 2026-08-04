@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockups v10 — Eliminar, editar y reembolsables</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4FA;--card:#FFF;--ink:#1A1B3A;--mid:#6B6F8D;--faint:#9AA0B8;--line:#E7E9F2;
+  --violet:#5B4BE8;--violet-soft:#EAE7FD;--green:#12B76A;--green-soft:#DCF6EA;
+  --amber:#F5A524;--amber-soft:#FDF0D8;--coral:#F4623A;--coral-soft:#FDE5DC;
+  --steel:#3D5A80;--steel-soft:#E4EAF2;--r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+ font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+ -webkit-font-smoothing:antialiased;padding:0 0 60px}
+.page{max-width:430px;margin:0 auto;padding:0 16px}
+h1{font-family:'Outfit'}
+.head{padding:34px 0 4px}
+.head h1{font-size:29px;font-weight:800;line-height:1.15;letter-spacing:-.02em}
+.head p{font-size:14.5px;color:var(--mid);line-height:1.6;margin-top:11px}
+.tag{display:inline-block;margin:38px 0 6px;padding:5px 12px;border-radius:99px;
+ background:var(--ink);color:#fff;font-size:11px;font-weight:700}
+.tag-note{font-size:13px;color:var(--mid);line-height:1.55;margin-bottom:14px}
+.card{background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:12px}
+.card.tint-v{background:var(--violet-soft)}
+.card.tint-g{background:var(--green-soft)}
+.card.tint-a{background:var(--amber-soft)}
+.card.tint-c{background:var(--coral-soft)}
+.card.tint-s{background:var(--steel-soft)}
+.card.dark{background:var(--ink);color:#fff}
+.kicker{font-size:12px;font-weight:700;color:var(--mid);margin-bottom:8px}
+.big{font-family:'Outfit';font-weight:800;font-size:34px;line-height:1.1;letter-spacing:-.025em}
+.mega{font-family:'Outfit';font-weight:800;font-size:48px;line-height:1;letter-spacing:-.03em}
+.lead{font-size:15px;line-height:1.55;color:var(--mid)}
+.lead b{color:var(--ink);font-weight:700}
+.small{font-size:13px;line-height:1.5;color:var(--mid)}
+.tiny{font-size:11.5px;color:var(--faint)}
+.kv{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.kv:last-child{border-bottom:0}
+.kv .k{font-size:13.5px;font-weight:600;color:var(--mid)}
+.kv .val{font-family:'Outfit';font-weight:700;font-size:15px}
+.btn{display:block;width:100%;padding:16px;border-radius:14px;text-align:center;
+ font-weight:700;font-size:15px;border:0;margin-top:8px}
+.btn.primary{background:var(--violet);color:#fff}
+.btn.grey{background:var(--bg);color:var(--ink)}
+.btn.white{background:#fff;color:var(--ink)}
+.btn.dark{background:var(--ink);color:#fff}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.alert{border-radius:13px;padding:14px;margin-top:10px;font-size:13.5px;line-height:1.55}
+.alert.warn{background:var(--amber-soft);color:#8A5A05}
+.alert.ok{background:var(--green-soft);color:#0A7A47}
+.alert.bad{background:var(--coral-soft);color:#8A3A1C}
+.alert.info{background:var(--steel-soft);color:#2C4460}
+.alert b{font-weight:800}
+.note{background:#fff;border-left:4px solid var(--violet);border-radius:12px;padding:14px;margin:10px 0 4px}
+.note .nt{font-size:11px;font-weight:700;color:var(--violet);margin-bottom:6px}
+.note p{font-size:13px;line-height:1.6;color:var(--mid)}
+.note b{color:var(--ink)}
+.bar{height:8px;border-radius:99px;background:#EDEFF6;position:relative;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;display:block}
+.bar-g{background:var(--green)}
+.bar-a{background:var(--amber)}
+.bar-c{background:var(--coral)}
+.bar-v{background:var(--violet)}
+.row{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line)}
+.row:last-of-type{border-bottom:0}
+.row-e{width:38px;height:38px;border-radius:12px;flex:none;display:flex;align-items:center;
+ justify-content:center;font-size:18px;background:var(--bg)}
+.row-b{flex:1;min-width:0}
+.row-n{font-size:14.5px;font-weight:700}
+.row-s{font-size:12px;color:var(--faint);font-weight:600;margin-top:2px}
+.row-v{font-family:'Outfit';font-weight:700;font-size:15.5px;text-align:right;white-space:nowrap}
+.empty{text-align:center;padding:26px 12px}
+.empty .ico{font-size:42px;margin-bottom:14px}
+.empty h3{font-family:'Outfit';font-weight:800;font-size:19px;margin-bottom:8px}
+.empty p{font-size:14px;line-height:1.6;color:var(--mid);max-width:34ch;margin:0 auto}
+
+.swipe{position:relative;border-radius:14px;overflow:hidden;margin-bottom:9px;background:var(--coral)}
+.swipe.right{background:var(--steel)}
+.actions{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;
+ padding-right:14px;gap:18px;color:#fff}
+.actions.left{justify-content:flex-start;padding:0 0 0 16px}
+.act{text-align:center;font-size:11px;font-weight:800}
+.act .i{display:block;font-size:19px;margin-bottom:3px}
+.front{position:relative;background:var(--card);padding:13px 15px;display:flex;
+ align-items:center;gap:12px;transform:translateX(-118px)}
+.front.r{transform:translateX(118px)}
+.front.none{transform:none}
+.f-e{width:38px;height:38px;border-radius:12px;flex:none;display:flex;align-items:center;
+ justify-content:center;font-size:18px;background:var(--bg)}
+.f-b{flex:1;min-width:0}
+.f-n{font-size:14.5px;font-weight:700}
+.f-s{font-size:12px;color:var(--faint);font-weight:600;margin-top:2px}
+.f-v{font-family:'Outfit';font-weight:700;font-size:15.5px;white-space:nowrap}
+.hint{text-align:center;font-size:11.5px;color:var(--faint);font-weight:700;margin:10px 0 16px}
+.dlg{background:var(--card);border-radius:20px;padding:20px;margin-bottom:12px}
+.dlg h3{font-family:'Outfit';font-weight:800;font-size:19px;margin-bottom:10px}
+.dlg .eff{background:var(--bg);border-radius:12px;padding:13px;margin:12px 0}
+.eff-r{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px}
+.eff-r .k{color:var(--mid);font-weight:600}
+.eff-r .v{font-family:'Outfit';font-weight:700}
+.eff-r .v s{color:var(--faint);font-weight:600;margin-right:6px}
+.pill{display:inline-block;padding:3px 9px;border-radius:99px;font-size:10.5px;font-weight:800}
+.pill.pend{background:var(--amber-soft);color:#8A5A05}
+.pill.cob{background:var(--green-soft);color:#0A7A47}
+.toast{background:var(--ink);color:#fff;border-radius:14px;padding:14px 16px;display:flex;
+ align-items:center;justify-content:space-between;gap:12px}
+.toast .t{font-size:13.5px;font-weight:700}
+.toast .u{font-size:13px;font-weight:800;color:#9FB4FF;white-space:nowrap}
+.sec{display:block}
+.idx{display:none}
+@media(min-width:700px){
+  body{padding:26px 22px 70px}
+  .wrap{display:grid;grid-template-columns:206px minmax(0,1fr);gap:30px;
+        max-width:1180px;margin:0 auto;align-items:start}
+  .page{max-width:none;margin:0;padding:0}
+  .idx{display:block;position:sticky;top:26px;background:var(--card);
+       border-radius:16px;padding:16px 12px}
+  .idx h4{font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:var(--faint);
+          margin:0 0 10px 10px;letter-spacing:.05em}
+  .idx a{display:block;padding:9px 10px;border-radius:9px;font-size:12.5px;font-weight:700;
+         color:var(--mid);text-decoration:none;margin-bottom:2px;line-height:1.3}
+  .idx a.on{background:var(--ink);color:#fff}
+  .head{padding-top:0}
+  .head h1{font-size:34px}
+  .head p{max-width:64ch}
+  .sec{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+       gap:0 20px;align-items:start;margin-bottom:14px}
+  .sec > .tag,.sec > .tag-note{grid-column:1/-1}
+  .sec > .tag-note{max-width:70ch}
+  .sec > *{min-width:0}
+}
+@media(min-width:1180px){
+  .wrap{grid-template-columns:220px minmax(0,1fr);max-width:1440px;gap:36px}
+  .sec:has(> .note){grid-template-columns:repeat(2,minmax(270px,1fr)) 268px}
+  .sec:has(> .note) > .note{grid-column:3;grid-row:2/span 40;align-self:start;margin-top:0}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="idx" id="idx"><h4>SECCIONES</h4></nav>
+<div class="page">
+
+  <div class="head">
+    <h1>Eliminar, editar y reembolsables</h1>
+    <p>Deslizar para actuar sobre un gasto, con confirmación que muestra el efecto exacto en todas tus cifras.</p>
+  </div>
+
+
+  <section class="sec">
+  <span class="tag">1 · Deslizar</span>
+  <p class="tag-note">Izquierda para eliminar o editar. Derecha para marcar reembolsable o duplicar. El gesto que ya conoce todo mundo.</p>
+
+  <div class="swipe">
+    <div class="actions">
+      <span class="act"><span class="i">✏️</span>Editar</span>
+      <span class="act"><span class="i">🗑️</span>Eliminar</span>
+    </div>
+    <div class="front">
+      <span class="f-e">🍿</span>
+      <span class="f-b"><span class="f-n">Salida</span><span class="f-s">25 jul · Salidas · Tarjeta</span></span>
+      <span class="f-v">$1,101</span>
+    </div>
+  </div>
+
+  <div class="swipe right">
+    <div class="actions left">
+      <span class="act"><span class="i">💸</span>Reembolsable</span>
+      <span class="act"><span class="i">⧉</span>Duplicar</span>
+    </div>
+    <div class="front r">
+      <span class="f-e">🛒</span>
+      <span class="f-b"><span class="f-n">Despensa</span><span class="f-s">26 jul · Súper · Tarjeta</span></span>
+      <span class="f-v">$2,549.85</span>
+    </div>
+  </div>
+
+  <p class="hint">← desliza para acciones →</p>
+
+  <div class="note">
+    <div class="nt">POR QUÉ DUPLICAR</div>
+    <p>Muchos gastos se repiten casi idénticos: la caseta de siempre, el estacionamiento del trabajo. <b>Duplicar es el atajo más usado</b> después de capturar, y esconderlo en un menú desperdicia el gesto.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">2 · Confirmar la eliminación</span>
+  <p class="tag-note">Nunca se borra al primer toque. Y la confirmación dice qué se mueve, no solo "¿estás seguro?".</p>
+
+  <div class="dlg">
+    <h3>¿Eliminar este gasto?</h3>
+    <p class="small">Salida del 25 jul · $1,101</p>
+    <div class="eff">
+      <div class="eff-r"><span class="k">🍿 Salidas gastado</span><span class="v"><s>$7,931</s>$6,830</span></div>
+      <div class="eff-r"><span class="k">🍿 Cierre estimado</span><span class="v"><s>$13,557</s>$11,675</span></div>
+      <div class="eff-r"><span class="k">Total del ciclo</span><span class="v"><s>$23,531</s>$22,430</span></div>
+      <div class="eff-r"><span class="k">Vas a poder apartar</span><span class="v" style="color:var(--green)"><s>$34,897</s>$35,998</span></div>
+    </div>
+    <div class="row2">
+      <button class="btn grey" style="margin:0">Cancelar</button>
+      <button class="btn primary" style="margin:0;background:var(--coral)">Eliminar</button>
+    </div>
+  </div>
+
+  <div class="toast">
+    <span class="t">Gasto eliminado</span>
+    <span class="u">Deshacer</span>
+  </div>
+
+  <div class="note">
+    <div class="nt">TODO SE RECALCULA AL INSTANTE</div>
+    <p>Presupuesto, pronóstico, plan de ajuste, alertas y tu apartado del ciclo. <b>No hay que refrescar nada</b> ni esperar a que sincronice.</p>
+    <p style="margin-top:8px">Para ti el gasto desaparece de todas las listas y de todas las cifras. Por dentro queda marcado como anulado <b>30 días</b>, que es lo que hace posible el "deshacer" y lo que permite auditar después por qué cambió una cifra.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">3 · Los casos que se complican</span>
+  <p class="tag-note">Eliminar suena simple hasta que el gasto está enganchado a algo más.</p>
+
+  <div class="dlg">
+    <h3>Este gasto es parte de un ticket</h3>
+    <p class="small">Lo capturaste dividido en 3 partes de una compra de $1,847.30.</p>
+    <div class="eff">
+      <div class="eff-r"><span class="k">🛒 Súper</span><span class="v">$1,402.30</span></div>
+      <div class="eff-r"><span class="k">💊 Salud</span><span class="v">$285.00</span></div>
+      <div class="eff-r"><span class="k">🧽 Limpieza</span><span class="v">$160.00</span></div>
+    </div>
+    <button class="btn primary" style="background:var(--coral)">Eliminar las 3 partes</button>
+    <button class="btn grey">Solo esta y ajustar el resto</button>
+    <p class="tiny" style="text-align:center;margin-top:10px">Si eliminas solo una, las partes ya no van a sumar el total del ticket</p>
+  </div>
+
+  <div class="dlg">
+    <h3>Este gasto es de un ciclo cerrado</h3>
+    <p class="small">Junio se cerró el 11 de julio. Sus cifras ya son históricas.</p>
+    <div class="alert warn">Si lo elimino cambian tu cierre de junio y tu gráfica de progreso. <b>Prefiero no reescribir el pasado en silencio.</b></div>
+    <button class="btn primary">Registrar un ajuste en el ciclo actual</button>
+    <button class="btn grey">Reabrir junio y eliminarlo de ahí</button>
+  </div>
+
+  <div class="note">
+    <div class="nt">EL PASADO NO SE TOCA SOLO</div>
+    <p>Dejar que un gasto de hace tres meses desaparezca sin aviso <b>rompe la trazabilidad</b> que hace útil la gráfica de evolución. Se puede hacer, pero de forma explícita y dejando rastro.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">4 · Reembolsables</span>
+  <p class="tag-note">Gastos que alguien te va a devolver. Salen de tu bolsa hoy, pero no son gasto tuyo.</p>
+
+  <div class="card">
+    <div class="kicker">Al marcarlo</div>
+    <div class="row" style="border:0;padding-top:4px">
+      <span class="row-e">💸</span>
+      <span class="row-b"><span class="row-n">Cena de trabajo</span><span class="row-s">24 jul · <span class="pill pend">por cobrar</span></span></span>
+      <span class="row-v">$1,480</span>
+    </div>
+    <div class="alert info">
+      No cuenta contra tu presupuesto de Salidas, pero <b>sí salió de tu dinero</b>. Aparece en "por cobrar" hasta que lo recuperes.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Por cobrar</div>
+    <div class="row">
+      <span class="row-e">💸</span>
+      <span class="row-b"><span class="row-n">Cena de trabajo</span><span class="row-s">24 jul · 4 días</span></span>
+      <span class="row-v">$1,480</span>
+    </div>
+    <div class="row">
+      <span class="row-e">💸</span>
+      <span class="row-b"><span class="row-n">Boletos de avión</span><span class="row-s">18 jul · 10 días</span></span>
+      <span class="row-v">$3,240</span>
+    </div>
+    <div class="kv" style="border-top:1px solid var(--line);margin-top:6px">
+      <span class="k">Te deben</span><span class="val" style="font-size:18px">$4,720</span>
+    </div>
+    <div class="alert warn">Boletos de avión lleva <b>10 días</b> sin cobrarse. ¿Sigue pendiente?</div>
+    <button class="btn primary">Marcar uno como cobrado</button>
+  </div>
+
+  <div class="card tint-g">
+    <div class="kicker" style="color:#0A7A47">Al cobrarse</div>
+    <div class="row" style="border:0;padding-top:4px">
+      <span class="row-e">✅</span>
+      <span class="row-b"><span class="row-n">Cena de trabajo</span><span class="row-s">cobrado 28 jul · <span class="pill cob">cerrado</span></span></span>
+      <span class="row-v">$1,480</span>
+    </div>
+    <p class="small" style="color:#0A7A47;margin-top:10px">El gasto y el reembolso quedan emparejados. Ninguno de los dos ensucia tu presupuesto ni tu pronóstico.</p>
+  </div>
+
+  <div class="note">
+    <div class="nt">POR QUÉ NO SON GASTO NI INGRESO</div>
+    <p>Si contaran como gasto, tu presupuesto se vería peor de lo que es. Si el reembolso contara como ingreso, tu tasa de ahorro se vería mejor. <b>Emparejarlos deja las dos cifras limpias</b> y solo muestra lo que de verdad importa: cuánto te deben ahorita.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">5 · Editar</span>
+  <p class="tag-note">Mismo principio que eliminar: se muestra el efecto antes de guardar.</p>
+
+  <div class="dlg">
+    <h3>Editar gasto</h3>
+    <div class="eff">
+      <div class="eff-r"><span class="k">Monto</span><span class="v">$1,101 → $850</span></div>
+      <div class="eff-r"><span class="k">Categoría</span><span class="v">Salidas</span></div>
+      <div class="eff-r"><span class="k">Fecha</span><span class="v">25 jul</span></div>
+      <div class="eff-r"><span class="k">Medio</span><span class="v">Tarjeta</span></div>
+    </div>
+    <div class="alert info">🍿 Salidas baja de <b>$7,931</b> a <b>$7,680</b>.</div>
+    <button class="btn primary">Guardar</button>
+    <p class="tiny" style="text-align:center;margin-top:10px">El cambio queda en el historial del gasto</p>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Historial de este gasto</div>
+    <div class="row">
+      <span class="row-e">✏️</span>
+      <span class="row-b"><span class="row-n">Monto: $1,101 → $850</span><span class="row-s">hoy 19:42 · desde tu iPhone</span></span>
+    </div>
+    <div class="row">
+      <span class="row-e">➕</span>
+      <span class="row-b"><span class="row-n">Registrado por voz</span><span class="row-s">25 jul 21:10 · desde tu iPhone</span></span>
+    </div>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">Siguiente</span>
+  <p class="tag-note" style="margin-bottom:40px">Pantalla de ajustes: cuenta, dispositivos, categorías, reglas aprendidas y exportar.</p>
+  </section>
+
+</div>
+</div>
+<div id="vw" style="position:fixed;right:10px;bottom:10px;z-index:99;background:#1A1B3A;color:#fff;
+ font:700 11px/1 'Plus Jakarta Sans',sans-serif;padding:8px 11px;border-radius:99px;opacity:.9"></div>
+<script>
+(function(){
+  var secs=[].slice.call(document.querySelectorAll('.sec')),
+      idx=document.getElementById('idx'), links=[];
+  secs.forEach(function(s,i){
+    var t=s.querySelector('.tag'); if(!t) return;
+    s.id='s'+i;
+    var a=document.createElement('a');
+    a.href='#s'+i; a.textContent=t.textContent; a.dataset.i=i;
+    a.onclick=function(e){e.preventDefault();s.scrollIntoView({behavior:'smooth',block:'start'});};
+    idx.appendChild(a); links.push(a);
+  });
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(l){l.classList.remove('on');});
+          var m=links.filter(function(l){return 's'+l.dataset.i===en.target.id;})[0];
+          if(m) m.classList.add('on');
+        }
+      });
+    },{rootMargin:'-10% 0px -75% 0px'});
+    secs.forEach(function(s){io.observe(s);});
+  }
+  var e=document.getElementById('vw');
+  function u(){var w=Math.round(document.documentElement.clientWidth);
+    e.textContent=w+'px \u00b7 '+(w>=1180?'3 zonas':w>=700?'2 zonas':'tel\u00e9fono');}
+  u();addEventListener('resize',u);
+  addEventListener('orientationchange',function(){setTimeout(u,300);});
+})();
+</script>
+</body>
+</html>

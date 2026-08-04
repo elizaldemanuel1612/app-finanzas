@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockups v3 — Gastos y detalle</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4FA; --card:#FFFFFF; --ink:#1A1B3A; --mid:#6B6F8D; --faint:#9AA0B8;
+  --line:#E7E9F2;
+  --violet:#5B4BE8; --violet-soft:#EAE7FD;
+  --green:#12B76A; --green-soft:#DCF6EA;
+  --amber:#F5A524; --amber-soft:#FDF0D8;
+  --coral:#F4623A; --coral-soft:#FDE5DC;
+  --r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+  font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  -webkit-font-smoothing:antialiased;padding:0 0 60px}
+.page{max-width:430px;margin:0 auto;padding:0 16px}
+h1,h2,h3,.num{font-family:'Outfit',-apple-system,sans-serif}
+
+.head{padding:34px 0 4px}
+.head h1{font-size:29px;font-weight:800;line-height:1.15;letter-spacing:-.02em}
+.head p{font-size:14.5px;color:var(--mid);line-height:1.6;margin-top:11px}
+.tag{display:inline-block;margin:38px 0 6px;padding:5px 12px;border-radius:99px;
+  background:var(--ink);color:#fff;font-size:11px;font-weight:700;letter-spacing:.04em}
+.tag-note{font-size:13px;color:var(--mid);line-height:1.55;margin-bottom:14px}
+
+.card{background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:12px}
+.card.tint-v{background:var(--violet-soft)}
+.card.tint-g{background:var(--green-soft)}
+.card.tint-c{background:var(--coral-soft)}
+.card.dark{background:var(--ink);color:#fff}
+.kicker{font-size:12px;font-weight:700;color:var(--mid);margin-bottom:8px}
+.big{font-family:'Outfit';font-weight:800;font-size:38px;line-height:1.05;letter-spacing:-.025em}
+.lead{font-size:15px;line-height:1.55;color:var(--mid)}
+.lead b{color:var(--ink);font-weight:700}
+.small{font-size:13px;line-height:1.5;color:var(--mid)}
+.tiny{font-size:11.5px;color:var(--faint)}
+
+/* búsqueda */
+.search{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:14px;
+  padding:14px 15px;margin-bottom:10px}
+.search .ic{font-size:16px}
+.search .ph{font-size:14.5px;color:var(--faint);font-weight:500;flex:1}
+.search .ph.typed{color:var(--ink);font-weight:600}
+.search .x{width:20px;height:20px;border-radius:50%;background:var(--line);color:var(--mid);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+
+/* filtros */
+.fil{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
+.f{flex:none;background:var(--card);border-radius:99px;padding:9px 14px;font-size:13px;font-weight:700;
+  color:var(--mid);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.f.on{background:var(--ink);color:#fff}
+.f .cnt{background:rgba(255,255,255,.25);border-radius:99px;padding:1px 6px;font-size:11px}
+
+/* resumen de resultados */
+.res{display:flex;justify-content:space-between;align-items:center;padding:0 4px 12px}
+.res .l{font-size:13px;font-weight:700;color:var(--mid)}
+.res .v{font-family:'Outfit';font-weight:700;font-size:16px}
+
+/* lista por día */
+.day{margin-bottom:14px}
+.day-h{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px 8px}
+.day-d{font-size:13px;font-weight:700}
+.day-t{font-size:13px;font-weight:700;color:var(--faint)}
+.list{background:var(--card);border-radius:var(--r);overflow:hidden}
+.it{display:flex;align-items:center;gap:12px;padding:13px 15px;border-bottom:1px solid var(--line)}
+.it:last-child{border-bottom:0}
+.it-e{width:38px;height:38px;border-radius:12px;flex:none;display:flex;align-items:center;
+  justify-content:center;font-size:18px;background:var(--bg)}
+.it-b{flex:1;min-width:0}
+.it-n{font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it-s{font-size:12px;color:var(--faint);font-weight:500;margin-top:2px}
+.it-v{font-family:'Outfit';font-weight:700;font-size:15.5px;white-space:nowrap}
+.it.pend{background:var(--amber-soft)}
+.badge{display:inline-block;padding:2px 7px;border-radius:6px;font-size:10.5px;font-weight:700;
+  background:var(--amber);color:#fff;margin-left:6px}
+.badge.ia{background:var(--violet)}
+
+/* detalle categoría */
+.lane{position:relative;height:38px;margin:14px 0 6px}
+.lane-track{position:absolute;top:14px;left:0;right:0;height:10px;border-radius:99px;background:#EDEFF6}
+.lane-fill{position:absolute;top:14px;left:0;height:10px;border-radius:99px}
+.lane-fill.g{background:var(--green)} .lane-fill.a{background:var(--amber)} .lane-fill.c{background:var(--coral)}
+.lane-mark{position:absolute;top:6px;width:3px;height:26px;border-radius:2px;background:var(--ink)}
+.lane-lab{position:absolute;top:-2px;transform:translateX(-50%);font-size:10px;font-weight:700;
+  color:var(--ink);white-space:nowrap}
+.lane-ends{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);font-weight:600}
+
+.br{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.br:last-child{border-bottom:0}
+.br-l{font-size:13.5px;font-weight:600;color:var(--mid)}
+.br-v{font-family:'Outfit';font-weight:700;font-size:15px}
+.br.sub{padding:6px 0 11px;border-bottom:1px solid var(--line)}
+.br.sub .br-l{font-size:12px;color:var(--faint);font-weight:500;padding-left:14px;position:relative}
+.br.sub .br-l::before{content:'└';position:absolute;left:0;top:-2px}
+.br.sub .br-v{font-size:13px;color:var(--faint);font-weight:600}
+.br.tot .br-l{color:var(--ink);font-weight:700}
+.br.tot .br-v{font-size:18px}
+
+.why{background:var(--violet-soft);border-radius:13px;padding:14px;margin-top:12px}
+.why-t{font-size:11.5px;font-weight:700;color:var(--violet);margin-bottom:6px}
+.why p{font-size:13px;line-height:1.55;color:#3D3170}
+.why b{color:var(--ink)}
+
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.cmp-b{background:var(--card);border-radius:13px;padding:13px;text-align:center}
+.cmp-b.bad{opacity:.55}
+.cmp-b .l{font-size:11px;font-weight:700;color:var(--mid);margin-bottom:5px}
+.cmp-b .v{font-family:'Outfit';font-weight:800;font-size:20px}
+
+.spark{display:flex;align-items:flex-end;gap:7px;height:64px;margin:12px 0 24px}
+.spark div{flex:1;border-radius:8px 8px 4px 4px;position:relative}
+.spark span{position:absolute;bottom:-19px;left:0;right:0;text-align:center;font-size:10.5px;
+  color:var(--faint);font-weight:600}
+
+.btn{display:block;width:100%;padding:16px;border-radius:14px;text-align:center;font-weight:700;
+  font-size:15px;border:0}
+.btn.primary{background:var(--violet);color:#fff}
+.btn.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--line)}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.sheet{background:var(--card);border-radius:22px 22px var(--r) var(--r);padding:20px 18px}
+.grab{width:38px;height:4px;border-radius:99px;background:var(--line);margin:0 auto 16px}
+.grp{margin-bottom:18px}
+.grp-t{font-size:12px;font-weight:700;color:var(--mid);margin-bottom:9px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.o{background:var(--bg);border-radius:11px;padding:10px 13px;font-size:13px;font-weight:700;color:var(--mid)}
+.o.on{background:var(--violet);color:#fff}
+
+.nav{display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border-radius:18px;
+  padding:11px 4px;margin-top:12px}
+.nv{text-align:center;font-size:10px;font-weight:700;color:var(--faint)}
+.nv .i{display:block;font-size:17px;margin-bottom:3px}
+.nv.on{color:var(--violet)}
+.nv.plus .i{width:38px;height:38px;border-radius:13px;background:var(--violet);color:#fff;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 2px;font-size:21px}
+
+.note{background:#fff;border-left:4px solid var(--violet);border-radius:12px;padding:14px;margin:10px 0 4px}
+.note .nt{font-size:11px;font-weight:700;color:var(--violet);margin-bottom:6px}
+.note p{font-size:13px;line-height:1.6;color:var(--mid)}
+.note b{color:var(--ink)}
+
+
+.sec{display:block}
+.idx{display:none}
+@media(min-width:700px){
+  body{padding:26px 22px 70px}
+  .wrap{display:grid;grid-template-columns:206px minmax(0,1fr);gap:30px;
+        max-width:1180px;margin:0 auto;align-items:start}
+  .page{max-width:none;margin:0;padding:0}
+  .idx{display:block;position:sticky;top:26px;background:var(--card);
+       border-radius:16px;padding:16px 12px}
+  .idx h4{font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:var(--faint);
+          margin:0 0 10px 10px;letter-spacing:.05em}
+  .idx a{display:block;padding:9px 10px;border-radius:9px;font-size:12.5px;font-weight:700;
+         color:var(--mid);text-decoration:none;margin-bottom:2px;line-height:1.3}
+  .idx a.on{background:var(--ink);color:#fff}
+  .head{padding-top:0}
+  .head h1{font-size:34px}
+  .head p{max-width:64ch}
+  .sec{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+       gap:0 20px;align-items:start;margin-bottom:14px}
+  .sec > .tag,.sec > .tag-note{grid-column:1/-1}
+  .sec > .tag-note{max-width:70ch}
+  .sec > *{min-width:0}
+}
+@media(min-width:1180px){
+  .wrap{grid-template-columns:220px minmax(0,1fr);max-width:1440px;gap:36px}
+  .sec:has(> .note){grid-template-columns:repeat(2,minmax(270px,1fr)) 268px}
+  .sec:has(> .note) > .note{grid-column:3;grid-row:2/span 40;align-self:start;margin-top:0}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="idx" id="idx"><h4>SECCIONES</h4></nav>
+<div class="page">
+
+  <div class="head">
+    <h1>Gastos y detalle por categoría</h1>
+    <p>Donde vas a vivir cuando quieras auditar un ciclo. Datos reales de tu ciclo actual: 52 movimientos, $23,531.</p>
+  </div>
+
+  <!-- ===== 1. LISTA ===== -->
+    <section class="sec"><span class="tag">1 · Tus gastos</span>
+  <p class="tag-note">Agrupados por día, con el total de cada día a la derecha. Lo primero que la gente busca es "¿qué gasté ayer?".</p>
+
+  <div class="search">
+    <span class="ic">🔍</span>
+    <span class="ph">Buscar gasto o comercio</span>
+  </div>
+
+  <div class="fil">
+    <div class="f on">Ciclo Jul <span class="cnt">52</span></div>
+    <div class="f">Categoría</div>
+    <div class="f">Medio</div>
+    <div class="f">Solo efectivo</div>
+  </div>
+
+  <div class="res">
+    <span class="l">52 movimientos</span>
+    <span class="v">$23,530.82</span>
+  </div>
+
+  <div class="day">
+    <div class="day-h"><span class="day-d">Domingo 26 jul</span><span class="day-t">$3,251.85</span></div>
+    <div class="list">
+      <div class="it">
+        <div class="it-e">🛒</div>
+        <div class="it-b"><div class="it-n">Despensa</div><div class="it-s">Súper · Tarjeta</div></div>
+        <div class="it-v">$2,549.85</div>
+      </div>
+      <div class="it">
+        <div class="it-e">🧘</div>
+        <div class="it-b"><div class="it-n">Terapia</div><div class="it-s">Terapia · Efectivo</div></div>
+        <div class="it-v">$250.00</div>
+      </div>
+      <div class="it">
+        <div class="it-e">🍿</div>
+        <div class="it-b"><div class="it-n">Salida</div><div class="it-s">Salidas · Tarjeta</div></div>
+        <div class="it-v">$198.00</div>
+      </div>
+      <div class="it">
+        <div class="it-e">🛒</div>
+        <div class="it-b"><div class="it-n">Verdura en el tianguis</div><div class="it-s">Súper · Efectivo</div></div>
+        <div class="it-v">$157.00</div>
+      </div>
+      <div class="it">
+        <div class="it-e">🚗</div>
+        <div class="it-b"><div class="it-n">Caseta</div><div class="it-s">Auto · Tarjeta</div></div>
+        <div class="it-v">$72.00</div>
+      </div>
+      <div class="it">
+        <div class="it-e">🤝</div>
+        <div class="it-b"><div class="it-n">Viene viene</div><div class="it-s">Donaciones · Efectivo</div></div>
+        <div class="it-v">$25.00</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="day">
+    <div class="day-h"><span class="day-d">Sábado 25 jul</span><span class="day-t">$1,238.00</span></div>
+    <div class="list">
+      <div class="it">
+        <div class="it-e">🍿</div>
+        <div class="it-b"><div class="it-n">Salida</div><div class="it-s">Salidas · Tarjeta</div></div>
+        <div class="it-v">$1,101.00</div>
+      </div>
+      <div class="it">
+        <div class="it-e">👶</div>
+        <div class="it-b"><div class="it-n">Victoria</div><div class="it-s">Apoyo Victoria · Tarjeta</div></div>
+        <div class="it-v">$107.00</div>
+      </div>
+      <div class="it">
+        <div class="it-e">🚗</div>
+        <div class="it-b"><div class="it-n">Estacionamiento</div><div class="it-s">Auto · Efectivo</div></div>
+        <div class="it-v">$30.00</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="day">
+    <div class="day-h"><span class="day-d">Viernes 24 jul</span><span class="day-t">$363.00</span></div>
+    <div class="list">
+      <div class="it">
+        <div class="it-e">👶</div>
+        <div class="it-b"><div class="it-n">Victoria</div><div class="it-s">Apoyo Victoria · Tarjeta</div></div>
+        <div class="it-v">$173.00</div>
+      </div>
+      <div class="it">
+        <div class="it-e">🚗</div>
+        <div class="it-b"><div class="it-n">Caseta<span class="badge ia">categoría sugerida</span></div><div class="it-s">Auto · Tarjeta</div></div>
+        <div class="it-v">$118.00</div>
+      </div>
+      <div class="it">
+        <div class="it-e">🚗</div>
+        <div class="it-b"><div class="it-n">Caseta</div><div class="it-s">Auto · Tarjeta</div></div>
+        <div class="it-v">$72.00</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="nv"><span class="i">🏠</span>Inicio</div>
+    <div class="nv on"><span class="i">📋</span>Gastos</div>
+    <div class="nv plus"><span class="i">+</span></div>
+    <div class="nv"><span class="i">📈</span>Progreso</div>
+    <div class="nv"><span class="i">⚙️</span>Ajustes</div>
+  </div>
+
+  <div class="note">
+    <div class="nt">DETALLES QUE IMPORTAN</div>
+    <p>Todo lo que registras <b>entra de inmediato</b> y suma. No hay bandeja de pendientes que limpiar después.</p>
+    <p style="margin-top:8px">La etiqueta morada solo marca que la categoría la sugirió la app. Ya está aplicada y contando; tocarla la cambia, pero no hay nada que "confirmar".</p>
+  </div>
+
+  <!-- ===== 2. BÚSQUEDA ===== -->
+  </section>
+  <section class="sec"><span class="tag">2 · Buscando</span>
+  <p class="tag-note">La búsqueda no solo filtra: te dice cuánto suma lo que encontraste. Es la pregunta real detrás de buscar.</p>
+
+  <div class="search">
+    <span class="ic">🔍</span>
+    <span class="ph typed">súper</span>
+    <span class="x">×</span>
+  </div>
+
+  <div class="card tint-v">
+    <div class="kicker" style="color:var(--violet)">10 movimientos en el ciclo</div>
+    <div class="big">$4,974.01</div>
+    <div class="small" style="margin-top:6px;color:#3D3170">62% de tu presupuesto de súper · te quedan <b>$3,026</b></div>
+  </div>
+
+  <div class="list">
+    <div class="it">
+      <div class="it-e">🛒</div>
+      <div class="it-b"><div class="it-n">Despensa</div><div class="it-s">26 jul · Tarjeta</div></div>
+      <div class="it-v">$2,549.85</div>
+    </div>
+    <div class="it">
+      <div class="it-e">🛒</div>
+      <div class="it-b"><div class="it-n">Compra en supermercado</div><div class="it-s">19 jul · Tarjeta</div></div>
+      <div class="it-v">$886.69</div>
+    </div>
+    <div class="it">
+      <div class="it-e">🛒</div>
+      <div class="it-b"><div class="it-n">Carne (carnicería)</div><div class="it-s">19 jul · Tarjeta</div></div>
+      <div class="it-v">$474.00</div>
+    </div>
+    <div class="it">
+      <div class="it-e">🛒</div>
+      <div class="it-b"><div class="it-n">Queso</div><div class="it-s">22 jul · Tarjeta</div></div>
+      <div class="it-v">$273.68</div>
+    </div>
+    <div class="it">
+      <div class="it-e">🛒</div>
+      <div class="it-b"><div class="it-n">Verdura en el tianguis</div><div class="it-s">26 jul · Efectivo</div></div>
+      <div class="it-v">$157.00</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="nt">POR QUÉ ASÍ</div>
+    <p>Cuando alguien busca "súper" no quiere una lista: quiere saber <b>cuánto lleva gastado y cuánto le queda</b>. La respuesta va arriba; la lista es el respaldo.</p>
+  </div>
+
+  <!-- ===== 3. FILTROS ===== -->
+  </section>
+  <section class="sec"><span class="tag">3 · Filtros</span>
+  <p class="tag-note">Se abren desde abajo, con lo más usado primero. Cuatro toques máximo para cualquier combinación.</p>
+
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="grp">
+      <div class="grp-t">Periodo</div>
+      <div class="opts">
+        <div class="o on">Ciclo Jul</div>
+        <div class="o">Ciclo Jun</div>
+        <div class="o">Ciclo May</div>
+        <div class="o">Elegir fechas</div>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="grp-t">Categoría</div>
+      <div class="opts">
+        <div class="o on">🛒 Súper</div>
+        <div class="o">🍿 Salidas</div>
+        <div class="o">🚗 Auto</div>
+        <div class="o">👶 Victoria</div>
+        <div class="o">Ver las 20</div>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="grp-t">Medio de pago</div>
+      <div class="opts">
+        <div class="o">Tarjeta</div>
+        <div class="o">Efectivo</div>
+        <div class="o on">Todos</div>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="grp-t">Estado</div>
+      <div class="opts">
+        <div class="o on">Activos</div>
+        <div class="o">Anulados</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn ghost">Limpiar</button>
+      <button class="btn primary">Ver 10 gastos</button>
+    </div>
+  </div>
+
+  <!-- ===== 4. DETALLE DE CATEGORÍA ===== -->
+  </section>
+  <section class="sec"><span class="tag">4 · Detalle de categoría</span>
+  <p class="tag-note">Aquí vive el pronóstico. Es el modelo robusto, no una regla de tres — y la app explica la diferencia en una línea.</p>
+
+  <div class="card tint-c">
+    <div class="kicker" style="color:#B33B18">🚗 Auto operación</div>
+    <div class="big" style="color:#B33B18">$5,280</div>
+    <div class="small" style="color:#8A3A1C;margin-top:6px">de $3,800 · ya te pasaste por <b>$1,480</b></div>
+    <div class="lane">
+      <div class="lane-lab" style="left:53%">hoy</div>
+      <div class="lane-track"></div>
+      <div class="lane-fill c" style="width:100%"></div>
+      <div class="lane-mark" style="left:53%"></div>
+    </div>
+    <div class="lane-ends"><span>$0</span><span>$3,800 tope</span></div>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Cómo va a cerrar</div>
+    <div class="br" style="border-bottom:0;padding-bottom:2px">
+      <span class="br-l">Ya gastado</span>
+      <span class="br-v">$5,280</span>
+    </div>
+    <div class="br sub">
+      <span class="br-l">incluye el servicio del 17 jul, gasto único</span>
+      <span class="br-v">$3,132</span>
+    </div>
+    <div class="br">
+      <span class="br-l">Falta por gastar</span>
+      <span class="br-v">$2,696</span>
+    </div>
+    <div class="br tot">
+      <span class="br-l">Cierre estimado</span>
+      <span class="br-v" style="color:var(--coral)">$7,976</span>
+    </div>
+
+    <div class="why">
+      <div class="why-t">POR QUÉ NO ES MÁS ALTO</div>
+      <p>El servicio del coche de <b>$3,132</b> fue un gasto único. Una cuenta simple lo repetiría todo el ciclo y diría <b>$9,628</b>. El modelo lo suma una vez y proyecta solo tu gasto de siempre: gasolina, casetas y estacionamiento.</p>
+    </div>
+
+    <div class="cmp">
+      <div class="cmp-b bad">
+        <div class="l">Cuenta simple</div>
+        <div class="v">$9,628</div>
+      </div>
+      <div class="cmp-b">
+        <div class="l">Pronóstico real</div>
+        <div class="v" style="color:var(--violet)">$7,976</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Auto en tus últimos ciclos</div>
+    <div class="spark">
+      <div style="height:100%;background:var(--coral)"><span>May</span></div>
+      <div style="height:24%;background:var(--green)"><span>Jun</span></div>
+      <div style="height:73%;background:var(--amber)"><span>Jul</span></div>
+      <div style="height:52%;background:#EDEFF6;border:2px dashed #C9CDE4"><span>tope</span></div>
+    </div>
+    <p class="lead" style="margin-top:4px">Mayo también fue alto ($7,279). Junio, sin servicios, cerró en $1,758. <b>Tu gasto normal de auto es de ese tamaño</b> — el presupuesto de $3,800 está bien; lo que falta es una reserva aparte para servicios.</p>
+  </div>
+
+  <div class="card tint-v">
+    <div class="kicker" style="color:var(--violet)">Sugerencia</div>
+    <p class="lead" style="color:#3D3170">Los servicios de tus autos ya están presupuestados aparte (<b>$4,938 al mes</b> de reserva). Mover el servicio de $3,132 ahí deja Auto operación en <b>$4,844</b> y refleja mejor la realidad.</p>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn ghost">Ahora no</button>
+      <button class="btn primary">Mover</button>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="nt">LA REGLA QUE SOSTIENE TODO ESTO</div>
+    <p>Ningún pronóstico se muestra sin una frase que lo explique. <b>Un número que no se puede explicar no se cree</b>, y si no se cree, la app deja de usarse.</p>
+    <p style="margin-top:8px">Por eso la comparación contra la "cuenta simple" está a la vista: hace evidente el trabajo que el modelo está haciendo por ti.</p>
+  </div>
+
+  </section>
+  <section class="sec"><span class="tag">Siguiente</span>
+  <p class="tag-note" style="margin-bottom:40px">Onboarding de primer uso y el flujo de captura por voz paso a paso.</p>
+
+</section>
+</div>
+</div>
+
+<div id="vw" style="position:fixed;right:10px;bottom:10px;z-index:99;background:#1A1B3A;color:#fff;
+ font:700 11px/1 'Plus Jakarta Sans',sans-serif;padding:8px 11px;border-radius:99px;opacity:.9"></div>
+<script>
+(function(){
+  // índice lateral generado desde las secciones (solo aparece en pantalla ancha)
+  var secs=[].slice.call(document.querySelectorAll('.sec')),
+      idx=document.getElementById('idx'), links=[];
+  secs.forEach(function(s,i){
+    var t=s.querySelector('.tag'); if(!t) return;
+    s.id='s'+i;
+    var a=document.createElement('a');
+    a.href='#s'+i; a.textContent=t.textContent; a.dataset.i=i;
+    a.onclick=function(e){e.preventDefault();s.scrollIntoView({behavior:'smooth',block:'start'});};
+    idx.appendChild(a); links.push(a);
+  });
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(l){l.classList.remove('on');});
+          var m=links.filter(function(l){return 's'+l.dataset.i===en.target.id;})[0];
+          if(m) m.classList.add('on');
+        }
+      });
+    },{rootMargin:'-10% 0px -75% 0px'});
+    secs.forEach(function(s){io.observe(s);});
+  }
+  // medidor de layout
+  var e=document.getElementById('vw');
+  function u(){var w=Math.round(document.documentElement.clientWidth);
+    e.textContent=w+'px · '+(w>=1180?'3 zonas':w>=700?'2 zonas':'teléfono');}
+  u();addEventListener('resize',u);
+  addEventListener('orientationchange',function(){setTimeout(u,300);});
+})();
+</script>
+</body>
+</html>

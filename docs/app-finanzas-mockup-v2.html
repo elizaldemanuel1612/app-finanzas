@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockups v2 — App de finanzas</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4FA; --card:#FFFFFF; --ink:#1A1B3A; --mid:#6B6F8D; --faint:#9AA0B8;
+  --line:#E7E9F2;
+  --violet:#5B4BE8; --violet-soft:#EAE7FD;
+  --green:#12B76A; --green-soft:#DCF6EA;
+  --amber:#F5A524; --amber-soft:#FDF0D8;
+  --coral:#F4623A; --coral-soft:#FDE5DC;
+  --r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  -webkit-font-smoothing:antialiased; padding:0 0 60px;
+}
+.page{max-width:430px;margin:0 auto;padding:0 16px}
+h1,h2,h3,.num{font-family:'Outfit',-apple-system,sans-serif}
+
+/* ---------- separadores de sección ---------- */
+.tag{
+  display:inline-block;margin:38px 0 6px;padding:5px 12px;border-radius:99px;
+  background:var(--ink);color:#fff;font-size:11px;font-weight:700;letter-spacing:.04em;
+}
+.tag-note{font-size:13px;color:var(--mid);line-height:1.55;margin-bottom:14px}
+
+/* ---------- cards ---------- */
+.card{background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:12px}
+.card.tint-v{background:var(--violet-soft)}
+.card.tint-g{background:var(--green-soft)}
+.card.tint-a{background:var(--amber-soft)}
+.card.tint-c{background:var(--coral-soft)}
+.card.dark{background:var(--ink);color:#fff}
+
+/* ---------- tipografía ---------- */
+.kicker{font-size:12px;font-weight:700;color:var(--mid);letter-spacing:.02em;margin-bottom:8px}
+.big{font-family:'Outfit';font-weight:800;font-size:40px;line-height:1.05;letter-spacing:-.025em}
+.mega{font-family:'Outfit';font-weight:800;font-size:54px;line-height:1;letter-spacing:-.03em}
+.mid-num{font-family:'Outfit';font-weight:700;font-size:22px;letter-spacing:-.02em}
+.lead{font-size:15px;line-height:1.55;color:var(--mid)}
+.lead b{color:var(--ink);font-weight:700}
+.small{font-size:13px;line-height:1.5;color:var(--mid)}
+.tiny{font-size:11.5px;color:var(--faint)}
+
+/* ---------- header app ---------- */
+.appbar{display:flex;align-items:center;justify-content:space-between;padding:18px 0 6px}
+.appbar .hi{font-family:'Outfit';font-weight:700;font-size:19px}
+.streak{
+  display:flex;align-items:center;gap:6px;background:var(--amber-soft);color:#8A5A05;
+  padding:6px 11px;border-radius:99px;font-size:12px;font-weight:700;
+}
+
+/* ---------- estatus hero ---------- */
+.status{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.dot-big{width:44px;height:44px;border-radius:14px;flex:none;display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:800;font-size:19px;color:#fff}
+.bg-g{background:var(--green)} .bg-a{background:var(--amber)} .bg-c{background:var(--coral)} .bg-v{background:var(--violet)}
+
+/* ---------- EL CARRIL (elemento firma) ---------- */
+.lane{position:relative;height:38px;margin:14px 0 6px}
+.lane-track{position:absolute;top:14px;left:0;right:0;height:10px;border-radius:99px;background:#EDEFF6}
+.lane-fill{position:absolute;top:14px;left:0;height:10px;border-radius:99px}
+.lane-fill.g{background:var(--green)} .lane-fill.a{background:var(--amber)} .lane-fill.c{background:var(--coral)}
+.lane-mark{position:absolute;top:6px;width:3px;height:26px;border-radius:2px;background:var(--ink)}
+.lane-lab{
+  position:absolute;top:-2px;transform:translateX(-50%);font-size:10px;font-weight:700;
+  color:var(--ink);white-space:nowrap;
+}
+.lane-ends{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);font-weight:600}
+
+/* ---------- filas de categoría ---------- */
+.crow{padding:13px 0;border-bottom:1px solid var(--line)}
+.crow:last-child{border-bottom:0;padding-bottom:0}
+.crow-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.crow-name{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.crow-emoji{font-size:16px}
+.pill{padding:4px 9px;border-radius:99px;font-size:11px;font-weight:700}
+.pill.g{background:var(--green-soft);color:#0A7A47} .pill.a{background:var(--amber-soft);color:#8A5A05} .pill.c{background:var(--coral-soft);color:#B33B18}
+.bar{height:8px;border-radius:99px;background:#EDEFF6;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;display:block}
+.bar .mk{position:absolute;top:-4px;width:3px;height:16px;border-radius:2px;background:var(--ink)}
+.crow-foot{display:flex;justify-content:space-between;margin-top:7px;font-size:12px;color:var(--mid);font-weight:600}
+
+/* ---------- botones ---------- */
+.btn{display:block;width:100%;padding:16px;border-radius:14px;text-align:center;font-weight:700;font-size:15px;border:0}
+.btn.primary{background:var(--violet);color:#fff}
+.btn.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--line)}
+.btn.dark{background:var(--ink);color:#fff}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ---------- plan semanal ---------- */
+.wk{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:var(--card);border-radius:13px;margin-bottom:8px}
+.wk-l{display:flex;align-items:center;gap:11px}
+.wk-n{width:30px;height:30px;border-radius:10px;background:var(--violet-soft);color:var(--violet);display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:700;font-size:13px}
+.wk-t{font-size:13.5px;font-weight:700}
+.wk-s{font-size:11.5px;color:var(--faint);font-weight:500}
+.wk-v{font-family:'Outfit';font-weight:700;font-size:17px}
+
+/* ---------- comparativo antes/después ---------- */
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin:14px 0 4px}
+.vs-box{background:rgba(255,255,255,.65);border-radius:13px;padding:13px;text-align:center}
+.vs-box .l{font-size:11px;font-weight:700;color:var(--mid);margin-bottom:5px}
+.vs-box .v{font-family:'Outfit';font-weight:800;font-size:21px}
+.vs-arrow{font-size:18px;color:var(--faint);font-weight:700}
+
+/* ---------- captura ---------- */
+.amt{text-align:center;padding:8px 0 4px}
+.amt .v{font-family:'Outfit';font-weight:800;font-size:60px;letter-spacing:-.035em}
+.amt .c{font-size:12px;font-weight:700;color:var(--faint)}
+.quick{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:16px 0 4px}
+.qbtn{background:var(--card);border-radius:14px;padding:14px 12px;display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:700}
+.qbtn.sel{background:var(--ink);color:#fff}
+.qbtn .e{font-size:19px}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.key{background:var(--card);border-radius:13px;padding:15px 0;text-align:center;font-family:'Outfit';font-weight:600;font-size:21px}
+
+/* ---------- celebración ---------- */
+.cel{text-align:center;padding:8px 0}
+.cel .ring{width:76px;height:76px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 14px}
+
+/* ---------- progreso / logros ---------- */
+.goal{margin-bottom:16px}
+.goal-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+.goal-n{font-size:14px;font-weight:700}
+.goal-v{font-family:'Outfit';font-weight:700;font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.chip{background:var(--card);border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700}
+.chip.on{background:var(--green-soft);color:#0A7A47}
+.chip.off{color:var(--faint)}
+.spark{display:flex;align-items:flex-end;gap:7px;height:74px;margin:14px 0 8px}
+.spark div{flex:1;border-radius:8px 8px 4px 4px;position:relative}
+.spark span{position:absolute;bottom:-19px;left:0;right:0;text-align:center;font-size:10.5px;color:var(--faint);font-weight:600}
+
+/* ---------- notificación ---------- */
+.lock{background:linear-gradient(165deg,#2B2350 0%,#1A1B3A 100%);border-radius:22px;padding:26px 14px 18px}
+.lock-t{text-align:center;color:#fff;margin-bottom:22px}
+.lock-t .h{font-family:'Outfit';font-weight:700;font-size:46px;letter-spacing:-.03em}
+.lock-t .d{font-size:12.5px;color:#A9AECB;margin-top:2px}
+.ntf{background:rgba(255,255,255,.13);border-radius:16px;padding:13px;margin-bottom:9px;color:#fff}
+.ntf-h{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.ntf-i{width:19px;height:19px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px}
+.ntf-a{font-size:10.5px;font-weight:700;color:#B8BDD8;letter-spacing:.03em}
+.ntf-w{margin-left:auto;font-size:10.5px;color:#8E94B4}
+.ntf-t{font-weight:700;font-size:14px;margin-bottom:4px}
+.ntf-b{font-size:13px;line-height:1.5;color:#C9CDE4}
+.ntf-b b{color:#fff}
+
+/* ---------- nav ---------- */
+.nav{display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border-radius:18px;padding:11px 4px;margin-top:12px}
+.nv{text-align:center;font-size:10px;font-weight:700;color:var(--faint)}
+.nv .i{display:block;font-size:17px;margin-bottom:3px}
+.nv.on{color:var(--violet)}
+.nv.plus .i{width:38px;height:38px;border-radius:13px;background:var(--violet);color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 2px;font-size:21px}
+
+/* ---------- nota de diseño ---------- */
+.note{background:#fff;border-left:4px solid var(--violet);border-radius:12px;padding:14px;margin:10px 0 4px}
+.note .nt{font-size:11px;font-weight:700;color:var(--violet);margin-bottom:6px;letter-spacing:.03em}
+.note p{font-size:13px;line-height:1.6;color:var(--mid)}
+.note b{color:var(--ink)}
+
+.head{padding:34px 0 4px}
+.head h1{font-size:29px;font-weight:800;line-height:1.15;letter-spacing:-.02em}
+.head p{font-size:14.5px;color:var(--mid);line-height:1.6;margin-top:11px}
+
+
+.sec{display:block}
+.idx{display:none}
+@media(min-width:700px){
+  body{padding:26px 22px 70px}
+  .wrap{display:grid;grid-template-columns:206px minmax(0,1fr);gap:30px;
+        max-width:1180px;margin:0 auto;align-items:start}
+  .page{max-width:none;margin:0;padding:0}
+  .idx{display:block;position:sticky;top:26px;background:var(--card);
+       border-radius:16px;padding:16px 12px}
+  .idx h4{font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:var(--faint);
+          margin:0 0 10px 10px;letter-spacing:.05em}
+  .idx a{display:block;padding:9px 10px;border-radius:9px;font-size:12.5px;font-weight:700;
+         color:var(--mid);text-decoration:none;margin-bottom:2px;line-height:1.3}
+  .idx a.on{background:var(--ink);color:#fff}
+  .head{padding-top:0}
+  .head h1{font-size:34px}
+  .head p{max-width:64ch}
+  .sec{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+       gap:0 20px;align-items:start;margin-bottom:14px}
+  .sec > .tag,.sec > .tag-note{grid-column:1/-1}
+  .sec > .tag-note{max-width:70ch}
+  .sec > *{min-width:0}
+}
+@media(min-width:1180px){
+  .wrap{grid-template-columns:220px minmax(0,1fr);max-width:1440px;gap:36px}
+  .sec:has(> .note){grid-template-columns:repeat(2,minmax(270px,1fr)) 268px}
+  .sec:has(> .note) > .note{grid-column:3;grid-row:2/span 40;align-self:start;margin-top:0}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="idx" id="idx"><h4>SECCIONES</h4></nav>
+<div class="page">
+
+  <div class="head">
+    <h1>App de finanzas — versión amigable</h1>
+    <p>Mockup a tamaño real. Deslízalo en tu teléfono como si fuera la app. Todos los números salen de tu ciclo actual.</p>
+  </div>
+
+  <!-- ============ 1. INICIO ============ -->
+    <section class="sec"><span class="tag">1 · Inicio</span>
+  <p class="tag-note">Una sola pregunta respondida arriba: ¿voy bien o no? Sin tablas, sin porcentajes que hay que interpretar.</p>
+
+  <div class="appbar">
+    <div>
+      <div class="tiny">Ciclo del 12 jul al 11 ago</div>
+      <div class="hi">Hola, Manu</div>
+    </div>
+    <div class="streak">🔥 12 días</div>
+  </div>
+
+  <div class="card tint-a">
+    <div class="status">
+      <div class="dot-big bg-a">!</div>
+      <div>
+        <div style="font-family:'Outfit';font-weight:800;font-size:20px">Vas un poco arriba</div>
+        <div class="small" style="color:#8A5A05">Nada grave. Con un ajuste chico cierras bien.</div>
+      </div>
+    </div>
+    <div class="lane">
+      <div class="lane-lab" style="left:55%">hoy deberías ir aquí</div>
+      <div class="lane-track"></div>
+      <div class="lane-fill a" style="width:63%"></div>
+      <div class="lane-mark" style="left:55%"></div>
+    </div>
+    <div class="lane-ends"><span>$0</span><span>$49,476 tope</span></div>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Te queda para gastar</div>
+    <div class="mega">$1,853</div>
+    <div class="lead" style="margin-top:6px">al día, durante los <b>14 días</b> que faltan del ciclo.</div>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Dónde está la atención</div>
+
+    <div class="crow">
+      <div class="crow-top">
+        <span class="crow-name"><span class="crow-emoji">🍿</span>Salidas</span>
+        <span class="pill c">Pasado</span>
+      </div>
+      <div class="bar"><i class="lane-fill c" style="width:100%"></i><span class="mk" style="left:55%"></span></div>
+      <div class="crow-foot"><span>$7,931 de $6,000</span><span style="color:var(--coral)">−$1,931</span></div>
+    </div>
+
+    <div class="crow">
+      <div class="crow-top">
+        <span class="crow-name"><span class="crow-emoji">🚗</span>Auto</span>
+        <span class="pill c">Pasado</span>
+      </div>
+      <div class="bar"><i class="lane-fill c" style="width:100%"></i><span class="mk" style="left:55%"></span></div>
+      <div class="crow-foot"><span>$5,280 de $3,800</span><span style="color:var(--coral)">−$1,480</span></div>
+    </div>
+
+    <div class="crow">
+      <div class="crow-top">
+        <span class="crow-name"><span class="crow-emoji">🛒</span>Súper</span>
+        <span class="pill a">Justo</span>
+      </div>
+      <div class="bar"><i class="lane-fill a" style="width:62%"></i><span class="mk" style="left:55%"></span></div>
+      <div class="crow-foot"><span>$4,974 de $8,000</span><span>quedan $3,026</span></div>
+    </div>
+
+    <div class="crow">
+      <div class="crow-top">
+        <span class="crow-name"><span class="crow-emoji">👶</span>Victoria</span>
+        <span class="pill g">Vas bien</span>
+      </div>
+      <div class="bar"><i class="lane-fill g" style="width:20%"></i><span class="mk" style="left:55%"></span></div>
+      <div class="crow-foot"><span>$993 de $5,000</span><span>quedan $4,007</span></div>
+    </div>
+  </div>
+
+  <div class="card dark">
+    <div class="kicker" style="color:#A9AECB">Lo que importa de verdad</div>
+    <div class="big">$34,897</div>
+    <div class="small" style="color:#C9CDE4;margin-top:6px">es lo que vas a poder invertir este ciclo. Si cierras Salidas en presupuesto, suben a <b style="color:#fff">$42,454</b>.</div>
+  </div>
+
+  <div class="nav">
+    <div class="nv on"><span class="i">🏠</span>Inicio</div>
+    <div class="nv"><span class="i">📋</span>Gastos</div>
+    <div class="nv plus"><span class="i">+</span></div>
+    <div class="nv"><span class="i">📈</span>Progreso</div>
+    <div class="nv"><span class="i">⚙️</span>Ajustes</div>
+  </div>
+
+  <div class="note">
+    <div class="nt">POR QUÉ ASÍ</div>
+    <p><b>La línea negra es lo único que hay que entender.</b> Si tu barra la rebasa, vas rápido. Si no llega, vas bien. No hay que saber leer porcentajes ni presupuestos.</p>
+    <p style="margin-top:8px">La tarjeta oscura conecta cada peso que no gastas con tu objetivo real: invertir. Sin eso, ahorrar se siente a castigo.</p>
+  </div>
+
+  <!-- ============ 2. PLAN DE AJUSTE ============ -->
+  </section>
+  <section class="sec"><span class="tag">2 · Plan de ajuste</span>
+  <p class="tag-note">Aparece sola cuando una categoría va rumbo a pasarse. No te regaña: te da un número que sí puedes seguir.</p>
+
+  <div class="card tint-v">
+    <div class="status">
+      <div class="dot-big bg-v">🛒</div>
+      <div>
+        <div style="font-family:'Outfit';font-weight:800;font-size:19px">Plan para el súper</div>
+        <div class="small">Te quedan <b>$3,026</b> para 14 días</div>
+      </div>
+    </div>
+
+    <div class="vs">
+      <div class="vs-box">
+        <div class="l">Gastas normalmente</div>
+        <div class="v">$1,758</div>
+        <div class="tiny">por semana</div>
+      </div>
+      <div class="vs-arrow">→</div>
+      <div class="vs-box">
+        <div class="l">Apunta a</div>
+        <div class="v" style="color:var(--violet)">$1,513</div>
+        <div class="tiny">por semana</div>
+      </div>
+    </div>
+
+    <p class="lead" style="margin-top:12px">Son <b>$216 al día</b> — un recorte de apenas 14%. Te lo reparto según tus días fuertes.</p>
+  </div>
+
+  <div class="wk">
+    <div class="wk-l">
+      <div class="wk-n">1</div>
+      <div><div class="wk-t">29 jul – 1 ago</div><div class="wk-s">4 días</div></div>
+    </div>
+    <div class="wk-v">$835</div>
+  </div>
+  <div class="wk">
+    <div class="wk-l">
+      <div class="wk-n">2</div>
+      <div><div class="wk-t">2 – 8 ago</div><div class="wk-s">semana completa</div></div>
+    </div>
+    <div class="wk-v">$1,513</div>
+  </div>
+  <div class="wk">
+    <div class="wk-l">
+      <div class="wk-n">3</div>
+      <div><div class="wk-t">9 – 11 ago</div><div class="wk-s">cierre de ciclo</div></div>
+    </div>
+    <div class="wk-v">$678</div>
+  </div>
+  <div class="wk" style="background:var(--green-soft)">
+    <div class="wk-l">
+      <div class="wk-n" style="background:#fff;color:var(--green)">✓</div>
+      <div><div class="wk-t">Si lo sigues</div><div class="wk-s">cierras el súper en verde</div></div>
+    </div>
+    <div class="wk-v" style="color:var(--green)">$8,000</div>
+  </div>
+
+  <div class="card tint-c" style="margin-top:14px">
+    <div class="kicker" style="color:#B33B18">Salidas ya se pasó — ¿qué hacemos?</div>
+    <p class="lead" style="color:#8A3A1C">Van <b>$1,931</b> arriba y aún quedan 14 días. Tienes <b>$10,056</b> sin usar en otras categorías.</p>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn ghost">Dejarlo así</button>
+      <button class="btn dark">Rebalancear</button>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="nt">LO QUE DESCUBRIÓ TU HISTORIAL</div>
+    <p>Tu ejemplo asumía que el súper es de fin de semana. <b>En tus datos no lo es:</b> tus días fuertes son martes, miércoles y domingo. Viernes a domingo apenas concentra 46% del gasto, casi lo mismo que su proporción de días.</p>
+    <p style="margin-top:8px">Por eso el plan no dice "gasta menos el finde": reparte según <b>tus</b> días reales. Un consejo basado en un supuesto equivocado se siente ajeno y se ignora.</p>
+  </div>
+
+  <!-- ============ 3. CAPTURA ============ -->
+  </section>
+  <section class="sec"><span class="tag">3 · Registrar un gasto</span>
+  <p class="tag-note">Dos taps y listo. Si registrar cuesta trabajo, nadie lo hace — y sin datos no hay nada de lo anterior.</p>
+
+  <div class="card">
+    <div class="amt">
+      <div class="c">¿Cuánto gastaste?</div>
+      <div class="v">$480</div>
+    </div>
+    <div class="quick">
+      <div class="qbtn sel"><span class="e">🛒</span>Súper</div>
+      <div class="qbtn"><span class="e">🍿</span>Salidas</div>
+      <div class="qbtn"><span class="e">🚗</span>Auto</div>
+      <div class="qbtn"><span class="e">👶</span>Victoria</div>
+    </div>
+    <div class="keys">
+      <div class="key">1</div><div class="key">2</div><div class="key">3</div>
+      <div class="key">4</div><div class="key">5</div><div class="key">6</div>
+      <div class="key">7</div><div class="key">8</div><div class="key">9</div>
+      <div class="key">📷</div><div class="key">0</div><div class="key">🎙️</div>
+    </div>
+    <button class="btn primary" style="margin-top:12px">Listo</button>
+    <p class="tiny" style="text-align:center;margin-top:9px">Sin internet · se guarda y sincroniza sola</p>
+  </div>
+
+  <div class="card tint-g">
+    <div class="cel">
+      <div class="ring">✓</div>
+      <div style="font-family:'Outfit';font-weight:800;font-size:20px">Registrado</div>
+      <p class="lead" style="margin-top:7px;color:#0A7A47">13 días seguidos. Te quedan <b>$2,546</b> de súper para el resto del ciclo.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="nt">POR QUÉ ASÍ</div>
+    <p>La confirmación no dice "guardado con éxito". Dice <b>qué cambió para ti</b>: cuánto te queda y cuántos días llevas. Es el momento exacto en que se decide si vuelves a abrir la app mañana.</p>
+    <p style="margin-top:8px">Foto y voz viven dentro del teclado, no en menús aparte. Un solo flujo para las tres formas de capturar.</p>
+  </div>
+
+  <!-- ============ 4. PROGRESO ============ -->
+  </section>
+  <section class="sec"><span class="tag">4 · Tu progreso</span>
+  <p class="tag-note">La pantalla que hace que quieras seguir. No mide cuánto gastaste: mide cuánto estás mejorando.</p>
+
+  <div class="card">
+    <div class="kicker">Gasto por ciclo</div>
+    <div class="spark">
+      <div style="height:100%;background:var(--coral)"><span>May</span></div>
+      <div style="height:62%;background:var(--green)"><span>Jun</span></div>
+      <div style="height:76%;background:#EDEFF6;border:2px dashed var(--amber)"><span>Jul*</span></div>
+    </div>
+    <p class="lead" style="margin-top:26px">Bajaste <b>$26,237</b> de mayo a junio. Este ciclo vas rumbo a $52,103 — arriba de junio, pero muy por debajo de mayo. Incluye tus $11,126 de gastos fijos.</p>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Hacia tu fondo de emergencia</div>
+    <div class="goal">
+      <div class="goal-top"><span class="goal-n">Meta $109,612</span><span class="goal-v">89%</span></div>
+      <div class="bar"><i class="lane-fill g" style="width:89%"></i></div>
+      <div class="crow-foot"><span>$97,312 acumulados</span><span>falta 1 ciclo</span></div>
+    </div>
+    <p class="small">Cada peso que no gastas de más aquí adelanta la fecha.</p>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Lo que has logrado</div>
+    <div class="chips">
+      <div class="chip on">✅ 12 días seguidos</div>
+      <div class="chip on">🎯 Junio en verde</div>
+      <div class="chip on">📉 −38% vs mayo</div>
+      <div class="chip off">🏆 3 ciclos en verde</div>
+      <div class="chip off">💎 Súper 3 meses en meta</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="nt">POR QUÉ ASÍ</div>
+    <p>Los logros no son adornos: <b>cada uno premia una conducta que sí mejora tus finanzas</b> — registrar seguido, cerrar en presupuesto, sostener una categoría. Nada premia gastar.</p>
+    <p style="margin-top:8px">La barra gris punteada es la proyección. Ver que este ciclo va arriba de los dos anteriores mueve más que cualquier alerta.</p>
+  </div>
+
+  <!-- ============ 5. NOTIFICACIONES ============ -->
+  </section>
+  <section class="sec"><span class="tag">5 · Cómo te avisa</span>
+  <p class="tag-note">Máximo una por categoría por ciclo. Cada aviso trae un número y algo que puedes hacer hoy.</p>
+
+  <div class="lock">
+    <div class="lock-t">
+      <div class="h">20:14</div>
+      <div class="d">martes 28 de julio</div>
+    </div>
+
+    <div class="ntf">
+      <div class="ntf-h"><span class="ntf-i" style="background:var(--amber)">🛒</span><span class="ntf-a">Finanzas</span><span class="ntf-w">ahora</span></div>
+      <div class="ntf-t">El súper va justo</div>
+      <div class="ntf-b">Te quedan <b>$3,026</b> para 14 días. Apunta a <b>$216 al día</b> y cierras bien.</div>
+    </div>
+
+    <div class="ntf">
+      <div class="ntf-h"><span class="ntf-i" style="background:var(--violet)">📌</span><span class="ntf-a">Finanzas</span><span class="ntf-w">8:00</span></div>
+      <div class="ntf-t">4 gastos fijos listos</div>
+      <div class="ntf-b">Vivienda, Gimnasio, Spotify y Plan celular. <b>Un tap y quedan registrados.</b></div>
+    </div>
+
+    <div class="ntf">
+      <div class="ntf-h"><span class="ntf-i" style="background:var(--green)">🎉</span><span class="ntf-a">Finanzas</span><span class="ntf-w">ayer</span></div>
+      <div class="ntf-t">Cerraste junio en verde</div>
+      <div class="ntf-b">$31,548 de $49,476. <b>Tu mejor ciclo</b> — y $8,700 más para invertir.</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="nt">REGLA</div>
+    <p>Si un aviso no cambia una decisión que puedes tomar hoy, no se manda. <b>Una app que notifica de más termina silenciada</b>, y entonces no sirve para nada.</p>
+  </div>
+
+  </section>
+  <section class="sec"><span class="tag">Siguiente</span>
+  <p class="tag-note" style="margin-bottom:40px">Pantalla de gastos con búsqueda y filtros, y el flujo de captura por voz paso a paso.</p>
+
+</section>
+</div>
+</div>
+
+<div id="vw" style="position:fixed;right:10px;bottom:10px;z-index:99;background:#1A1B3A;color:#fff;
+ font:700 11px/1 'Plus Jakarta Sans',sans-serif;padding:8px 11px;border-radius:99px;opacity:.9"></div>
+<script>
+(function(){
+  // índice lateral generado desde las secciones (solo aparece en pantalla ancha)
+  var secs=[].slice.call(document.querySelectorAll('.sec')),
+      idx=document.getElementById('idx'), links=[];
+  secs.forEach(function(s,i){
+    var t=s.querySelector('.tag'); if(!t) return;
+    s.id='s'+i;
+    var a=document.createElement('a');
+    a.href='#s'+i; a.textContent=t.textContent; a.dataset.i=i;
+    a.onclick=function(e){e.preventDefault();s.scrollIntoView({behavior:'smooth',block:'start'});};
+    idx.appendChild(a); links.push(a);
+  });
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(l){l.classList.remove('on');});
+          var m=links.filter(function(l){return 's'+l.dataset.i===en.target.id;})[0];
+          if(m) m.classList.add('on');
+        }
+      });
+    },{rootMargin:'-10% 0px -75% 0px'});
+    secs.forEach(function(s){io.observe(s);});
+  }
+  // medidor de layout
+  var e=document.getElementById('vw');
+  function u(){var w=Math.round(document.documentElement.clientWidth);
+    e.textContent=w+'px · '+(w>=1180?'3 zonas':w>=700?'2 zonas':'teléfono');}
+  u();addEventListener('resize',u);
+  addEventListener('orientationchange',function(){setTimeout(u,300);});
+})();
+</script>
+</body>
+</html>

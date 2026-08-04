@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockups v8 — Rebalanceo</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4FA;--card:#FFF;--ink:#1A1B3A;--mid:#6B6F8D;--faint:#9AA0B8;--line:#E7E9F2;
+  --violet:#5B4BE8;--violet-soft:#EAE7FD;--green:#12B76A;--green-soft:#DCF6EA;
+  --amber:#F5A524;--amber-soft:#FDF0D8;--coral:#F4623A;--coral-soft:#FDE5DC;
+  --steel:#3D5A80;--steel-soft:#E4EAF2;--r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+ font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+ -webkit-font-smoothing:antialiased;padding:0 0 60px}
+.page{max-width:430px;margin:0 auto;padding:0 16px}
+h1{font-family:'Outfit'}
+.head{padding:34px 0 4px}
+.head h1{font-size:29px;font-weight:800;line-height:1.15;letter-spacing:-.02em}
+.head p{font-size:14.5px;color:var(--mid);line-height:1.6;margin-top:11px}
+.tag{display:inline-block;margin:38px 0 6px;padding:5px 12px;border-radius:99px;
+ background:var(--ink);color:#fff;font-size:11px;font-weight:700}
+.tag-note{font-size:13px;color:var(--mid);line-height:1.55;margin-bottom:14px}
+.card{background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:12px}
+.card.tint-v{background:var(--violet-soft)}
+.card.tint-g{background:var(--green-soft)}
+.card.tint-a{background:var(--amber-soft)}
+.card.tint-c{background:var(--coral-soft)}
+.card.tint-s{background:var(--steel-soft)}
+.card.dark{background:var(--ink);color:#fff}
+.kicker{font-size:12px;font-weight:700;color:var(--mid);margin-bottom:8px}
+.big{font-family:'Outfit';font-weight:800;font-size:34px;line-height:1.1;letter-spacing:-.025em}
+.mega{font-family:'Outfit';font-weight:800;font-size:48px;line-height:1;letter-spacing:-.03em}
+.lead{font-size:15px;line-height:1.55;color:var(--mid)}
+.lead b{color:var(--ink);font-weight:700}
+.small{font-size:13px;line-height:1.5;color:var(--mid)}
+.tiny{font-size:11.5px;color:var(--faint)}
+.kv{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.kv:last-child{border-bottom:0}
+.kv .k{font-size:13.5px;font-weight:600;color:var(--mid)}
+.kv .val{font-family:'Outfit';font-weight:700;font-size:15px}
+.btn{display:block;width:100%;padding:16px;border-radius:14px;text-align:center;
+ font-weight:700;font-size:15px;border:0;margin-top:8px}
+.btn.primary{background:var(--violet);color:#fff}
+.btn.grey{background:var(--bg);color:var(--ink)}
+.btn.white{background:#fff;color:var(--ink)}
+.btn.dark{background:var(--ink);color:#fff}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.alert{border-radius:13px;padding:14px;margin-top:10px;font-size:13.5px;line-height:1.55}
+.alert.warn{background:var(--amber-soft);color:#8A5A05}
+.alert.ok{background:var(--green-soft);color:#0A7A47}
+.alert.bad{background:var(--coral-soft);color:#8A3A1C}
+.alert.info{background:var(--steel-soft);color:#2C4460}
+.alert b{font-weight:800}
+.note{background:#fff;border-left:4px solid var(--violet);border-radius:12px;padding:14px;margin:10px 0 4px}
+.note .nt{font-size:11px;font-weight:700;color:var(--violet);margin-bottom:6px}
+.note p{font-size:13px;line-height:1.6;color:var(--mid)}
+.note b{color:var(--ink)}
+.bar{height:8px;border-radius:99px;background:#EDEFF6;position:relative;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;display:block}
+.bar-g{background:var(--green)}
+.bar-a{background:var(--amber)}
+.bar-c{background:var(--coral)}
+.bar-v{background:var(--violet)}
+.row{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line)}
+.row:last-of-type{border-bottom:0}
+.row-e{width:38px;height:38px;border-radius:12px;flex:none;display:flex;align-items:center;
+ justify-content:center;font-size:18px;background:var(--bg)}
+.row-b{flex:1;min-width:0}
+.row-n{font-size:14.5px;font-weight:700}
+.row-s{font-size:12px;color:var(--faint);font-weight:600;margin-top:2px}
+.row-v{font-family:'Outfit';font-weight:700;font-size:15.5px;text-align:right;white-space:nowrap}
+.empty{text-align:center;padding:26px 12px}
+.empty .ico{font-size:42px;margin-bottom:14px}
+.empty h3{font-family:'Outfit';font-weight:800;font-size:19px;margin-bottom:8px}
+.empty p{font-size:14px;line-height:1.6;color:var(--mid);max-width:34ch;margin:0 auto}
+
+.pick{display:flex;align-items:center;gap:11px;padding:13px;background:var(--card);
+ border-radius:13px;margin-bottom:8px;border:2px solid transparent}
+.pick.on{border-color:var(--violet);background:var(--violet-soft)}
+.pick-c{width:22px;height:22px;border-radius:7px;flex:none;border:2px solid var(--line);
+ display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;background:#fff}
+.pick.on .pick-c{background:var(--violet);border-color:var(--violet)}
+.pick-b{flex:1;min-width:0}
+.pick-n{font-size:14px;font-weight:700}
+.pick-s{font-size:11.5px;color:var(--faint);font-weight:600;margin-top:2px}
+.pick-v{font-family:'Outfit';font-weight:700;font-size:15px;text-align:right}
+.pick-v small{display:block;font-size:11px;color:var(--faint);font-weight:700}
+.sim{display:grid;grid-template-columns:1fr 22px 1fr;gap:8px;align-items:center;
+ padding:11px 0;border-bottom:1px solid var(--line)}
+.sim:last-child{border-bottom:0}
+.sim-a{text-align:left}
+.sim-b{text-align:right}
+.sim-l{font-size:11.5px;font-weight:700;color:var(--faint)}
+.sim-v{font-family:'Outfit';font-weight:700;font-size:14.5px}
+.sim-ar{text-align:center;color:var(--faint);font-weight:800;font-size:13px}
+.opt3{background:var(--card);border-radius:13px;padding:15px;margin-bottom:9px}
+.opt3 .t{font-size:14px;font-weight:800;margin-bottom:5px}
+.opt3 .d{font-size:12.5px;line-height:1.55;color:var(--mid)}
+.opt3 .c{font-family:'Outfit';font-weight:700;font-size:13px;color:var(--violet);margin-top:8px;display:block}
+.sec{display:block}
+.idx{display:none}
+@media(min-width:700px){
+  body{padding:26px 22px 70px}
+  .wrap{display:grid;grid-template-columns:206px minmax(0,1fr);gap:30px;
+        max-width:1180px;margin:0 auto;align-items:start}
+  .page{max-width:none;margin:0;padding:0}
+  .idx{display:block;position:sticky;top:26px;background:var(--card);
+       border-radius:16px;padding:16px 12px}
+  .idx h4{font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:var(--faint);
+          margin:0 0 10px 10px;letter-spacing:.05em}
+  .idx a{display:block;padding:9px 10px;border-radius:9px;font-size:12.5px;font-weight:700;
+         color:var(--mid);text-decoration:none;margin-bottom:2px;line-height:1.3}
+  .idx a.on{background:var(--ink);color:#fff}
+  .head{padding-top:0}
+  .head h1{font-size:34px}
+  .head p{max-width:64ch}
+  .sec{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+       gap:0 20px;align-items:start;margin-bottom:14px}
+  .sec > .tag,.sec > .tag-note{grid-column:1/-1}
+  .sec > .tag-note{max-width:70ch}
+  .sec > *{min-width:0}
+}
+@media(min-width:1180px){
+  .wrap{grid-template-columns:220px minmax(0,1fr);max-width:1440px;gap:36px}
+  .sec:has(> .note){grid-template-columns:repeat(2,minmax(270px,1fr)) 268px}
+  .sec:has(> .note) > .note{grid-column:3;grid-row:2/span 40;align-self:start;margin-top:0}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="idx" id="idx"><h4>SECCIONES</h4></nav>
+<div class="page">
+
+  <div class="head">
+    <h1>Rebalanceo entre categorías</h1>
+    <p>Qué hacer cuando una categoría ya se pasó y recortar no alcanza. La función más propositiva de la app.</p>
+  </div>
+
+
+  <section class="sec">
+  <span class="tag">1 · El disparador</span>
+  <p class="tag-note">No aparece cuando ya cerró el mes. Aparece cuando todavía puedes hacer algo.</p>
+
+  <div class="card tint-c">
+    <div class="kicker" style="color:#B33B18">🍿 Salidas se pasó</div>
+    <div class="mega" style="color:#B33B18">$1,931</div>
+    <div class="small" style="color:#8A3A1C;margin-top:6px">arriba de tu presupuesto de $6,000 · quedan 14 días de ciclo</div>
+    <div class="alert bad" style="background:rgba(255,255,255,.55)">
+      Recortar ya no alcanza: tendrías que gastar <b>$0</b> el resto del ciclo y aun así cierras arriba.
+    </div>
+    <button class="btn white">Ver de dónde sacarlo</button>
+  </div>
+
+  <div class="note">
+    <div class="nt">CUÁNDO SE OFRECE REBALANCEO Y NO PLAN DE AJUSTE</div>
+    <p>Si todavía se puede corregir gastando menos, la app propone un ritmo diario. <b>El rebalanceo aparece solo cuando ni gastando cero cierras en presupuesto</b> — ahí el único camino honesto es mover dinero de otro lado.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">2 · De dónde sacarlo</span>
+  <p class="tag-note">Solo se ofrecen categorías con holgura proyectada, no simplemente con saldo sin gastar. La diferencia importa.</p>
+
+  <div class="card">
+    <div class="kicker">Tienes $10,056 de holgura</div>
+
+    <div class="pick on">
+      <span class="pick-c">✓</span>
+      <span class="pick-b"><span class="pick-n">🤝 Apoyo Mamá</span><span class="pick-s">va rumbo a gastar $1,141 de $5,000</span></span>
+      <span class="pick-v">$1,000<small>de $3,859</small></span>
+    </div>
+
+    <div class="pick on">
+      <span class="pick-c">✓</span>
+      <span class="pick-b"><span class="pick-n">🎁 Donaciones</span><span class="pick-s">va rumbo a gastar $138 de $2,200</span></span>
+      <span class="pick-v">$931<small>de $2,062</small></span>
+    </div>
+
+    <div class="pick">
+      <span class="pick-c"></span>
+      <span class="pick-b"><span class="pick-n">💵 Efectivo / Imprevistos</span><span class="pick-s">va rumbo a gastar $160 de $1,600</span></span>
+      <span class="pick-v">$0<small>de $1,440</small></span>
+    </div>
+
+    <div class="pick">
+      <span class="pick-c"></span>
+      <span class="pick-b"><span class="pick-n">🤝 Apoyo Andy</span><span class="pick-s">va rumbo a gastar $1,866 de $3,000</span></span>
+      <span class="pick-v">$0<small>de $1,134</small></span>
+    </div>
+
+    <div class="alert ok">Seleccionado <b>$1,931</b> de $1,931. Justo lo que falta.</div>
+    <button class="btn primary">Simular el cambio</button>
+  </div>
+
+  <div class="note">
+    <div class="nt">HOLGURA PROYECTADA, NO SALDO</div>
+    <p>Una categoría puede tener $4,000 sin gastar y aun así <b>necesitarlos todos</b> antes de que cierre el ciclo. La app ofrece solo lo que el pronóstico dice que va a sobrar, no lo que hoy está sin usar.</p>
+    <p style="margin-top:8px">Los gastos fijos nunca aparecen aquí: no se les puede quitar presupuesto.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">3 · Cómo queda</span>
+  <p class="tag-note">Antes de confirmar, ves el efecto exacto en cada categoría tocada. Nada se mueve a ciegas.</p>
+
+  <div class="card">
+    <div class="kicker">Simulación</div>
+    <div class="sim">
+      <span class="sim-a"><span class="sim-l">🍿 Salidas</span><br><span class="sim-v">$6,000</span></span>
+      <span class="sim-ar">→</span>
+      <span class="sim-b"><span class="sim-l">queda en</span><br><span class="sim-v" style="color:var(--green)">$7,931</span></span>
+    </div>
+    <div class="sim">
+      <span class="sim-a"><span class="sim-l">🤝 Apoyo Mamá</span><br><span class="sim-v">$5,000</span></span>
+      <span class="sim-ar">→</span>
+      <span class="sim-b"><span class="sim-l">queda en</span><br><span class="sim-v">$4,000</span></span>
+    </div>
+    <div class="sim">
+      <span class="sim-a"><span class="sim-l">🎁 Donaciones</span><br><span class="sim-v">$2,200</span></span>
+      <span class="sim-ar">→</span>
+      <span class="sim-b"><span class="sim-l">queda en</span><br><span class="sim-v">$1,269</span></span>
+    </div>
+
+    <div class="alert info" style="margin-top:14px">
+      Tu presupuesto total sigue igual: <b>$49,476</b>. Tu meta de apartado no se toca.
+    </div>
+    <div class="row2" style="margin-top:12px">
+      <button class="btn grey">Cancelar</button>
+      <button class="btn primary" style="margin:0">Aplicar</button>
+    </div>
+  </div>
+
+  <div class="card tint-g">
+    <div class="kicker" style="color:#0A7A47">Después de aplicar</div>
+    <div class="row" style="border:0;padding-top:4px">
+      <span class="row-e">🍿</span>
+      <span class="row-b"><span class="row-n">Salidas</span><span class="row-s">$7,931 de $7,931</span></span>
+      <span class="row-v" style="color:var(--green)">en meta</span>
+    </div>
+    <div class="bar"><i class="bar-g" style="width:100%"></i></div>
+    <p class="small" style="color:#0A7A47;margin-top:12px">Cierras el ciclo dentro de presupuesto sin tocar lo que ibas a apartar.</p>
+  </div>
+
+  <div class="note">
+    <div class="nt">LO QUE NUNCA CAMBIA</div>
+    <p>El rebalanceo <b>solo mueve presupuesto, jamás movimientos</b>. Lo que ya gastaste queda exactamente como está. Si esto pudiera reescribir el pasado, ningún número de la app sería confiable.</p>
+    <p style="margin-top:8px">Cada movimiento de presupuesto queda en la bitácora con fecha, monto y de dónde salió.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">4 · Cuando no hay de dónde</span>
+  <p class="tag-note">El caso incómodo. Aquí es donde la mayoría de las apps se quedan calladas.</p>
+
+  <div class="card tint-a">
+    <div class="kicker" style="color:#8A5A05">No hay holgura suficiente</div>
+    <p class="lead" style="color:#8A5A05">Faltan <b>$1,931</b> y solo hay <b>$420</b> disponibles en otras categorías. Estas son tus opciones reales:</p>
+  </div>
+
+  <div class="opt3">
+    <div class="t">Bajar tu meta este ciclo</div>
+    <div class="d">Apartas $32,869 en vez de $34,800. Cierras en verde, con un alcance de 94% en lugar de 100%.</div>
+    <span class="c">Recomendada · el impacto es de un solo mes</span>
+  </div>
+
+  <div class="opt3">
+    <div class="t">Recortar el resto del ciclo</div>
+    <div class="d">Repartir $1,931 entre súper, auto y salidas los 14 días que quedan. Son $138 menos al día en total.</div>
+    <span class="c">Exigente pero mantiene tu meta intacta</span>
+  </div>
+
+  <div class="opt3">
+    <div class="t">Aceptarlo y seguir</div>
+    <div class="d">Cierras $1,931 arriba. Se registra como tal y al abrir el siguiente ciclo te propongo subir el presupuesto de Salidas.</div>
+    <span class="c">Válido · a veces el mes simplemente fue así</span>
+  </div>
+
+  <div class="note">
+    <div class="nt">POR QUÉ TRES OPCIONES Y NO UN REGAÑO</div>
+    <p>Aceptar el sobrecosto <b>es una opción legítima y aparece como tal</b>, sin letra chiquita ni tono de reproche. Una app que solo ofrece disciplina se convierte en una fuente de culpa, y las fuentes de culpa se desinstalan.</p>
+    <p style="margin-top:8px">Lo que sí hace es no dejarte ahí: si eliges aceptarlo, el siguiente ciclo arranca con una propuesta concreta.</p>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">5 · Queda registrado</span>
+  <p class="tag-note">Para que dentro de tres meses puedas entender por qué un presupuesto no es el que pusiste al inicio.</p>
+
+  <div class="card">
+    <div class="kicker">Bitácora de presupuesto · ciclo Jul</div>
+    <div class="row">
+      <span class="row-e">↔️</span>
+      <span class="row-b"><span class="row-n">$1,000 de Apoyo Mamá a Salidas</span><span class="row-s">28 jul · rebalanceo manual</span></span>
+    </div>
+    <div class="row">
+      <span class="row-e">↔️</span>
+      <span class="row-b"><span class="row-n">$931 de Donaciones a Salidas</span><span class="row-s">28 jul · rebalanceo manual</span></span>
+    </div>
+    <div class="row">
+      <span class="row-e">✏️</span>
+      <span class="row-b"><span class="row-n">Vivienda de $9,910 a $10,400</span><span class="row-s">15 jul · monto fijo actualizado</span></span>
+    </div>
+    <button class="btn grey">Deshacer el último</button>
+  </div>
+  </section>
+
+  <section class="sec">
+  <span class="tag">Siguiente</span>
+  <p class="tag-note" style="margin-bottom:40px">Estados vacíos y de error en toda la app.</p>
+  </section>
+
+</div>
+</div>
+<div id="vw" style="position:fixed;right:10px;bottom:10px;z-index:99;background:#1A1B3A;color:#fff;
+ font:700 11px/1 'Plus Jakarta Sans',sans-serif;padding:8px 11px;border-radius:99px;opacity:.9"></div>
+<script>
+(function(){
+  var secs=[].slice.call(document.querySelectorAll('.sec')),
+      idx=document.getElementById('idx'), links=[];
+  secs.forEach(function(s,i){
+    var t=s.querySelector('.tag'); if(!t) return;
+    s.id='s'+i;
+    var a=document.createElement('a');
+    a.href='#s'+i; a.textContent=t.textContent; a.dataset.i=i;
+    a.onclick=function(e){e.preventDefault();s.scrollIntoView({behavior:'smooth',block:'start'});};
+    idx.appendChild(a); links.push(a);
+  });
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(l){l.classList.remove('on');});
+          var m=links.filter(function(l){return 's'+l.dataset.i===en.target.id;})[0];
+          if(m) m.classList.add('on');
+        }
+      });
+    },{rootMargin:'-10% 0px -75% 0px'});
+    secs.forEach(function(s){io.observe(s);});
+  }
+  var e=document.getElementById('vw');
+  function u(){var w=Math.round(document.documentElement.clientWidth);
+    e.textContent=w+'px \u00b7 '+(w>=1180?'3 zonas':w>=700?'2 zonas':'tel\u00e9fono');}
+  u();addEventListener('resize',u);
+  addEventListener('orientationchange',function(){setTimeout(u,300);});
+})();
+</script>
+</body>
+</html>

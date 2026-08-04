@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "549374317068",
+    "project_id": "app-finanzas-27e41",
+    "storage_bucket": "app-finanzas-27e41.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:549374317068:android:5a0bb4fe2fc4efe9055429",
+        "android_client_info": {
+          "package_name": "com.manuelelizalde.appfinanzas.app_finanzas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD39Mb6LCA7Ltc-wq218W0n-BlSp-jPwJA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
