@@ -37,8 +37,6 @@ final class Movimiento {
   final OrigenCaptura origenCaptura;
   final String? ticketId;
   final String? fotoUrl;
-  final bool esReembolsable;
-  final String? reembolsoId;
   final bool clasificadoPorIA;
   final double? confianzaIA;
   final Granularidad? granularidad;
@@ -61,8 +59,6 @@ final class Movimiento {
     required this.origenCaptura,
     this.ticketId,
     this.fotoUrl,
-    this.esReembolsable = false,
-    this.reembolsoId,
     this.clasificadoPorIA = false,
     this.confianzaIA,
     this.granularidad,
@@ -86,8 +82,6 @@ final class Movimiento {
     OrigenCaptura? origenCaptura,
     String? ticketId,
     String? fotoUrl,
-    bool? esReembolsable,
-    String? reembolsoId,
     bool? clasificadoPorIA,
     double? confianzaIA,
     Granularidad? granularidad,
@@ -107,8 +101,6 @@ final class Movimiento {
         origenCaptura: origenCaptura ?? this.origenCaptura,
         ticketId: ticketId ?? this.ticketId,
         fotoUrl: fotoUrl ?? this.fotoUrl,
-        esReembolsable: esReembolsable ?? this.esReembolsable,
-        reembolsoId: reembolsoId ?? this.reembolsoId,
         clasificadoPorIA: clasificadoPorIA ?? this.clasificadoPorIA,
         confianzaIA: confianzaIA ?? this.confianzaIA,
         granularidad: granularidad ?? this.granularidad,
@@ -132,8 +124,6 @@ final class Movimiento {
         'origenCaptura': origenCaptura.name,
         if (ticketId != null) 'ticketId': ticketId,
         if (fotoUrl != null) 'fotoUrl': fotoUrl,
-        'esReembolsable': esReembolsable,
-        if (reembolsoId != null) 'reembolsoId': reembolsoId,
         'clasificadoPorIA': clasificadoPorIA,
         if (confianzaIA != null) 'confianzaIA': confianzaIA,
         if (granularidad != null) 'granularidad': granularidad!.name,
@@ -155,8 +145,6 @@ final class Movimiento {
             OrigenCaptura.values.byName(json['origenCaptura'] as String),
         ticketId: json['ticketId'] as String?,
         fotoUrl: json['fotoUrl'] as String?,
-        esReembolsable: json['esReembolsable'] as bool? ?? false,
-        reembolsoId: json['reembolsoId'] as String?,
         clasificadoPorIA: json['clasificadoPorIA'] as bool? ?? false,
         confianzaIA: (json['confianzaIA'] as num?)?.toDouble(),
         granularidad: json['granularidad'] == null
@@ -181,8 +169,6 @@ final class Movimiento {
       other.origenCaptura == origenCaptura &&
       other.ticketId == ticketId &&
       other.fotoUrl == fotoUrl &&
-      other.esReembolsable == esReembolsable &&
-      other.reembolsoId == reembolsoId &&
       other.clasificadoPorIA == clasificadoPorIA &&
       other.confianzaIA == confianzaIA &&
       other.granularidad == granularidad &&
@@ -203,8 +189,6 @@ final class Movimiento {
         origenCaptura,
         ticketId,
         fotoUrl,
-        esReembolsable,
-        reembolsoId,
         clasificadoPorIA,
         confianzaIA,
         granularidad,

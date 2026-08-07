@@ -86,19 +86,4 @@ void main() {
     final esperado = calculadora.calcularPara(fecha);
     expect((r as Exito<Movimiento>).valor.cicloId, esperado.id);
   });
-
-  test('esReembolsable se conserva', () {
-    final r = crearMovimiento(
-      clientId: 'dispositivo-1-uuid',
-      fecha: DateTime(2026, 7, 15),
-      calculadoraCiclo: calculadora,
-      monto: const Dinero(100),
-      categoriaId: 'salidas',
-      medio: MedioPago.tarjeta,
-      descripcion: 'Cena de trabajo',
-      origenCaptura: OrigenCaptura.manual,
-      esReembolsable: true,
-    );
-    expect((r as Exito<Movimiento>).valor.esReembolsable, isTrue);
-  });
 }

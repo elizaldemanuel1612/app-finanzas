@@ -23,7 +23,6 @@ Resultado<Movimiento> crearMovimiento({
   required MedioPago medio,
   required String descripcion,
   required OrigenCaptura origenCaptura,
-  bool esReembolsable = false,
 }) {
   final clientIdValido = validarClientId(clientId);
   if (clientIdValido case Falla(:final mensaje)) return Falla(mensaje);
@@ -52,6 +51,5 @@ Resultado<Movimiento> crearMovimiento({
     descripcion: descripcion,
     estado: estado,
     origenCaptura: origenCaptura,
-    esReembolsable: esReembolsable,
   ));
 }

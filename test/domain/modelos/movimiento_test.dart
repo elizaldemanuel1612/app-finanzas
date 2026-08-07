@@ -45,7 +45,6 @@ void main() {
   test('campos opcionales tienen los valores por defecto correctos', () {
     final m = _base();
     expect(m.id, isNull);
-    expect(m.esReembolsable, isFalse);
     expect(m.clasificadoPorIA, isFalse);
     expect(m.ticketId, isNull);
     expect(m.granularidad, isNull);
@@ -96,8 +95,6 @@ void main() {
         id: 'mov-1',
         ticketId: 'ticket-1',
         fotoUrl: 'https://x/foto.jpg',
-        esReembolsable: true,
-        reembolsoId: 'reembolso-1',
         clasificadoPorIA: true,
         confianzaIA: 0.87,
         granularidad: Granularidad.agregadoDiario,
@@ -119,6 +116,16 @@ void main() {
       expect(json['montoCentavos'], _base().monto.centavos);
       expect(json['cicloId'], _base().cicloId);
       expect(json['clientId'], _base().clientId);
+    });
+
+    test(
+        'fromJson de un JSON viejo con esReembolsable no truena — '
+        'compatibilidad hacia atrás, la clave simplemente se ignora', () {
+      final json = _base().toJson()
+        ..['esReembolsable'] = true
+        ..['reembolsoId'] = 'reembolso-1';
+      final movimiento = Movimiento.fromJson(json);
+      expect(movimiento, _base());
     });
   });
 }
