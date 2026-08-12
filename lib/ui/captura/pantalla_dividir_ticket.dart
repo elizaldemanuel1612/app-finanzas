@@ -5,13 +5,17 @@ import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
+import '../../data/repositorios/ciclo_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/movimiento.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/reglas/creacion_movimiento.dart';
 import '../../domain/reglas/ticket_dividido.dart';
+import '../comun/asegurar_ciclo_abierto.dart';
 import '../comun/formato_dinero.dart';
+import '../comun/popscope_descartar.dart';
+import '../comun/selector_fecha.dart';
 import '../comun/tema.dart';
 
 const _uuid = Uuid();
@@ -24,17 +28,21 @@ const _uuid = Uuid();
 class PantallaDividirTicket extends StatefulWidget {
   final String fotoUrl;
   final Dinero? totalInicial;
+  final DateTime fechaInicial;
   final Perfil perfil;
   final CategoriaRepositorio categoriaRepositorio;
   final MovimientoRepositorio movimientoRepositorio;
+  final CicloRepositorio cicloRepositorio;
 
   const PantallaDividirTicket({
     super.key,
     required this.fotoUrl,
     required this.totalInicial,
+    required this.fechaInicial,
     required this.perfil,
     required this.categoriaRepositorio,
     required this.movimientoRepositorio,
+    required this.cicloRepositorio,
   });
 
   @override
@@ -57,6 +65,7 @@ class _PantallaDividirTicketState extends State<PantallaDividirTicket> {
   late final TextEditingController _totalControlador;
   late Future<List<Categoria>> _categorias;
   final _renglones = <_Renglon>[_Renglon(), _Renglon()];
+  late DateTime _fecha;
   String? _error;
   bool _guardando = false;
 
@@ -64,10 +73,20 @@ class _PantallaDividirTicketState extends State<PantallaDividirTicket> {
   void initState() {
     super.initState();
     _totalControlador = TextEditingController(
-      text: widget.totalInicial == null ? '' : textoEditableDeDinero(widget.totalInicial!),
+      text: widget.totalInicial == null
+          ? ''
+          : textoEditableDeDinero(widget.totalInicial!),
     );
     _categorias = widget.categoriaRepositorio.listarActivas();
+    _fecha = widget.fechaInicial;
   }
+
+  bool get _hayCambiosSinGuardar => _renglones.any(
+    (r) =>
+        r.monto.text.isNotEmpty ||
+        r.descripcion.text.isNotEmpty ||
+        r.categoriaId != null,
+  );
 
   @override
   void dispose() {
@@ -88,8 +107,10 @@ class _PantallaDividirTicketState extends State<PantallaDividirTicket> {
   }
 
   Dinero get _suma => Dinero.suma(
-        _renglones.map((r) => Dinero.intentarDesdeTexto(r.monto.text) ?? const Dinero.cero()),
-      );
+    _renglones.map(
+      (r) => Dinero.intentarDesdeTexto(r.monto.text) ?? const Dinero.cero(),
+    ),
+  );
 
   Future<void> _registrar() async {
     final total = Dinero.intentarDesdeTexto(_totalControlador.text);
@@ -122,16 +143,26 @@ class _PantallaDividirTicketState extends State<PantallaDividirTicket> {
     }
 
     final calculadoraCiclo = CalculadoraCiclo(widget.perfil.diaCorte);
+    final puedeCapturar = await asegurarCicloAbierto(
+      context,
+      cicloId: calculadoraCiclo.calcularPara(_fecha).id,
+      cicloRepositorio: widget.cicloRepositorio,
+      esCaptura: true,
+    );
+    if (!puedeCapturar || !mounted) return;
+
     final aGuardar = <Movimiento>[];
     for (final renglon in _renglones) {
       final resultado = crearMovimiento(
         clientId: _uuid.v4(),
-        fecha: DateTime.now(),
+        fecha: _fecha,
         calculadoraCiclo: calculadoraCiclo,
         monto: Dinero.intentarDesdeTexto(renglon.monto.text)!,
         categoriaId: renglon.categoriaId!,
         medio: MedioPago.tarjeta,
-        descripcion: renglon.descripcion.text.trim().isEmpty ? 'Ticket' : renglon.descripcion.text.trim(),
+        descripcion: renglon.descripcion.text.trim().isEmpty
+            ? 'Ticket'
+            : renglon.descripcion.text.trim(),
         origenCaptura: OrigenCaptura.ticket,
       );
       switch (resultado) {
@@ -139,7 +170,9 @@ class _PantallaDividirTicketState extends State<PantallaDividirTicket> {
           setState(() => _error = mensaje);
           return;
         case Exito(:final valor):
-          aGuardar.add(valor.copyWith(ticketId: _ticketId, fotoUrl: widget.fotoUrl));
+          aGuardar.add(
+            valor.copyWith(ticketId: _ticketId, fotoUrl: widget.fotoUrl),
+          );
       }
     }
 
@@ -159,81 +192,119 @@ class _PantallaDividirTicketState extends State<PantallaDividirTicket> {
     final suma = _suma;
     final total = Dinero.intentarDesdeTexto(_totalControlador.text);
     final cuadra = total != null && suma == total;
+    final hoy = DateTime.now();
+    final hoySoloFecha = DateTime(hoy.year, hoy.month, hoy.day);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Dividir ticket')),
-      body: FutureBuilder<List<Categoria>>(
-        future: _categorias,
-        builder: (context, snapshot) {
-          final categorias = snapshot.data ?? const [];
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              const Text('Total del ticket', style: TextStyle(color: ColoresApp.medio)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _totalControlador,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
-                decoration: const InputDecoration(prefixText: r'$ '),
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 20),
-              const Text('Renglones', style: TextStyle(color: ColoresApp.medio)),
-              const SizedBox(height: 8),
-              for (var i = 0; i < _renglones.length; i++) ...[
-                _TarjetaRenglon(
-                  renglon: _renglones[i],
-                  categorias: categorias,
-                  onCambio: () => setState(() {}),
-                  onQuitar: _renglones.length > 1 ? () => _quitarRenglon(i) : null,
+    return PopScopeDescartar(
+      hayCambiosSinGuardar: () => _hayCambiosSinGuardar,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Dividir ticket')),
+        body: FutureBuilder<List<Categoria>>(
+          future: _categorias,
+          builder: (context, snapshot) {
+            final categorias = snapshot.data ?? const [];
+            return ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                const Text(
+                  'Total del ticket',
+                  style: TextStyle(color: ColoresApp.medio),
                 ),
-                const SizedBox(height: 10),
-              ],
-              OutlinedButton.icon(
-                onPressed: _agregarRenglon,
-                icon: const Icon(Icons.add),
-                label: const Text('Agregar renglón'),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: cuadra ? ColoresApp.verdeSuave : ColoresApp.fondo,
-                  borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _totalControlador,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  decoration: const InputDecoration(prefixText: r'$ '),
+                  onChanged: (_) => setState(() {}),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Suma de las partes',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: cuadra ? ColoresApp.verde : ColoresApp.medio,
+                const SizedBox(height: 16),
+                SelectorFecha(
+                  seleccionada: _fecha,
+                  onCambio: (f) => setState(() => _fecha = f),
+                  primeraFecha: hoySoloFecha.subtract(
+                    const Duration(days: 365),
+                  ),
+                  ultimaFecha: hoySoloFecha,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Renglones',
+                  style: TextStyle(color: ColoresApp.medio),
+                ),
+                const SizedBox(height: 8),
+                for (var i = 0; i < _renglones.length; i++) ...[
+                  _TarjetaRenglon(
+                    renglon: _renglones[i],
+                    categorias: categorias,
+                    onCambio: () => setState(() {}),
+                    onQuitar: _renglones.length > 1
+                        ? () => _quitarRenglon(i)
+                        : null,
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                OutlinedButton.icon(
+                  onPressed: _agregarRenglon,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Agregar renglón'),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: cuadra ? ColoresApp.verdeSuave : ColoresApp.fondo,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Suma de las partes',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: cuadra
+                              ? ColoresApp.verdeTexto
+                              : ColoresApp.medio,
+                        ),
                       ),
-                    ),
-                    Text(
-                      suma.formateado(),
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: cuadra ? ColoresApp.verde : ColoresApp.tinta,
+                      Text(
+                        suma.formateado(),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: cuadra
+                              ? ColoresApp.verdeTexto
+                              : ColoresApp.tinta,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(_error!, style: const TextStyle(color: ColoresApp.coral)),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _error!,
+                    style: const TextStyle(color: ColoresApp.coralTexto),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _guardando ? null : _registrar,
+                  child: Text(
+                    _guardando
+                        ? 'Registrando…'
+                        : 'Registrar los ${_renglones.length}',
+                  ),
+                ),
               ],
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _guardando ? null : _registrar,
-                child: Text(_guardando ? 'Registrando…' : 'Registrar los ${_renglones.length}'),
-              ),
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -265,22 +336,37 @@ class _TarjetaRenglon extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     controller: renglon.monto,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-                    decoration: const InputDecoration(prefixText: r'$ ', border: InputBorder.none),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    decoration: const InputDecoration(
+                      prefixText: r'$ ',
+                      border: InputBorder.none,
+                    ),
                     onChanged: (_) => onCambio(),
                   ),
                 ),
                 if (onQuitar != null)
                   IconButton(
-                    icon: const Icon(Icons.close, size: 18, color: ColoresApp.medio),
+                    icon: const Icon(
+                      Icons.close,
+                      size: 18,
+                      color: ColoresApp.medio,
+                    ),
                     onPressed: onQuitar,
+                    tooltip: 'Quitar renglón',
                   ),
               ],
             ),
             TextField(
               controller: renglon.descripcion,
-              decoration: const InputDecoration(labelText: 'Descripción (opcional)'),
+              decoration: const InputDecoration(
+                labelText: 'Descripción (opcional)',
+              ),
             ),
             const SizedBox(height: 8),
             Wrap(

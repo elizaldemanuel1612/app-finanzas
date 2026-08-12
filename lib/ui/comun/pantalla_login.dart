@@ -78,7 +78,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                   Text(
                     _error!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: ColoresApp.coral),
+                    style: const TextStyle(color: ColoresApp.coralTexto),
                   ),
                   const SizedBox(height: 12),
                 ],

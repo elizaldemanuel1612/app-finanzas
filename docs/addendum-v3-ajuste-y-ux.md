@@ -54,7 +54,7 @@ Cuando una categoría ya se pasó y no hay forma de recuperar dentro de ella, la
 Holgura_c = Presupuesto_c − Pronóstico_c    (solo si > 0)
 ```
 
-Se ofrecen las 3 mayores. El usuario decide; nunca se rebalancea solo. Todo movimiento queda en la bitácora de auditoría.
+Se ofrecen las 3 mayores. El usuario decide, candidata por candidata, cuánto mover de cada una; nunca se rebalancea solo ni con un reparto automático. El movimiento es **temporal**: es un ajuste vigente solo para el ciclo en curso, nunca cambia el presupuesto base de ninguna categoría (`CategoriaVariable.presupuestoMensualCentavos` permanece intacto para todos los ciclos futuros). Se guarda como un delta acumulable — un mismo ciclo puede tener varios rebalanceos, y cada uno se suma a los anteriores en vez de reemplazarlos.
 
 ### 2.6 Guardarraíles
 - **Nunca sugerir por debajo de un mínimo digno.** Categorías marcadas como necesarias (Súper, Salud, Vivienda) tienen piso configurable. La app no propone dejar de comer.

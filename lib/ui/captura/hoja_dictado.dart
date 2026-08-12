@@ -4,6 +4,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../domain/modelos/categoria.dart';
 import '../../domain/voz/parser_dictado.dart';
+import '../../domain/voz/seleccion_locale.dart';
 import '../comun/tema.dart';
 
 /// Abre la hoja de dictado y regresa los gastos que el parser entendió del
@@ -72,14 +73,14 @@ class _HojaDictadoState extends State<_HojaDictado> {
       _error = null;
     });
     final locales = await _speech.locales();
-    final localeEs = locales.where((l) => l.localeId.startsWith('es')).firstOrNullSafe();
+    final localeId = seleccionarLocaleDictado([for (final l in locales) l.localeId]);
     await _speech.listen(
       onResult: (SpeechRecognitionResult r) {
         setState(() => _texto = r.recognizedWords);
       },
       listenOptions: stt.SpeechListenOptions(
         listenMode: stt.ListenMode.dictation,
-        localeId: localeEs?.localeId,
+        localeId: localeId,
         listenFor: const Duration(seconds: 30),
         pauseFor: const Duration(seconds: 3),
       ),
@@ -129,9 +130,11 @@ class _HojaDictadoState extends State<_HojaDictado> {
               Column(
                 children: [
                   const Text(
-                    'No se pudo activar el micrófono. Revisa los permisos de la app.',
+                    'No se pudo activar el micrófono. Si ya lo negaste antes, '
+                    've a Ajustes del sistema › Permisos › Micrófono y actívalo '
+                    'para App Finanzas.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: ColoresApp.coral),
+                    style: TextStyle(color: ColoresApp.coralTexto),
                   ),
                   const SizedBox(height: 16),
                   TextButton(onPressed: () => Navigator.of(context).pop(null), child: const Text('Cerrar')),
@@ -174,7 +177,7 @@ class _HojaDictadoState extends State<_HojaDictado> {
               ),
               if (_error != null) ...[
                 const SizedBox(height: 8),
-                Text(_error!, style: const TextStyle(color: ColoresApp.coral, fontSize: 12)),
+                Text(_error!, style: const TextStyle(color: ColoresApp.coralTexto, fontSize: 12)),
               ],
               const SizedBox(height: 20),
               Row(
@@ -196,12 +199,5 @@ class _HojaDictadoState extends State<_HojaDictado> {
         ),
       ),
     );
-  }
-}
-
-extension _FirstOrNullSafe<T> on Iterable<T> {
-  T? firstOrNullSafe() {
-    final it = iterator;
-    return it.moveNext() ? it.current : null;
   }
 }

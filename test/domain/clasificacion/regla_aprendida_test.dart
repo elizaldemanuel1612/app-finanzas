@@ -40,4 +40,28 @@ void main() {
       expect(original, isEmpty);
     });
   });
+
+  group('quitarReglasDeCategoria', () {
+    const reglas = [
+      ReglaAprendida(patron: 'oxxo', categoriaId: 'super', contador: 3),
+      ReglaAprendida(patron: '7 eleven', categoriaId: 'super', contador: 1),
+      ReglaAprendida(patron: 'uber', categoriaId: 'transporte', contador: 5),
+    ];
+
+    test('quita solo las reglas de la categoría indicada', () {
+      final restantes = quitarReglasDeCategoria(reglas: reglas, categoriaId: 'super');
+      expect(restantes, hasLength(1));
+      expect(restantes.single.categoriaId, 'transporte');
+    });
+
+    test('una categoría sin reglas no cambia nada', () {
+      final restantes = quitarReglasDeCategoria(reglas: reglas, categoriaId: 'no-existe');
+      expect(restantes, hasLength(3));
+    });
+
+    test('no modifica la lista original (inmutable)', () {
+      quitarReglasDeCategoria(reglas: reglas, categoriaId: 'super');
+      expect(reglas, hasLength(3));
+    });
+  });
 }

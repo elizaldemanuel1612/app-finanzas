@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Contraparte de data_extraction_rules.xml para Android <12.
+    android:allowBackup="false" ya desactiva el backup completo; este
+    archivo excluye todo por si esa bandera cambiara en el futuro.
+-->
+<full-backup-content>
+    <exclude domain="root" />
+</full-backup-content>

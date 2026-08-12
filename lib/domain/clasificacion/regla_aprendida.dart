@@ -76,3 +76,12 @@ List<ReglaAprendida> registrarCorreccion({
   actualizadas[indice] = actualizadas[indice].copyWith(contador: actualizadas[indice].contador + 1);
   return actualizadas;
 }
+
+/// Borrado en cascada: al eliminar una categoría, las reglas que
+/// clasificaban hacia ella quedarían apuntando a nada — se descartan aquí
+/// en vez de dejarlas huérfanas.
+List<ReglaAprendida> quitarReglasDeCategoria({
+  required List<ReglaAprendida> reglas,
+  required String categoriaId,
+}) =>
+    reglas.where((r) => r.categoriaId != categoriaId).toList();

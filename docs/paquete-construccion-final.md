@@ -138,7 +138,8 @@ Todo cuelga de `cuentas/{cuentaId}` desde el día uno — es lo que permite el m
 ```
 cuentas/{cuentaId}
 ├── miembros/{uid}        rol: propietario | editor | lector
-├── perfil                zonaHoraria, moneda, tipoIngreso: fijo|variable
+├── perfil                zonaHoraria, moneda, diaCorte, ingresoBaseMensualCentavos
+│                         (tipoIngreso: fijo|variable — pendiente, no implementado)
 ├── ciclos/{cicloId}      fechaInicio, fechaFin, estado: abierto|cerrado, snapshot
 ├── categorias/{catId}    nombre, emoji, tipo: fija|variable,
 │                         montoFijoCentavos, diaDelCiclo,      ← solo si fija
@@ -148,13 +149,13 @@ cuentas/{cuentaId}
 │                         montoCentavos, categoriaId, medio, descripcion,
 │                         estado: activo|propuesto|anulado,
 │                         origenCaptura: manual|voz|ticket|recurrente,
-│                         ticketId, fotoUrl, esReembolsable, reembolsoId,
+│                         ticketId, fotoUrl,
 │                         clasificadoPorIA, confianzaIA, granularidad
 │   └── auditoria/        valor anterior → nuevo, cuándo, desde qué dispositivo
-├── reembolsos/{rId}      movimientoId, estado: porCobrar|cobrado,
-│                         montoEsperadoCentavos, montoCobradoCentavos, fechaCobro
-├── ingresos/{ingId}      tipo: base|extra, montoCentavos, fecha, cicloId,
-│                         destinoExtra: apartado|repartido|gasto
+├── ingresos/{ingId}      montoCentavos, fecha, cicloId, etiqueta,
+│                         destino: apartado|gasto, estado: activo|anulado
+│                         (solo guarda ingresos extra, no el base; `repartido`
+│                         queda pendiente de `metas/pctApartado`)
 ├── destinos/{dId}        nombre (default "Reserva"), acumuladoCentavos
 ├── metas/                pctApartado, montoMetaCentavos, historialPorCiclo
 ├── reglasAprendidas/{r}  patron, categoriaId, confirmaciones, origen: usuario|ia
@@ -164,7 +165,7 @@ cuentas/{cuentaId}
 ```
 
 **Índices compuestos a declarar por adelantado:**
-`(cuentaId, cicloId, estado)` · `(cuentaId, categoriaId, fecha)` · `(cuentaId, fecha desc)` · `(cuentaId, esReembolsable, estado)`
+`(cuentaId, cicloId, estado)` · `(cuentaId, categoriaId, fecha)` · `(cuentaId, fecha desc)`
 
 ---
 
@@ -206,8 +207,11 @@ Lista de verificación para quien construya. Cada una tiene su prueba automatiza
 14. El alcance del objetivo se muestra siempre junto a la tasa de ahorro, y los ciclos con ingreso extra van marcados.
 
 **Reembolsables**
-15. Un reembolsable no cuenta como gasto ni el reembolso como ingreso. Se emparejan.
-16. Si el reembolso excede lo pagado, la diferencia entra como ingreso extra.
+15. ~~Un reembolsable no cuenta como gasto ni el reembolso como ingreso. Se emparejan.~~
+    **Retirada 2026-08-06:** decisión del usuario de no invertir tiempo ahí; el campo
+    `esReembolsable` era inerte (nadie lo leía) y se eliminó del modelo.
+16. ~~Si el reembolso excede lo pagado, la diferencia entra como ingreso extra.~~
+    **Retirada 2026-08-06**, misma razón que #15.
 
 **Captura**
 17. La captura **nunca depende de la red**. Escritura local optimista siempre.
@@ -273,8 +277,18 @@ Detallada en **como-funciona-la-ia.md**. Resumen para implementación:
 | **2 · Cifras** | Rollups, reconciliación nocturna, Inicio con el carril, detalle de categoría, lista con búsqueda y filtros | El dashboard carga en menos de 300 ms con 5,000 movimientos cargados |
 | **3 · Captura rápida** | Dictado con varios gastos, foto de ticket con división, duplicar, deslizar para eliminar y editar | El parser de voz pasa su juego de 15 frases reales; las partes de un ticket siempre suman el total |
 | **4 · Inteligencia** | MPC completo, cascada de clasificación, plan de ajuste, rebalanceo, alertas por ritmo | El pronóstico se reproduce idéntico en servidor y dispositivo |
-| **5 · Ciclo de vida** | Cierre de ciclo, alcance y tasa de ahorro, trazabilidad, ingresos extra, reembolsables | Tres ciclos simulados de punta a punta sin descuadre |
+| **5 · Ciclo de vida** | Cierre de ciclo, alcance y tasa de ahorro, **trazabilidad**, ingresos extra | Tres ciclos simulados de punta a punta sin descuadre |
 | **6 · Paridad y tiendas** | Widgets, atajos de voz, accesibilidad, pruebas de paridad, fichas de tienda | La prueba de paridad del §3.2 pasa en ambos sistemas |
+
+La trazabilidad de la Fase 5 ya está construida: `calcularEvolucionCiclos`
+(`lib/domain/ciclo_de_vida/evolucion_ciclos.dart`) agrega el histórico de
+`calcularHistorialCiclos` en la gráfica "Cuánto has apartado por ciclo" de
+`PantallaCiclosAnteriores`, sin dato nuevo — reutiliza lo que ya congela
+`SnapshotCiclo`. **Diverge del mockup app-finanzas-fijos-cierre-v6.html §6
+a propósito:** el ciclo en curso se dibuja pero no entra al "Acumulado en N
+ciclos" ni al promedio de alcance, porque a los pocos días de abierto el
+alcance en curso puede rondar el 250% y arrastraría esos agregados a un
+número sin sentido.
 
 ---
 

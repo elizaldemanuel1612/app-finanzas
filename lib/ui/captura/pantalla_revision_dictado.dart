@@ -5,13 +5,17 @@ import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
+import '../../data/repositorios/ciclo_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/movimiento.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/reglas/creacion_movimiento.dart';
 import '../../domain/voz/parser_dictado.dart';
+import '../comun/asegurar_ciclo_abierto.dart';
 import '../comun/formato_dinero.dart';
+import '../comun/popscope_descartar.dart';
+import '../comun/selector_fecha.dart';
 import '../comun/tema.dart';
 
 const _uuid = Uuid();
@@ -22,20 +26,25 @@ const _uuid = Uuid();
 /// nada — nunca se guarda a ciegas lo que el parser adivinó.
 class PantallaRevisionDictado extends StatefulWidget {
   final List<GastoDictado> gastos;
+  final DateTime fechaInicial;
   final Perfil perfil;
   final CategoriaRepositorio categoriaRepositorio;
   final MovimientoRepositorio movimientoRepositorio;
+  final CicloRepositorio cicloRepositorio;
 
   const PantallaRevisionDictado({
     super.key,
     required this.gastos,
+    required this.fechaInicial,
     required this.perfil,
     required this.categoriaRepositorio,
     required this.movimientoRepositorio,
+    required this.cicloRepositorio,
   });
 
   @override
-  State<PantallaRevisionDictado> createState() => _PantallaRevisionDictadoState();
+  State<PantallaRevisionDictado> createState() =>
+      _PantallaRevisionDictadoState();
 }
 
 class _ItemRevision {
@@ -51,8 +60,8 @@ class _ItemRevision {
     required this.categoriaId,
     required this.medio,
     required this.montosAmbiguos,
-  })  : monto = TextEditingController(text: montoTexto),
-        descripcion = TextEditingController(text: descripcionTexto);
+  }) : monto = TextEditingController(text: montoTexto),
+       descripcion = TextEditingController(text: descripcionTexto);
 
   void dispose() {
     monto.dispose();
@@ -63,6 +72,7 @@ class _ItemRevision {
 class _PantallaRevisionDictadoState extends State<PantallaRevisionDictado> {
   late Future<List<Categoria>> _categorias;
   late List<_ItemRevision> _items;
+  late DateTime _fecha;
   String? _error;
   bool _guardando = false;
 
@@ -70,16 +80,25 @@ class _PantallaRevisionDictadoState extends State<PantallaRevisionDictado> {
   void initState() {
     super.initState();
     _categorias = widget.categoriaRepositorio.listarActivas();
+    _fecha = widget.fechaInicial;
     _items = widget.gastos
-        .map((g) => _ItemRevision(
-              montoTexto: g.monto == null ? null : textoEditableDeDinero(g.monto!),
-              descripcionTexto: g.descripcion,
-              categoriaId: g.categoriaId,
-              medio: g.medio,
-              montosAmbiguos: g.montosAmbiguos,
-            ))
+        .map(
+          (g) => _ItemRevision(
+            montoTexto: g.monto == null
+                ? null
+                : textoEditableDeDinero(g.monto!),
+            descripcionTexto: g.descripcion,
+            categoriaId: g.categoriaId,
+            medio: g.medio,
+            montosAmbiguos: g.montosAmbiguos,
+          ),
+        )
         .toList();
   }
+
+  // Llegar aquí ya significa que el dictado se parseó en gastos
+  // pendientes — salir sin registrar los descarta todos.
+  bool get _hayCambiosSinGuardar => _items.isNotEmpty;
 
   @override
   void dispose() {
@@ -103,6 +122,14 @@ class _PantallaRevisionDictadoState extends State<PantallaRevisionDictado> {
     }
 
     final calculadoraCiclo = CalculadoraCiclo(widget.perfil.diaCorte);
+    final puedeCapturar = await asegurarCicloAbierto(
+      context,
+      cicloId: calculadoraCiclo.calcularPara(_fecha).id,
+      cicloRepositorio: widget.cicloRepositorio,
+      esCaptura: true,
+    );
+    if (!puedeCapturar || !mounted) return;
+
     final aGuardar = <Movimiento>[];
 
     for (var i = 0; i < _items.length; i++) {
@@ -118,12 +145,14 @@ class _PantallaRevisionDictadoState extends State<PantallaRevisionDictado> {
       }
       final resultado = crearMovimiento(
         clientId: _uuid.v4(),
-        fecha: DateTime.now(),
+        fecha: _fecha,
         calculadoraCiclo: calculadoraCiclo,
         monto: monto,
         categoriaId: item.categoriaId!,
         medio: item.medio,
-        descripcion: item.descripcion.text.trim().isEmpty ? 'Gasto' : item.descripcion.text.trim(),
+        descripcion: item.descripcion.text.trim().isEmpty
+            ? 'Gasto'
+            : item.descripcion.text.trim(),
         origenCaptura: OrigenCaptura.voz,
       );
       switch (resultado) {
@@ -148,43 +177,68 @@ class _PantallaRevisionDictadoState extends State<PantallaRevisionDictado> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Lo que entendí')),
-      body: FutureBuilder<List<Categoria>>(
-        future: _categorias,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final categorias = snapshot.data!;
-          if (_items.isEmpty) {
-            return const Center(
-              child: Text('No queda ningún gasto por registrar.', style: TextStyle(color: ColoresApp.medio)),
-            );
-          }
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              for (var i = 0; i < _items.length; i++) ...[
-                _TarjetaItem(
-                  item: _items[i],
-                  categorias: categorias,
-                  onCambio: () => setState(() {}),
-                  onQuitar: () => _quitar(i),
+    return PopScopeDescartar(
+      hayCambiosSinGuardar: () => _hayCambiosSinGuardar,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Lo que entendí')),
+        body: FutureBuilder<List<Categoria>>(
+          future: _categorias,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final categorias = snapshot.data!;
+            if (_items.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No queda ningún gasto por registrar.',
+                  style: TextStyle(color: ColoresApp.medio),
                 ),
-                const SizedBox(height: 12),
+              );
+            }
+            final hoy = DateTime.now();
+            final hoySoloFecha = DateTime(hoy.year, hoy.month, hoy.day);
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                SelectorFecha(
+                  seleccionada: _fecha,
+                  onCambio: (f) => setState(() => _fecha = f),
+                  primeraFecha: hoySoloFecha.subtract(
+                    const Duration(days: 365),
+                  ),
+                  ultimaFecha: hoySoloFecha,
+                  etiqueta: '¿Cuándo fueron estos gastos?',
+                ),
+                const SizedBox(height: 16),
+                for (var i = 0; i < _items.length; i++) ...[
+                  _TarjetaItem(
+                    item: _items[i],
+                    categorias: categorias,
+                    onCambio: () => setState(() {}),
+                    onQuitar: () => _quitar(i),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (_error != null) ...[
+                  Text(
+                    _error!,
+                    style: const TextStyle(color: ColoresApp.coralTexto),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                ElevatedButton(
+                  onPressed: _guardando ? null : _registrarTodos,
+                  child: Text(
+                    _guardando
+                        ? 'Registrando…'
+                        : 'Registrar los ${_items.length}',
+                  ),
+                ),
               ],
-              if (_error != null) ...[
-                Text(_error!, style: const TextStyle(color: ColoresApp.coral)),
-                const SizedBox(height: 12),
-              ],
-              ElevatedButton(
-                onPressed: _guardando ? null : _registrarTodos,
-                child: Text(_guardando ? 'Registrando…' : 'Registrar los ${_items.length}'),
-              ),
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -216,21 +270,39 @@ class _TarjetaItem extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     controller: item.monto,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-                    decoration: const InputDecoration(prefixText: r'$ ', border: InputBorder.none),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    decoration: const InputDecoration(
+                      prefixText: r'$ ',
+                      border: InputBorder.none,
+                    ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, size: 18, color: ColoresApp.medio),
+                  icon: const Icon(
+                    Icons.close,
+                    size: 18,
+                    color: ColoresApp.medio,
+                  ),
                   onPressed: onQuitar,
                   tooltip: 'Quitar este gasto',
                 ),
               ],
             ),
             if (item.montosAmbiguos.length > 1) ...[
-              const Text('No quedó claro cuál es el monto:',
-                  style: TextStyle(color: ColoresApp.coral, fontSize: 12, fontWeight: FontWeight.w600)),
+              const Text(
+                'No quedó claro cuál es el monto:',
+                style: TextStyle(
+                  color: ColoresApp.coralTexto,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 6),
               Wrap(
                 spacing: 8,
@@ -269,14 +341,19 @@ class _TarjetaItem extends StatelessWidget {
             ),
             if (item.categoriaId == null) ...[
               const SizedBox(height: 6),
-              const Text('Elige una categoría para este gasto.',
-                  style: TextStyle(color: ColoresApp.coral, fontSize: 12)),
+              const Text(
+                'Elige una categoría para este gasto.',
+                style: TextStyle(color: ColoresApp.coralTexto, fontSize: 12),
+              ),
             ],
             const SizedBox(height: 10),
             SegmentedButton<MedioPago>(
               segments: const [
                 ButtonSegment(value: MedioPago.tarjeta, label: Text('Tarjeta')),
-                ButtonSegment(value: MedioPago.efectivo, label: Text('Efectivo')),
+                ButtonSegment(
+                  value: MedioPago.efectivo,
+                  label: Text('Efectivo'),
+                ),
               ],
               selected: {item.medio},
               onSelectionChanged: (s) {

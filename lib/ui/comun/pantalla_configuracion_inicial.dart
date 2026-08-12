@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/money.dart';
 import '../../data/repositorios/perfil_repositorio.dart';
 import '../../domain/modelos/perfil.dart';
+import 'popscope_descartar.dart';
 import 'tema.dart';
 
 /// Lo mínimo que hace falta para que el resto de la app tenga sentido: el
@@ -32,6 +33,9 @@ class _PantallaConfiguracionInicialState
   String? _error;
   bool _guardando = false;
 
+  bool get _hayCambiosSinGuardar =>
+      _diaCorteControlador.text != '12' || _ingresoControlador.text.isNotEmpty;
+
   @override
   void dispose() {
     _diaCorteControlador.dispose();
@@ -44,7 +48,9 @@ class _PantallaConfiguracionInicialState
     final ingreso = Dinero.intentarDesdeTexto(_ingresoControlador.text);
 
     if (diaCorte == null || diaCorte < 1 || diaCorte > 31) {
-      setState(() => _error = 'El día de corte debe ser un número entre 1 y 31.');
+      setState(
+        () => _error = 'El día de corte debe ser un número entre 1 y 31.',
+      );
       return;
     }
     if (ingreso == null || !ingreso.esPositivo) {
@@ -67,53 +73,61 @@ class _PantallaConfiguracionInicialState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Antes de empezar',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: ColoresApp.tinta,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Dos datos y ya puedes registrar tu primer gasto.',
-                  style: TextStyle(color: ColoresApp.medio),
-                ),
-                const SizedBox(height: 32),
-                const Text('¿Qué día corta tu tarjeta?'),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _diaCorteControlador,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(hintText: 'Ej. 12'),
-                ),
-                const SizedBox(height: 20),
-                const Text('¿Cuánto es tu ingreso mensual?'),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _ingresoControlador,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(hintText: 'Ej. 87000'),
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(_error!, style: const TextStyle(color: ColoresApp.coral)),
+    return PopScopeDescartar(
+      hayCambiosSinGuardar: () => _hayCambiosSinGuardar,
+      child: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Antes de empezar',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: ColoresApp.tinta,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Dos datos y ya puedes registrar tu primer gasto.',
+                    style: TextStyle(color: ColoresApp.medio),
+                  ),
+                  const SizedBox(height: 32),
+                  const Text('¿Qué día corta tu tarjeta?'),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _diaCorteControlador,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(hintText: 'Ej. 12'),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('¿Cuánto es tu ingreso mensual?'),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _ingresoControlador,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(hintText: 'Ej. 87000'),
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _error!,
+                      style: const TextStyle(color: ColoresApp.coralTexto),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _guardando ? null : _guardar,
+                    child: Text(_guardando ? 'Guardando…' : 'Empezar'),
+                  ),
                 ],
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _guardando ? null : _guardar,
-                  child: Text(_guardando ? 'Guardando…' : 'Empezar'),
-                ),
-              ],
+              ),
             ),
           ),
         ),

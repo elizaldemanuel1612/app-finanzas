@@ -1,0 +1,102 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Idioma
+
+**Todo el código está en español**: nombres de clases, archivos, variables, funciones y comentarios (`Dinero`, `Movimiento`, `calcularPronosticoCategoria`, `lib/domain/presupuesto/rebalanceo.dart`). El inglés solo aparece en las APIs de terceros (Flutter, Firebase). Mantener la convención en todo lo nuevo.
+
+Los textos al usuario son español de México. La moneda se fija por configuración de la app (`es_MX`), **nunca** por la del sistema, para que las cifras no cambien de formato entre equipos.
+
+## Comandos
+
+| Qué | Comando |
+|---|---|
+| Dependencias | `flutter pub get` |
+| Suite completa | `dart test` |
+| Un archivo | `dart test test/domain/pronostico/pronostico_categoria_test.dart` |
+| Una prueba por nombre | `dart test -n "nombre de la prueba"` |
+| Cobertura | `dart test --coverage=coverage` y luego `dart run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info --report-on=lib` |
+| Análisis estático | `flutter analyze` |
+| Pruebas de widget (`test/ui/`) | `flutter test test/ui` |
+| Correr la app | `flutter run` |
+
+`dart test` cubre `core/`, `domain/`, `data/` y `test/paridad/` (~660 pruebas, sin emulador, en ~2-3 s) — ese alcance está fijado en `dart_test.yaml`, que **excluye `test/ui/` a propósito**. Preservar que `dart test` corra rápido y sin dispositivo es el criterio de aceptación de la Fase 0 (`paquete-construccion-final.md §9`).
+
+`test/ui/` es la única excepción: pruebas de widget con `flutter_test` (accesibilidad, contraste en pantalla, paridad de lo que se pinta) que de verdad necesitan un árbol de widgets — no están en la ruta crítica de "cambié algo, corro la suite en 2 segundos". Se corren aparte con `flutter test test/ui` (~15-30 s, en el host, sin emulador). Si se agrega un archivo suelto en la raíz de `test/` (como `test/estilos_ui_test.dart` o `test/ui_contraste_test.dart`), hay que añadirlo también a `paths:` en `dart_test.yaml` o `dart test` lo ignora en silencio.
+
+**Trampa de `flutter_test` con E/S real:** `testWidgets` corre en una zona de tiempo simulado que no deja avanzar `dart:io` (por ejemplo `File.readAsString()`) por sí sola — un `pumpAndSettle()` a la espera de esa E/S se cuelga hasta agotar el timeout. Si una prueba de widget necesita leer disco de verdad, envolver esa parte en `tester.runAsync()`; si solo necesita datos de prueba, preferir repositorios en memoria (ver `test/ui/paridad_pantallas_test.dart`) y dejar la ida a disco real para las pruebas de `test/paridad/`, que sí corren bajo `dart test` sin ese problema.
+
+Si `dart test` responde `Could not find bin\test.dart in package test`, faltan las dependencias: correr `flutter pub get`.
+
+## Documentos de especificación
+
+`docs/` **es la fuente de verdad, no documentación de apoyo.** Casi cada archivo de `lib/` cita secciones concretas para justificar por qué el código es como es. Esas citas no son ruido: son la trazabilidad entre la decisión de diseño y su implementación.
+
+| Documento | Contenido |
+|---|---|
+| `docs/paquete-construccion-final.md` | Punto de entrada. Arquitectura (§2), paridad iOS/Android (§3), modelo Firestore (§4), **las 24 reglas no negociables (§6)**, cascada de clasificación (§7), fases (§9) |
+| `docs/spec-app-finanzas-v2.md` | Integridad de datos, rendimiento, seguridad, migración desde Excel |
+| `docs/modelo-pronostico-ciclo.md` | Fórmulas completas del motor de pronóstico (MPC) |
+| `docs/addendum-v3-ajuste-y-ux.md` | Plan de ajuste, principios de simplicidad y motivación |
+| `docs/como-funciona-la-ia.md` | Cascada de clasificación y uso de IA |
+| `docs/*.html` | Prototipos navegables que fijan el diseño de cada pantalla |
+
+Al modificar lógica de negocio, conservar y actualizar la cita de sección. Al cambiar una regla, actualizar primero el documento.
+
+## Arquitectura
+
+```
+lib/core/       Dinero, Ciclo, Resultado                    ← Dart puro
+lib/domain/     modelos, pronostico, clasificacion,
+                presupuesto, reglas, rollups, voz,
+                migracion                                   ← Dart puro
+lib/data/       repositorios/ (interfaces)
+                repositorios/local/ (implementación JSON)
+                firebase/ (Auth)
+lib/ui/         inicio, gastos, captura, categorias, ciclo, ingresos, comun
+```
+
+Flujo de dependencias: `ui/` → `data/` (interfaces) → `domain/` → `core/`.
+
+**Regla dura:** `domain/` y `core/` no pueden importar Flutter, Firebase, ni nada de `ui/`, `data/` o `plataforma/`. Está verificada automáticamente por [arquitectura_test.dart](test/domain/arquitectura_test.dart), que recorre cada `.dart` de esas carpetas y rompe la suite ante cualquier import prohibido. Si se agrega una capa nueva, hay que agregarla también a `_prefijosProhibidos`.
+
+## Invariantes que moldean el código
+
+Estas ya están codificadas y son fáciles de romper por accidente:
+
+- **Dinero solo como `Dinero` (centavos enteros).** `double` está prohibido en operaciones monetarias. Para convertir texto de captura se usa `Dinero.intentarDesdeTexto`, que parsea sin pasar por punto flotante en ningún punto. El MPC sí usa `double` internamente para estadística, pero redondea a `Dinero` en la frontera de salida.
+- **`Movimiento.copyWith` no acepta `cicloId` a propósito.** El ciclo se asigna al crear y jamás se recalcula (regla #5). Si hace falta cambiarlo, no es una edición: es otro movimiento.
+- **Nada se borra: se anula.** `MovimientoRepositorio.anular()` es el único "borrado" que existe (regla #3).
+- **Idempotencia por `clientId`.** `guardar()` con un `clientId` ya visto devuelve el existente en vez de duplicar (regla #2).
+- **`Categoria` es una jerarquía sellada** (`CategoriaFija` / `CategoriaVariable`), no un campo `tipo` con opcionales sueltos: así el compilador impide construir una fija sin monto o una variable sin presupuesto. El tipo lo declara el usuario, nunca se infiere del nombre (regla #8).
+- **`Resultado<T>` (`Exito` / `Falla`) en vez de excepciones** para reglas de negocio incumplidas. El dominio no lanza para control de flujo.
+- Los `toJson()` usan **los mismos nombres de campo que los documentos de Firestore** del §4 del paquete, para que la misma forma sirva hoy en disco y mañana en la nube.
+
+## Estado actual
+
+Fases 0–5 completas. Fase 6 (paridad y tiendas) en curso — ver detalle abajo.
+
+- **La persistencia real es JSON en disco, no Firestore.** Se escribe vía `AlmacenJsonLista`, con escritura atómica (temporal + rename) para que un corte a medio guardar no corrompa el archivo. Las implementaciones viven en `lib/data/repositorios/local/` y cumplen interfaces que una implementación Firestore podrá cumplir después sin tocar `domain/` ni `ui/`. `cloud_firestore` salió de `pubspec.yaml` (Fase 6, Bloque 0): cero usos en `lib/`. `firestore.rules` en la raíz se conserva igual: es el contrato para cuando entre la nube.
+- **Firebase se usa solo para Auth** (Google). `main.dart` envuelve la inicialización en `try/catch` a propósito: si falla, la app sigue funcionando, porque nada de la captura depende de la red (regla #17).
+- **Sin librería de manejo de estado.** `StatefulWidget` con estado directo (`_Datos? _datos` + `setState` al resolver) — no `FutureBuilder` en las pantallas migradas — con los repositorios inyectados por constructor desde `main.dart`. No introducir Provider/Riverpod/Bloc sin acordarlo antes.
+- **El Nivel 3 de la cascada (IA) no está conectado.** `ClasificadorIA` es un `typedef` inyectable y hoy nadie lo pasa; operar solo con los niveles 1–2 es el estado normal esperado, no un error.
+- **La trazabilidad mes a mes (Fase 5, `paquete-construccion-final.md` §9) ya está construida.** `PantallaCiclosAnteriores` muestra la gráfica "Cuánto has apartado por ciclo" (`calcularEvolucionCiclos`, `lib/domain/ciclo_de_vida/evolucion_ciclos.dart`), con acumulado, promedio de alcance y frase interpretativa. El ciclo en curso se dibuja pero no entra a esos agregados — divergencia deliberada frente al mockup, documentada en el docstring de `calcularEvolucionCiclos`.
+- **`lib/domain/migracion/`** (`movimiento_migrado.dart`, `reconciliacion.dart`) no tiene consumidor en `lib/` todavía y se conserva a propósito: se conecta en la fase de importación desde Excel (`spec-app-finanzas-v2.md` §8.1).
+- **Bundle ID sin unificar.** Android sigue en `com.manuelelizalde.appfinanzas.app_finanzas`, iOS en su propio identificador. La Fase 6 (Bloque 0) definió unificarlos a `com.manuelelizalde.appfinanzas`, pero cambiar `applicationId` invalida `google-services.json` (su `package_name` debe coincidir exacto) y hay que hacerlo en el mismo viaje a Firebase Console que registra la SHA-1 de firma (Bloque 5). Queda diferido hasta esa sesión de firma; no cambiar uno sin el otro.
+- **Fase 6 (paridad y tiendas) en curso.** Ver `docs/paridad-3-2-procedimiento.md` para el estado de la prueba de paridad §3.2 y qué queda manual, y `docs/tiendas/checklist-publicacion.md` para el punteo completo de bloqueantes de publicación.
+- **`lib/domain/pronostico/historico_desde_movimientos.dart`** es el pegamento entre `Movimiento` y el MPC (`ciclosCerradosDeCategoria`, `pronosticoDeCategoria`) — se extrajo de `pantalla_detalle_categoria.dart` para que `test/paridad/` ejerza el mismo camino que la UI. `hoy`/`ahora` se inyectan explícitos; no hay `DateTime.now()` interno.
+- **`lib/data/repositorios/local/almacen_local.dart`** es el único lugar que sabe cuáles son los 6 archivos JSON de la app (antes estaban inline en `main.dart`) — `borrarTodo()` es lo que usa "Eliminar cuenta" en Ajustes.
+- **Ajustes existe** (`lib/ui/ajustes/pantalla_ajustes.dart`, enganchado desde el engrane de `PantallaInicio`): exportar CSV (`lib/domain/exportacion/exportar_csv.dart`), aviso de no-asesoría financiera, cerrar sesión, eliminar cuenta (`ServicioAuth.eliminarCuenta`, maneja `requires-recent-login`). "Política de privacidad" y "Términos y condiciones" abren `lib/ui/comun/documento_legal.dart`, que renderiza `docs/legal/privacidad.md`/`terminos.md` (empaquetados como asset en `pubspec.yaml`, no una copia duplicada en Dart) con un parser mínimo — suficiente para lo que esos dos documentos usan (`#`/`##`, listas, tabla, negritas/cursivas, links, incluido el link relativo entre ambos), no un motor de markdown genérico. Sigue pendiente la URL pública que piden las tiendas aparte del link in-app (ver `docs/tiendas/checklist-publicacion.md`) y el correo real de contacto en ambos documentos (hoy es un marcador de posición, a propósito).
+- **Tipografía empaquetada.** Outfit y Plus Jakarta Sans (SIL OFL, `assets/fuentes/`) como fuentes variables, declaradas una vez con varios `weight:` sobre el mismo archivo — no instancias estáticas por peso. `TextTheme` centralizado en `lib/ui/comun/tema.dart` (5 ranuras: `displaySmall`, `headlineMedium`, `titleMedium`, `bodySmall`, `labelSmall`); `test/estilos_ui_test.dart` vigila que los `fontSize:` sueltos no vuelvan a crecer por archivo.
+- **Contraste WCAG AA corregido.** `lib/ui/comun/paleta.dart` (sin import de Flutter, a propósito) tiene los hex y `razonDeContraste`; `ColoresApp` en `tema.dart` los envuelve en `Color`. `verde`/`ambar`/`coral` se quedan brillantes solo para gráficos/fondos (umbral 3:1); el texto usa las variantes `verdeTexto`/`ambarTexto`/`coralTexto` (4.5:1). `test/ui_contraste_test.dart` lo vigila.
+- **`PopScope` de "¿Descartar lo capturado?"** en las 6 pantallas de captura/formularios, vía el widget compartido `lib/ui/comun/popscope_descartar.dart` — no reimplementar el diálogo por pantalla.
+- **`lib/domain/voz/seleccion_locale.dart`** elige `es_MX` sobre cualquier otro `es-*` que reporte el motor de dictado del sistema (antes tomaba el primero, arriesgando `es-ES`). **`lib/domain/voz/monto_hablado.dart`** (`montoEnPalabras`) es el complemento inverso de `numero_hablado.dart`, usado como `semanticsLabel` en las cifras héroe de Inicio y el total de Gastos.
+- **Accesibilidad del Bloque 4 completa.** `BarraRitmo` requiere el parámetro `descripcion` (qué categoría mide) para armar su `Semantics.label`; `GraficaEvolucion` expone un resumen ("N ciclos cerrados; apartaste más en X, menos en Y; promedio Z%"). Los emojis puramente decorativos de `pantalla_inicio.dart` van en `ExcludeSemantics`. Las cifras héroe de 34px usan `textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.6)` — acotado, no fijo; el resto de la app no fija ningún `textScaler`. `test/ui/escalado_test.dart` monta `PantallaInicio` y `PantallaGastos` a 1.0x/1.5x/2.0x y exige que no haya overflow; `test/ui/semantica_test.dart` verifica los labels con `tester.ensureSemantics()`. **Gap conocido:** el emoji 🎁 sigue concatenado dentro del mismo `Text` en `pantalla_ciclos_anteriores.dart` y `pantalla_ingresos_del_ciclo.dart` (un lector de pantalla dice "gift emoji Cerrado"), documentado en `docs/tiendas/checklist-publicacion.md`.
+- **`test/ui/repos_memoria.dart`** son los repositorios en memoria compartidos entre las pruebas de `test/ui/` — evitan la trampa de `dart:io` real dentro de la zona de tiempo simulado de `testWidgets` (ver el bloque de arriba sobre `flutter_test`).
+
+## Pruebas
+
+- `test/` refleja la estructura de `lib/`: cada módulo de dominio tiene su archivo espejo.
+- El paquete exige **100% de cobertura en `domain/`**, sin excepciones, para todo lo que toca dinero.
+- Los repositorios reciben el `File` por constructor y nunca resuelven la ruta ellos mismos. Es justo lo que permite probarlos con un directorio temporal, sin `path_provider` ni dispositivo.

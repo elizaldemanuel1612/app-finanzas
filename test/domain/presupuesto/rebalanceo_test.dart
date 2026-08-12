@@ -124,89 +124,121 @@ void main() {
     });
   });
 
-  group('aplicarRebalanceo — mueve presupuesto y deja auditoría (§2.5)', () {
-    test('resta del origen, suma al objetivo, y registra dos entradas de auditoría', () {
-      final objetivo = _cat('salidas', 'Salidas/Diversión', presupuesto: const Dinero.pesos(2000));
-      final origen = _cat('auto', 'Auto operación', presupuesto: const Dinero.pesos(4800));
-      final cuando = DateTime(2026, 7, 20, 10, 30);
+  group('construirAjustesDeRebalanceo — deltas temporales (§2.5)', () {
+    final objetivo = _cat('salidas', 'Salidas/Diversión', presupuesto: const Dinero.pesos(2000));
+    final candidataAuto = CandidataRebalanceo(
+      categoria: _cat('auto', 'Auto operación', presupuesto: const Dinero.pesos(4800)),
+      holgura: const Dinero.pesos(600),
+    );
+    final candidataSuper = CandidataRebalanceo(
+      categoria: _cat('super', 'Súper/Comida', presupuesto: const Dinero.pesos(6000)),
+      holgura: const Dinero.pesos(1000),
+    );
+    final rebalanceo = Rebalanceo(
+      categoriaObjetivoId: objetivo.id,
+      faltante: const Dinero.pesos(600),
+      candidatas: [candidataAuto, candidataSuper],
+    );
+    final cuando = DateTime(2026, 7, 20, 10, 30);
 
-      final resultado = aplicarRebalanceo(
-        objetivo: objetivo,
-        origenes: [origen],
+    test('camino feliz con 1 origen: delta negativo al origen, positivo al objetivo', () {
+      final resultado = construirAjustesDeRebalanceo(
+        rebalanceo: rebalanceo,
         movimientos: const [MovimientoRebalanceo(categoriaOrigenId: 'auto', monto: Dinero.pesos(600))],
+        cicloId: '2026-07',
         cuando: cuando,
         dispositivo: 'Pixel 7 (prueba)',
       );
 
       expect(resultado.esExito, isTrue);
-      final r = resultado.valorOLanza;
-      expect(r.objetivoActualizada.presupuestoMensualCentavos, const Dinero.pesos(2600));
-      expect(r.origenesActualizadas.single.presupuestoMensualCentavos, const Dinero.pesos(4200));
-      expect(r.auditoria, hasLength(2));
-      expect(r.auditoria.every((a) => a.cuando == cuando), isTrue);
+      final ajustes = resultado.valorOLanza;
+      expect(ajustes, hasLength(2));
+      final deltaAuto = ajustes.firstWhere((a) => a.categoriaId == 'auto');
+      final deltaObjetivo = ajustes.firstWhere((a) => a.categoriaId == 'salidas');
+      expect(deltaAuto.deltaCentavos, const Dinero.pesos(-600));
+      expect(deltaObjetivo.deltaCentavos, const Dinero.pesos(600));
+      expect(ajustes.every((a) => a.cicloId == '2026-07' && a.cuando == cuando), isTrue);
     });
 
-    test('mover desde dos orígenes a la vez suma correctamente al objetivo', () {
-      final objetivo = _cat('salidas', 'Salidas/Diversión', presupuesto: const Dinero.pesos(2000));
-      final origenes = [
-        _cat('auto', 'Auto operación', presupuesto: const Dinero.pesos(4800)),
-        _cat('super', 'Súper/Comida', presupuesto: const Dinero.pesos(6000)),
-      ];
-      final resultado = aplicarRebalanceo(
-        objetivo: objetivo,
-        origenes: origenes,
+    test('camino feliz con 2 orígenes: un delta negativo por origen y uno positivo acumulado', () {
+      final resultado = construirAjustesDeRebalanceo(
+        rebalanceo: rebalanceo,
         movimientos: const [
           MovimientoRebalanceo(categoriaOrigenId: 'auto', monto: Dinero.pesos(400)),
           MovimientoRebalanceo(categoriaOrigenId: 'super', monto: Dinero.pesos(200)),
         ],
-        cuando: DateTime(2026, 7, 20),
+        cicloId: '2026-07',
+        cuando: cuando,
         dispositivo: 'prueba',
       );
-      expect(resultado.valorOLanza.objetivoActualizada.presupuestoMensualCentavos, const Dinero.pesos(2600));
-      expect(resultado.valorOLanza.auditoria, hasLength(3)); // 2 orígenes + 1 objetivo
+
+      expect(resultado.esExito, isTrue);
+      final ajustes = resultado.valorOLanza;
+      expect(ajustes, hasLength(3));
+      final deltaObjetivo = ajustes.firstWhere((a) => a.categoriaId == 'salidas');
+      expect(deltaObjetivo.deltaCentavos, const Dinero.pesos(600));
     });
 
     test('falla si el monto a mover no es positivo', () {
-      final objetivo = _cat('salidas', 'Salidas/Diversión', presupuesto: const Dinero.pesos(2000));
-      final origen = _cat('auto', 'Auto operación', presupuesto: const Dinero.pesos(4800));
-      final resultado = aplicarRebalanceo(
-        objetivo: objetivo,
-        origenes: [origen],
+      final resultado = construirAjustesDeRebalanceo(
+        rebalanceo: rebalanceo,
         movimientos: const [MovimientoRebalanceo(categoriaOrigenId: 'auto', monto: Dinero.cero())],
-        cuando: DateTime(2026, 7, 20),
+        cicloId: '2026-07',
+        cuando: cuando,
         dispositivo: 'prueba',
       );
       expect(resultado.esFalla, isTrue);
     });
 
-    test('falla si el movimiento dejaría al origen con presupuesto en cero o negativo', () {
-      final objetivo = _cat('salidas', 'Salidas/Diversión', presupuesto: const Dinero.pesos(2000));
-      final origen = _cat('terapia', 'Terapia', presupuesto: const Dinero.pesos(500));
-      final resultado = aplicarRebalanceo(
-        objetivo: objetivo,
-        origenes: [origen],
-        // Intenta mover más de lo que Terapia tiene de presupuesto.
-        movimientos: const [MovimientoRebalanceo(categoriaOrigenId: 'terapia', monto: Dinero.pesos(500))],
-        cuando: DateTime(2026, 7, 20),
+    test('falla si el monto excede la holgura de la candidata', () {
+      final resultado = construirAjustesDeRebalanceo(
+        rebalanceo: rebalanceo,
+        // 'auto' solo tiene 600 de holgura.
+        movimientos: const [MovimientoRebalanceo(categoriaOrigenId: 'auto', monto: Dinero.pesos(700))],
+        cicloId: '2026-07',
+        cuando: cuando,
         dispositivo: 'prueba',
       );
       expect(resultado.esFalla, isTrue);
     });
 
-    test('nunca toca movimientos ya registrados — solo produce categorías y auditoría', () {
-      // Prueba de forma: el tipo de retorno de aplicarRebalanceo no
-      // incluye ningún Movimiento, por construcción — solo categorías y
-      // auditoría (regla dura de §2.5).
-      final objetivo = _cat('salidas', 'Salidas/Diversión', presupuesto: const Dinero.pesos(2000));
-      final origen = _cat('auto', 'Auto operación', presupuesto: const Dinero.pesos(4800));
-      final resultado = aplicarRebalanceo(
-        objetivo: objetivo,
-        origenes: [origen],
-        movimientos: const [MovimientoRebalanceo(categoriaOrigenId: 'auto', monto: Dinero.pesos(100))],
-        cuando: DateTime(2026, 7, 20),
+    test('falla si la categoría origen no está entre las candidatas', () {
+      final resultado = construirAjustesDeRebalanceo(
+        rebalanceo: rebalanceo,
+        movimientos: const [MovimientoRebalanceo(categoriaOrigenId: 'inexistente', monto: Dinero.pesos(100))],
+        cicloId: '2026-07',
+        cuando: cuando,
         dispositivo: 'prueba',
       );
-      expect(resultado.valorOLanza, isA<ResultadoRebalanceo>());
+      expect(resultado.esFalla, isTrue);
+    });
+
+    test('falla si no se ingresó ningún movimiento (todos los montos en 0)', () {
+      final resultado = construirAjustesDeRebalanceo(
+        rebalanceo: rebalanceo,
+        movimientos: const [],
+        cicloId: '2026-07',
+        cuando: cuando,
+        dispositivo: 'prueba',
+      );
+      expect(resultado.esFalla, isTrue);
+    });
+
+    test('permite sobre-cubrir el total: el límite es por candidata, no por suma', () {
+      final resultado = construirAjustesDeRebalanceo(
+        rebalanceo: rebalanceo,
+        // 600 (auto) + 1000 (super) = 1600, más que el faltante de 600.
+        movimientos: const [
+          MovimientoRebalanceo(categoriaOrigenId: 'auto', monto: Dinero.pesos(600)),
+          MovimientoRebalanceo(categoriaOrigenId: 'super', monto: Dinero.pesos(1000)),
+        ],
+        cicloId: '2026-07',
+        cuando: cuando,
+        dispositivo: 'prueba',
+      );
+      expect(resultado.esExito, isTrue);
+      final deltaObjetivo = resultado.valorOLanza.firstWhere((a) => a.categoriaId == 'salidas');
+      expect(deltaObjetivo.deltaCentavos, const Dinero.pesos(1600));
     });
   });
 }

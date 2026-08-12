@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
+import '../../data/repositorios/ciclo_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
+import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/presupuesto/categorias.dart';
+import '../comun/popscope_descartar.dart';
 import '../comun/tema.dart';
+import 'eliminar_categoria.dart';
 
 /// Alta y edición de categoría siguiendo app-finanzas-fijos-cierre-v6.html
 /// §1–2: una sola pregunta ("¿el monto es siempre el mismo?") decide todo
@@ -19,12 +23,16 @@ import '../comun/tema.dart';
 class PantallaNuevaCategoria extends StatefulWidget {
   final CategoriaRepositorio categoriaRepositorio;
   final MovimientoRepositorio movimientoRepositorio;
+  final ReglasAprendidasRepositorio reglasAprendidasRepositorio;
+  final CicloRepositorio cicloRepositorio;
   final Categoria? categoriaExistente;
 
   const PantallaNuevaCategoria({
     super.key,
     required this.categoriaRepositorio,
     required this.movimientoRepositorio,
+    required this.reglasAprendidasRepositorio,
+    required this.cicloRepositorio,
     this.categoriaExistente,
   });
 
@@ -33,8 +41,12 @@ class PantallaNuevaCategoria extends StatefulWidget {
 }
 
 class _PantallaNuevaCategoriaState extends State<PantallaNuevaCategoria> {
-  late final _nombreControlador = TextEditingController(text: _existente?.nombre);
-  late final _emojiControlador = TextEditingController(text: _existente?.emoji ?? '🏷️');
+  late final _nombreControlador = TextEditingController(
+    text: _existente?.nombre,
+  );
+  late final _emojiControlador = TextEditingController(
+    text: _existente?.emoji ?? '🏷️',
+  );
   late final _montoControlador = TextEditingController(text: _montoInicial());
   late final _diaControlador = TextEditingController(text: _diaInicial());
   late bool _esFija = _existente is CategoriaFija;
@@ -48,8 +60,11 @@ class _PantallaNuevaCategoriaState extends State<PantallaNuevaCategoria> {
   String? _montoInicial() {
     final e = _existente;
     return switch (e) {
-      CategoriaFija f => (f.montoFijoCentavos.centavos / 100).toStringAsFixed(2),
-      CategoriaVariable v => (v.presupuestoMensualCentavos.centavos / 100).toStringAsFixed(2),
+      CategoriaFija f => (f.montoFijoCentavos.centavos / 100).toStringAsFixed(
+        2,
+      ),
+      CategoriaVariable v =>
+        (v.presupuestoMensualCentavos.centavos / 100).toStringAsFixed(2),
       null => null,
     };
   }
@@ -58,6 +73,13 @@ class _PantallaNuevaCategoriaState extends State<PantallaNuevaCategoria> {
     final e = _existente;
     return e is CategoriaFija ? '${e.diaDelCiclo}' : '1';
   }
+
+  bool get _hayCambiosSinGuardar =>
+      _nombreControlador.text != (_existente?.nombre ?? '') ||
+      _emojiControlador.text != (_existente?.emoji ?? '🏷️') ||
+      _montoControlador.text != (_montoInicial() ?? '') ||
+      _diaControlador.text != _diaInicial() ||
+      _esFija != (_existente is CategoriaFija);
 
   @override
   void dispose() {
@@ -69,7 +91,8 @@ class _PantallaNuevaCategoriaState extends State<PantallaNuevaCategoria> {
   }
 
   Future<void> _guardar() async {
-    final id = _existente?.id ??
+    final id =
+        _existente?.id ??
         _nombreControlador.text.trim().toLowerCase().replaceAll(' ', '_');
     final monto = Dinero.intentarDesdeTexto(_montoControlador.text);
 
@@ -123,129 +146,118 @@ class _PantallaNuevaCategoriaState extends State<PantallaNuevaCategoria> {
   /// movimientos apuntando a una categoría inexistente (rompe rollups y
   /// pronósticos en silencio). En ese caso se ofrece desactivar en su
   /// lugar, que ya es seguro (`conActiva`, usado desde la lista de
-  /// categorías).
+  /// categorías). El flujo completo —incluidos los diálogos con las
+  /// cifras— vive en `eliminar_categoria.dart` para no duplicarlo con el
+  /// swipe de la lista.
   Future<void> _eliminar() async {
     final existente = _existente!;
-    final todos = await widget.movimientoRepositorio.listarTodos();
-    final tieneMovimientos = todos.any((m) => m.categoriaId == existente.id);
-
-    if (!mounted) return;
-
-    if (tieneMovimientos) {
-      final desactivar = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('No se puede eliminar'),
-          content: Text(
-            '${existente.nombre} ya tiene movimientos registrados. '
-            'Eliminarla los dejaría sin categoría. Puedes desactivarla '
-            'en su lugar: deja de aparecer para capturar, pero conserva su historial.',
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Desactivar'),
-            ),
-          ],
-        ),
+    setState(() {
+      _eliminando = true;
+      _error = null;
+    });
+    try {
+      final huboCambio = await confirmarYEliminarCategoria(
+        context,
+        categoria: existente,
+        categoriaRepositorio: widget.categoriaRepositorio,
+        movimientoRepositorio: widget.movimientoRepositorio,
+        reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
+        cicloRepositorio: widget.cicloRepositorio,
       );
-      if (desactivar != true || !mounted) return;
-      setState(() => _eliminando = true);
-      await widget.categoriaRepositorio.guardar(conActiva(existente, false));
       if (!mounted) return;
-      Navigator.of(context).pop(true);
-      return;
+      if (huboCambio) {
+        Navigator.of(context).pop(true);
+      } else {
+        setState(() => _eliminando = false);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _eliminando = false;
+        _error = 'No se pudo eliminar la categoría. Intenta de nuevo.';
+      });
     }
-
-    final confirmado = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('¿Eliminar esta categoría?'),
-        content: Text('${existente.nombre} no tiene movimientos. Esto no se puede deshacer.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Eliminar', style: TextStyle(color: ColoresApp.coral)),
-          ),
-        ],
-      ),
-    );
-    if (confirmado != true || !mounted) return;
-    setState(() => _eliminando = true);
-    await widget.categoriaRepositorio.eliminar(existente.id);
-    if (!mounted) return;
-    Navigator.of(context).pop(true);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_editando ? 'Editar categoría' : 'Nueva categoría'),
-        actions: [
-          if (_editando)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: 'Eliminar categoría',
-              onPressed: _eliminando ? null : _eliminar,
-            ),
-        ],
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            TextField(
-              controller: _nombreControlador,
-              decoration: const InputDecoration(labelText: 'Nombre'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _emojiControlador,
-              decoration: const InputDecoration(labelText: 'Emoji'),
-            ),
-            const SizedBox(height: 20),
-            const Text('¿El monto es siempre el mismo?',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(value: true, label: Text('Sí, es fijo')),
-                ButtonSegment(value: false, label: Text('No, varía')),
-              ],
-              selected: {_esFija},
-              onSelectionChanged: (s) => setState(() => _esFija = s.first),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _montoControlador,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: _esFija ? 'Cuánto' : 'Presupuesto al mes',
+    return PopScopeDescartar(
+      hayCambiosSinGuardar: () => _hayCambiosSinGuardar,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_editando ? 'Editar categoría' : 'Nueva categoría'),
+          actions: [
+            if (_editando)
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: 'Eliminar categoría',
+                onPressed: _eliminando ? null : _eliminar,
               ),
-            ),
-            if (_esFija) ...[
+          ],
+        ),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              TextField(
+                controller: _nombreControlador,
+                decoration: const InputDecoration(labelText: 'Nombre'),
+              ),
               const SizedBox(height: 12),
               TextField(
-                controller: _diaControlador,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Día del ciclo'),
+                controller: _emojiControlador,
+                decoration: const InputDecoration(labelText: 'Emoji'),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                '¿El monto es siempre el mismo?',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(value: true, label: Text('Sí, es fijo')),
+                  ButtonSegment(value: false, label: Text('No, varía')),
+                ],
+                selected: {_esFija},
+                onSelectionChanged: (s) => setState(() => _esFija = s.first),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _montoControlador,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: _esFija ? 'Cuánto' : 'Presupuesto al mes',
+                ),
+              ),
+              if (_esFija) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _diaControlador,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Día del ciclo'),
+                ),
+              ],
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _error!,
+                  style: const TextStyle(color: ColoresApp.coralTexto),
+                ),
+              ],
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _guardando ? null : _guardar,
+                child: Text(
+                  _guardando
+                      ? 'Guardando…'
+                      : (_editando ? 'Guardar cambios' : 'Crear categoría'),
+                ),
               ),
             ],
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: const TextStyle(color: ColoresApp.coral)),
-            ],
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _guardando ? null : _guardar,
-              child: Text(_guardando
-                  ? 'Guardando…'
-                  : (_editando ? 'Guardar cambios' : 'Crear categoría')),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -72,6 +72,15 @@ final class MovimientoRepositorioArchivo implements MovimientoRepositorio {
   }
 
   @override
+  Future<List<Movimiento>> listarPorCategoria(String categoriaId) async {
+    final items = await _almacen.leer();
+    return items
+        .map(Movimiento.fromJson)
+        .where((m) => m.categoriaId == categoriaId)
+        .toList();
+  }
+
+  @override
   Future<List<Movimiento>> listarTodos() async {
     final items = await _almacen.leer();
     return items.map(Movimiento.fromJson).toList();

@@ -4,41 +4,82 @@ import 'package:test/test.dart';
 void main() {
   group('calcularEstadoRitmo', () {
     test('sin presupuesto (null) siempre va bien, no aplica juicio', () {
+      expect(calcularEstadoRitmo(porcentajeUsado: null), EstadoRitmo.vaBien);
+    });
+
+    test('gastar más del 100% del presupuesto es "excedido"', () {
+      expect(calcularEstadoRitmo(porcentajeUsado: 1.01), EstadoRitmo.excedido);
+    });
+
+    test('gastar cerca del 100% (entre 85% y 100%) es "justo"', () {
+      expect(calcularEstadoRitmo(porcentajeUsado: 0.9), EstadoRitmo.justo);
+    });
+
+    test('gastar bastante menos del presupuesto es "va bien"', () {
+      expect(calcularEstadoRitmo(porcentajeUsado: 0.5), EstadoRitmo.vaBien);
+    });
+
+    test('el 50% del presupuesto el primer día del ciclo ya no es "excedido" '
+        '(regresión: antes se comparaba contra el avance del ciclo, no '
+        'contra el 100% del presupuesto)', () {
+      expect(calcularEstadoRitmo(porcentajeUsado: 0.5), EstadoRitmo.vaBien);
+    });
+
+    test('en el límite exacto de cada umbral', () {
+      expect(calcularEstadoRitmo(porcentajeUsado: 0.85), EstadoRitmo.vaBien);
+      expect(calcularEstadoRitmo(porcentajeUsado: 0.86), EstadoRitmo.justo);
+      expect(calcularEstadoRitmo(porcentajeUsado: 1.0), EstadoRitmo.justo);
+      expect(calcularEstadoRitmo(porcentajeUsado: 1.001), EstadoRitmo.excedido);
+    });
+  });
+
+  group('vaMuyRapido', () {
+    test('sin presupuesto (null) nunca proyecta', () {
       expect(
-        calcularEstadoRitmo(porcentajeUsado: null, avanceCiclo: 0.9),
-        EstadoRitmo.vaBien,
+        vaMuyRapido(porcentajeUsado: null, avanceCiclo: 0.5),
+        isFalse,
       );
     });
 
-    test('gastar muy por encima del avance del ciclo es "pasado"', () {
+    test('con muy poco avance del ciclo, no proyecta aunque el gasto sea alto '
+        '(el caso que antes disparaba "pasado" el primer día del ciclo)', () {
       expect(
-        calcularEstadoRitmo(porcentajeUsado: 0.8, avanceCiclo: 0.3),
-        EstadoRitmo.pasado,
+        vaMuyRapido(porcentajeUsado: 0.5, avanceCiclo: 0.03),
+        isFalse,
       );
     });
 
-    test('gastar cerca del avance del ciclo es "justo"', () {
+    test('con avance suficiente, gastar muy por encima del avance sí proyecta', () {
       expect(
-        calcularEstadoRitmo(porcentajeUsado: 0.45, avanceCiclo: 0.5),
-        EstadoRitmo.justo,
+        vaMuyRapido(porcentajeUsado: 0.8, avanceCiclo: 0.3),
+        isTrue,
       );
     });
 
-    test('gastar bastante menos que el avance del ciclo es "va bien"', () {
+    test('con avance suficiente, gastar cerca del avance no proyecta', () {
       expect(
-        calcularEstadoRitmo(porcentajeUsado: 0.1, avanceCiclo: 0.5),
-        EstadoRitmo.vaBien,
+        vaMuyRapido(porcentajeUsado: 0.45, avanceCiclo: 0.5),
+        isFalse,
       );
     });
 
-    test('en el límite exacto del umbral "pasado" (1.15x)', () {
+    test('justo en el piso mínimo de avance, ya evalúa la proyección', () {
       expect(
-        calcularEstadoRitmo(porcentajeUsado: 0.575, avanceCiclo: 0.5),
-        EstadoRitmo.justo,
+        vaMuyRapido(
+          porcentajeUsado: 0.5,
+          avanceCiclo: avanceMinimoParaProyectarRitmo,
+        ),
+        isTrue, // 0.5 > 0.15 * 1.15
       );
+    });
+
+    test('justo debajo del piso mínimo de avance, no proyecta', () {
       expect(
-        calcularEstadoRitmo(porcentajeUsado: 0.58, avanceCiclo: 0.5),
-        EstadoRitmo.pasado,
+        vaMuyRapido(
+          porcentajeUsado: 0.5,
+          avanceCiclo: avanceMinimoParaProyectarRitmo - 0.01,
+        ),
+        isFalse,
       );
     });
   });

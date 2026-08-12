@@ -1,9 +1,8 @@
 import '../../core/money.dart';
 import '../../core/result.dart';
-import '../modelos/cambio_auditoria.dart';
 import '../modelos/categoria.dart';
 import '../pronostico/pronostico_categoria.dart';
-import 'categorias.dart';
+import 'ajuste_presupuesto_ciclo.dart';
 
 /// Una categoría con holgura proyectada (addendum-v3-ajuste-y-ux.md §2.5):
 /// `Holgura_c = Presupuesto_c − Pronóstico_c`, solo cuando es positiva.
@@ -86,90 +85,61 @@ final class MovimientoRebalanceo {
   const MovimientoRebalanceo({required this.categoriaOrigenId, required this.monto});
 }
 
-final class ResultadoRebalanceo {
-  final CategoriaVariable objetivoActualizada;
-  final List<CategoriaVariable> origenesActualizadas;
-  final List<CambioAuditoria> auditoria;
-
-  const ResultadoRebalanceo({
-    required this.objetivoActualizada,
-    required this.origenesActualizadas,
-    required this.auditoria,
-  });
-}
-
-/// Aplica uno o más movimientos de presupuesto: resta de cada origen,
-/// suma al objetivo. Regla dura: **solo mueve presupuesto, nunca
-/// movimientos ya registrados** — esto no toca ni un [Movimiento]. Todo
-/// queda en `auditoria` (§2.5: "todo movimiento queda en la bitácora").
+/// Construye los [AjustePresupuestoCiclo] de un rebalanceo temporal:
+/// nunca produce una [CategoriaVariable] nueva, solo deltas — quien llama
+/// nunca tiene la tentación de persistir con `CategoriaRepositorio`.
 ///
-/// Falla si algún monto no es positivo o si deja a un origen con
-/// presupuesto negativo — nunca se inventa presupuesto de la nada.
-Resultado<ResultadoRebalanceo> aplicarRebalanceo({
-  required CategoriaVariable objetivo,
-  required List<CategoriaVariable> origenes,
+/// Cada monto debe ser positivo y no exceder la holgura de su candidata.
+/// El límite es por candidata, no por suma — permite sobre-cubrir el
+/// total si el usuario así lo decide.
+Resultado<List<AjustePresupuestoCiclo>> construirAjustesDeRebalanceo({
+  required Rebalanceo rebalanceo,
   required List<MovimientoRebalanceo> movimientos,
+  required String cicloId,
   required DateTime cuando,
   required String dispositivo,
 }) {
-  final origenesPorId = {for (final c in origenes) c.id: c};
-  var totalAMoverCentavos = 0;
-  final origenesActualizadas = <CategoriaVariable>[];
-  final auditoria = <CambioAuditoria>[];
+  if (movimientos.isEmpty) {
+    return const Falla('Ingresa al menos un monto a mover.');
+  }
+
+  final candidatasPorId = {
+    for (final c in rebalanceo.candidatas) c.categoria.id: c,
+  };
+  var totalCentavos = 0;
+  final ajustes = <AjustePresupuestoCiclo>[];
 
   for (final mov in movimientos) {
     if (!mov.monto.esPositivo) {
       return Falla('El monto a mover desde ${mov.categoriaOrigenId} debe ser mayor a cero.');
     }
-    final origen = origenesPorId[mov.categoriaOrigenId];
-    if (origen == null) {
-      return Falla('No se encontró la categoría origen ${mov.categoriaOrigenId}.');
+    final candidata = candidatasPorId[mov.categoriaOrigenId];
+    if (candidata == null) {
+      return Falla('No se encontró la categoría candidata ${mov.categoriaOrigenId}.');
     }
-    final nuevoPresupuestoOrigen = origen.presupuestoMensualCentavos - mov.monto;
-    if (!nuevoPresupuestoOrigen.esPositivo) {
+    if (mov.monto > candidata.holgura) {
       return Falla(
-        '${origen.nombre} no tiene suficiente holgura para mover ${mov.monto.formateado()}.',
+        '${candidata.categoria.nombre} no tiene suficiente holgura para mover ${mov.monto.formateado()}.',
       );
     }
 
-    final actualizada = actualizarPresupuestoVariable(
-      categoria: origen,
-      nuevoPresupuesto: nuevoPresupuestoOrigen,
-    );
-    if (actualizada case Falla(:final mensaje)) return Falla(mensaje);
-    origenesActualizadas.add(actualizada.valorOLanza);
-
-    auditoria.add(CambioAuditoria(
-      campo: 'presupuestoMensualCentavos:${origen.id}',
-      valorAnterior: origen.presupuestoMensualCentavos.centavos.toString(),
-      valorNuevo: nuevoPresupuestoOrigen.centavos.toString(),
+    ajustes.add(AjustePresupuestoCiclo(
+      cicloId: cicloId,
+      categoriaId: mov.categoriaOrigenId,
+      deltaCentavos: -mov.monto,
       cuando: cuando,
       dispositivo: dispositivo,
     ));
-
-    totalAMoverCentavos += mov.monto.centavos;
+    totalCentavos += mov.monto.centavos;
   }
 
-  final nuevoPresupuestoObjetivo =
-      objetivo.presupuestoMensualCentavos + Dinero(totalAMoverCentavos);
-  final objetivoActualizadaResultado = actualizarPresupuestoVariable(
-    categoria: objetivo,
-    nuevoPresupuesto: nuevoPresupuestoObjetivo,
-  );
-  if (objetivoActualizadaResultado case Falla(:final mensaje)) return Falla(mensaje);
-  final objetivoActualizada = objetivoActualizadaResultado.valorOLanza;
-
-  auditoria.add(CambioAuditoria(
-    campo: 'presupuestoMensualCentavos:${objetivo.id}',
-    valorAnterior: objetivo.presupuestoMensualCentavos.centavos.toString(),
-    valorNuevo: nuevoPresupuestoObjetivo.centavos.toString(),
+  ajustes.add(AjustePresupuestoCiclo(
+    cicloId: cicloId,
+    categoriaId: rebalanceo.categoriaObjetivoId,
+    deltaCentavos: Dinero(totalCentavos),
     cuando: cuando,
     dispositivo: dispositivo,
   ));
 
-  return Exito(ResultadoRebalanceo(
-    objetivoActualizada: objetivoActualizada,
-    origenesActualizadas: origenesActualizadas,
-    auditoria: auditoria,
-  ));
+  return Exito(ajustes);
 }

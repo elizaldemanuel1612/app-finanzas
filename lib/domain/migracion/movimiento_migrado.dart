@@ -13,6 +13,9 @@ import '../reglas/monto.dart';
 ///
 /// Nace `activo`: es dinero que de verdad se movió en el pasado, no algo
 /// que el usuario tiene que confirmar.
+///
+/// Sin UI todavía; se conecta en la fase de importación (ver "Estado
+/// actual" en CLAUDE.md). Se conserva sin consumidor a propósito.
 Resultado<Movimiento> crearMovimientoMigrado({
   required String idOrigen,
   required DateTime fecha,

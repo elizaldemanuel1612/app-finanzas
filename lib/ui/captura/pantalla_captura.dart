@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/ciclo.dart';
@@ -10,6 +9,7 @@ import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/almacenamiento/almacen_fotos.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
+import '../../data/repositorios/ciclo_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
 import '../../domain/clasificacion/cascada_clasificacion.dart';
@@ -20,8 +20,12 @@ import '../../domain/modelos/estado_movimiento.dart';
 import '../../domain/modelos/movimiento.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/reglas/creacion_movimiento.dart';
+import '../../domain/reglas/fecha_movimiento.dart';
 import '../../domain/reglas/monto.dart';
+import '../comun/asegurar_ciclo_abierto.dart';
 import '../comun/formato_dinero.dart';
+import '../comun/popscope_descartar.dart';
+import '../comun/selector_fecha.dart';
 import '../comun/tema.dart';
 import 'hoja_dictado.dart';
 import 'pantalla_dividir_ticket.dart';
@@ -42,7 +46,16 @@ class PantallaCaptura extends StatefulWidget {
   final CategoriaRepositorio categoriaRepositorio;
   final MovimientoRepositorio movimientoRepositorio;
   final ReglasAprendidasRepositorio reglasAprendidasRepositorio;
+  final CicloRepositorio cicloRepositorio;
   final Movimiento? paraEditar;
+
+  /// Carpeta de documentos **ya namespaced por cuenta**
+  /// (`AlmacenLocal.directorio`, ver `main.dart`) — se recibe por fuera en
+  /// vez de resolverse con `getApplicationDocumentsDirectory()` aquí adentro
+  /// para no reintroducir el hallazgo de seguridad que ese namespace
+  /// arregló (fotos de tickets compartidas entre cualquier cuenta que
+  /// iniciara sesión en el dispositivo).
+  final Directory documentos;
 
   const PantallaCaptura({
     super.key,
@@ -50,6 +63,8 @@ class PantallaCaptura extends StatefulWidget {
     required this.categoriaRepositorio,
     required this.movimientoRepositorio,
     required this.reglasAprendidasRepositorio,
+    required this.cicloRepositorio,
+    required this.documentos,
     this.paraEditar,
   });
 
@@ -63,6 +78,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   late Future<List<Categoria>> _categorias;
   Categoria? _seleccionada;
   MedioPago _medio = MedioPago.tarjeta;
+  late DateTime _fecha;
   String? _error;
   bool _guardando = false;
   String? _fotoUrl;
@@ -84,8 +100,10 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     _cargarCascada();
 
     final paraEditar = widget.paraEditar;
+    _fecha = paraEditar?.fecha ?? DateTime.now();
     if (paraEditar != null) {
-      _categoriaTocadaManualmente = true; // no auto-sugerir sobre algo que ya se editó a mano
+      _categoriaTocadaManualmente =
+          true; // no auto-sugerir sobre algo que ya se editó a mano
       _montoControlador.text = textoEditableDeDinero(paraEditar.monto);
       _descripcionControlador.text = paraEditar.descripcion;
       _medio = paraEditar.medio;
@@ -115,7 +133,8 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
       _reglasCache = reglas;
       _historialComercios = construirHistorialComercios([
         for (final m in movimientos)
-          if (m.estado == EstadoMovimiento.activo) ObservacionComercio(m.descripcion, m.categoriaId),
+          if (m.estado == EstadoMovimiento.activo)
+            ObservacionComercio(m.descripcion, m.categoriaId),
       ]);
     });
   }
@@ -141,11 +160,37 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     }
   }
 
+  bool get _hayCambiosSinGuardar =>
+      _montoControlador.text.isNotEmpty ||
+      _descripcionControlador.text.isNotEmpty ||
+      _seleccionada != null ||
+      _fotoUrl != null;
+
   @override
   void dispose() {
     _montoControlador.dispose();
     _descripcionControlador.dispose();
     super.dispose();
+  }
+
+  /// Rango que el calendario del [SelectorFecha] puede tocar. Al crear, no
+  /// hay tope inferior estricto y el superior es hoy (regla de que un gasto
+  /// no puede ser futuro). Al editar, el rango se acota al ciclo del
+  /// movimiento — así el calendario **físicamente no deja salir del
+  /// ciclo** (regla no negociable #5), y `editarFechaMovimiento` queda de
+  /// respaldo por si este cálculo se equivocara.
+  ({DateTime primera, DateTime ultima}) get _rangoFecha {
+    final ahora = DateTime.now();
+    final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+    final paraEditar = widget.paraEditar;
+    if (paraEditar == null) {
+      return (primera: hoy.subtract(const Duration(days: 365)), ultima: hoy);
+    }
+    final ciclo = CalculadoraCiclo(
+      widget.perfil.diaCorte,
+    ).calcularPara(paraEditar.fecha);
+    final ultima = ciclo.fechaFin.isAfter(hoy) ? hoy : ciclo.fechaFin;
+    return (primera: ciclo.fechaInicio, ultima: ultima);
   }
 
   Future<void> _registrar() async {
@@ -161,17 +206,33 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
       return;
     }
 
+    final paraEditar = widget.paraEditar;
+    final calculadoraCiclo = CalculadoraCiclo(widget.perfil.diaCorte);
+
+    if (paraEditar == null) {
+      final puedeCapturar = await asegurarCicloAbierto(
+        context,
+        cicloId: calculadoraCiclo.calcularPara(_fecha).id,
+        cicloRepositorio: widget.cicloRepositorio,
+        esCaptura: true,
+      );
+      if (!puedeCapturar || !mounted) return;
+    }
+
     setState(() {
       _error = null;
       _guardando = true;
     });
 
-    final descripcion =
-        _descripcionControlador.text.trim().isEmpty ? categoria.nombre : _descripcionControlador.text.trim();
-    final paraEditar = widget.paraEditar;
+    final descripcion = _descripcionControlador.text.trim().isEmpty
+        ? categoria.nombre
+        : _descripcionControlador.text.trim();
 
     if (paraEditar != null) {
-      final montoValido = validarMontoPositivo(monto, etiqueta: 'monto del gasto');
+      final montoValido = validarMontoPositivo(
+        monto,
+        etiqueta: 'monto del gasto',
+      );
       if (montoValido case Falla(:final mensaje)) {
         setState(() {
           _error = mensaje;
@@ -179,22 +240,36 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
         });
         return;
       }
-      final editado = paraEditar.copyWith(
-        monto: monto,
-        categoriaId: categoria.id,
-        medio: _medio,
-        descripcion: descripcion,
+      final conFecha = editarFechaMovimiento(
+        movimiento: paraEditar,
+        nuevaFecha: _fecha,
+        calculadoraCiclo: calculadoraCiclo,
       );
-      await widget.movimientoRepositorio.actualizar(editado);
-      if (!mounted) return;
-      Navigator.of(context).pop(editado);
+      switch (conFecha) {
+        case Falla(:final mensaje):
+          setState(() {
+            _error = mensaje;
+            _guardando = false;
+          });
+          return;
+        case Exito(:final valor):
+          final editado = valor.copyWith(
+            monto: monto,
+            categoriaId: categoria.id,
+            medio: _medio,
+            descripcion: descripcion,
+          );
+          await widget.movimientoRepositorio.actualizar(editado);
+          if (!mounted) return;
+          Navigator.of(context).pop(editado);
+      }
       return;
     }
 
     final resultado = crearMovimiento(
       clientId: _uuid.v4(),
-      fecha: DateTime.now(),
-      calculadoraCiclo: CalculadoraCiclo(widget.perfil.diaCorte),
+      fecha: _fecha,
+      calculadoraCiclo: calculadoraCiclo,
       monto: monto,
       categoriaId: categoria.id,
       medio: _medio,
@@ -223,7 +298,10 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   /// Cada captura confirma o corrige la sugerencia (§6.2): con el tiempo,
   /// las reglas que el usuario más repite ganan por contador cuando hay
   /// empate en especificidad (ver `_mejorCoincidenciaRegla`).
-  Future<void> _aprenderDeLaCaptura(String descripcion, String categoriaId) async {
+  Future<void> _aprenderDeLaCaptura(
+    String descripcion,
+    String categoriaId,
+  ) async {
     final actualizadas = registrarCorreccion(
       reglasActuales: _reglasCache,
       patron: descripcion,
@@ -234,11 +312,16 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   }
 
   Future<void> _elegirFoto(ImageSource origen) async {
-    final archivo = await ImagePicker().pickImage(source: origen, imageQuality: 85);
+    final archivo = await ImagePicker().pickImage(
+      source: origen,
+      imageQuality: 85,
+    );
     if (archivo == null || !mounted) return;
     setState(() => _cargandoFoto = true);
-    final documentos = await getApplicationDocumentsDirectory();
-    final ruta = await guardarFotoTicket(File(archivo.path), documentos: documentos);
+    final ruta = await guardarFotoTicket(
+      File(archivo.path),
+      documentos: widget.documentos,
+    );
     if (!mounted) return;
     setState(() {
       _fotoUrl = ruta;
@@ -278,9 +361,11 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
         builder: (_) => PantallaDividirTicket(
           fotoUrl: fotoUrl,
           totalInicial: Dinero.intentarDesdeTexto(_montoControlador.text),
+          fechaInicial: _fecha,
           perfil: widget.perfil,
           categoriaRepositorio: widget.categoriaRepositorio,
           movimientoRepositorio: widget.movimientoRepositorio,
+          cicloRepositorio: widget.cicloRepositorio,
         ),
       ),
     );
@@ -298,7 +383,9 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
 
     if (gastos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No entendí ningún gasto. Intenta de nuevo.')),
+        const SnackBar(
+          content: Text('No entendí ningún gasto. Intenta de nuevo.'),
+        ),
       );
       return;
     }
@@ -326,9 +413,11 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
       MaterialPageRoute(
         builder: (_) => PantallaRevisionDictado(
           gastos: gastos,
+          fechaInicial: _fecha,
           perfil: widget.perfil,
           categoriaRepositorio: widget.categoriaRepositorio,
           movimientoRepositorio: widget.movimientoRepositorio,
+          cicloRepositorio: widget.cicloRepositorio,
         ),
       ),
     );
@@ -339,124 +428,177 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.paraEditar == null ? 'Registrar gasto' : 'Editar gasto')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            const Text('¿Cuánto gastaste?', style: TextStyle(color: ColoresApp.medio)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _montoControlador,
-              autofocus: true,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w800),
-              decoration: InputDecoration(
-                prefixText: r'$ ',
-                border: InputBorder.none,
-                filled: false,
-                suffixIcon: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.photo_camera_outlined, color: ColoresApp.violeta),
-                      tooltip: 'Foto de ticket',
-                      onPressed: _cargandoFoto ? null : _mostrarOpcionesFoto,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.mic_none, color: ColoresApp.violeta),
-                      tooltip: 'Dictar por voz',
-                      onPressed: _dictar,
-                    ),
-                  ],
+    final rangoFecha = _rangoFecha;
+    return PopScopeDescartar(
+      hayCambiosSinGuardar: () => _hayCambiosSinGuardar,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            widget.paraEditar == null ? 'Registrar gasto' : 'Editar gasto',
+          ),
+        ),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const Text(
+                '¿Cuánto gastaste?',
+                style: TextStyle(color: ColoresApp.medio),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _montoControlador,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                style: const TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w800,
+                ),
+                decoration: InputDecoration(
+                  prefixText: r'$ ',
+                  border: InputBorder.none,
+                  filled: false,
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.photo_camera_outlined,
+                          color: ColoresApp.violeta,
+                        ),
+                        tooltip: 'Foto de ticket',
+                        onPressed: _cargandoFoto ? null : _mostrarOpcionesFoto,
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.mic_none,
+                          color: ColoresApp.violeta,
+                        ),
+                        tooltip: 'Dictar por voz',
+                        onPressed: _dictar,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            if (_cargandoFoto) ...[
-              const SizedBox(height: 12),
-              const LinearProgressIndicator(),
-            ],
-            if (_fotoUrl != null) ...[
-              const SizedBox(height: 12),
-              _TarjetaFotoTicket(
-                fotoUrl: _fotoUrl!,
-                onQuitar: () => setState(() => _fotoUrl = null),
-                onDividir: _dividirTicket,
-              ),
-            ],
-            const Divider(height: 32),
-            const Text('Categoría', style: TextStyle(color: ColoresApp.medio)),
-            const SizedBox(height: 8),
-            FutureBuilder<List<Categoria>>(
-              future: _categorias,
-              builder: (context, snapshot) {
-                final categorias = snapshot.data ?? const [];
-                if (snapshot.hasData && categorias.isEmpty) {
-                  return const Text(
-                    'No tienes categorías todavía. Crea una desde Categorías antes de registrar.',
-                    style: TextStyle(color: ColoresApp.coral),
-                  );
-                }
-                return Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: categorias.map((c) {
-                    final elegida = c.id == _seleccionada?.id;
-                    return ChoiceChip(
-                      label: Text('${c.emoji} ${c.nombre}'),
-                      selected: elegida,
-                      selectedColor: ColoresApp.violetaSuave,
-                      onSelected: (_) => setState(() {
-                        _seleccionada = c;
-                        _categoriaTocadaManualmente = true;
-                        _sugerida = false;
-                      }),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-            if (_sugerida) ...[
-              const SizedBox(height: 6),
-              const Text('Sugerida por tus gastos anteriores',
-                  style: TextStyle(color: ColoresApp.violeta, fontSize: 12, fontWeight: FontWeight.w600)),
-            ],
-            const SizedBox(height: 20),
-            const Text('Medio', style: TextStyle(color: ColoresApp.medio)),
-            const SizedBox(height: 8),
-            SegmentedButton<MedioPago>(
-              segments: const [
-                ButtonSegment(value: MedioPago.tarjeta, label: Text('Tarjeta')),
-                ButtonSegment(value: MedioPago.efectivo, label: Text('Efectivo')),
+              if (_cargandoFoto) ...[
+                const SizedBox(height: 12),
+                const LinearProgressIndicator(),
               ],
-              selected: {_medio},
-              onSelectionChanged: (s) => setState(() => _medio = s.first),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _descripcionControlador,
-              decoration: const InputDecoration(labelText: 'Descripción (opcional)'),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: const TextStyle(color: ColoresApp.coral)),
-            ],
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _guardando ? null : _registrar,
-              child: Text(_guardando
-                  ? 'Guardando…'
-                  : (widget.paraEditar == null ? 'Listo' : 'Guardar cambios')),
-            ),
-            const SizedBox(height: 8),
-            const Center(
-              child: Text(
-                'Sin internet · se guarda y sincroniza sola',
-                style: TextStyle(color: ColoresApp.medio, fontSize: 12),
+              if (_fotoUrl != null) ...[
+                const SizedBox(height: 12),
+                _TarjetaFotoTicket(
+                  fotoUrl: _fotoUrl!,
+                  onQuitar: () => setState(() => _fotoUrl = null),
+                  onDividir: _dividirTicket,
+                ),
+              ],
+              const SizedBox(height: 16),
+              SelectorFecha(
+                seleccionada: _fecha,
+                onCambio: (f) => setState(() => _fecha = f),
+                primeraFecha: rangoFecha.primera,
+                ultimaFecha: rangoFecha.ultima,
               ),
-            ),
-          ],
+              const Divider(height: 32),
+              const Text(
+                'Categoría',
+                style: TextStyle(color: ColoresApp.medio),
+              ),
+              const SizedBox(height: 8),
+              FutureBuilder<List<Categoria>>(
+                future: _categorias,
+                builder: (context, snapshot) {
+                  final categorias = snapshot.data ?? const [];
+                  if (snapshot.hasData && categorias.isEmpty) {
+                    return const Text(
+                      'No tienes categorías todavía. Crea una desde Categorías antes de registrar.',
+                      style: TextStyle(color: ColoresApp.coralTexto),
+                    );
+                  }
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: categorias.map((c) {
+                      final elegida = c.id == _seleccionada?.id;
+                      return ChoiceChip(
+                        label: Text('${c.emoji} ${c.nombre}'),
+                        selected: elegida,
+                        selectedColor: ColoresApp.violetaSuave,
+                        onSelected: (_) => setState(() {
+                          _seleccionada = c;
+                          _categoriaTocadaManualmente = true;
+                          _sugerida = false;
+                        }),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+              if (_sugerida) ...[
+                const SizedBox(height: 6),
+                const Text(
+                  'Sugerida por tus gastos anteriores',
+                  style: TextStyle(
+                    color: ColoresApp.violeta,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+              const Text('Medio', style: TextStyle(color: ColoresApp.medio)),
+              const SizedBox(height: 8),
+              SegmentedButton<MedioPago>(
+                segments: const [
+                  ButtonSegment(
+                    value: MedioPago.tarjeta,
+                    label: Text('Tarjeta'),
+                  ),
+                  ButtonSegment(
+                    value: MedioPago.efectivo,
+                    label: Text('Efectivo'),
+                  ),
+                ],
+                selected: {_medio},
+                onSelectionChanged: (s) => setState(() => _medio = s.first),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _descripcionControlador,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción (opcional)',
+                ),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _error!,
+                  style: const TextStyle(color: ColoresApp.coralTexto),
+                ),
+              ],
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _guardando ? null : _registrar,
+                child: Text(
+                  _guardando
+                      ? 'Guardando…'
+                      : (widget.paraEditar == null
+                            ? 'Listo'
+                            : 'Guardar cambios'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Center(
+                child: Text(
+                  'Sin internet · se guarda y sincroniza sola',
+                  style: TextStyle(color: ColoresApp.medio, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -483,7 +625,12 @@ class _TarjetaFotoTicket extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: Image.file(File(fotoUrl), width: 52, height: 52, fit: BoxFit.cover),
+              child: Image.file(
+                File(fotoUrl),
+                width: 52,
+                height: 52,
+                fit: BoxFit.cover,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -491,13 +638,20 @@ class _TarjetaFotoTicket extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Ticket adjunto', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const Text(
+                    'Ticket adjunto',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                   const SizedBox(height: 4),
                   GestureDetector(
                     onTap: onDividir,
                     child: const Text(
                       'Dividir en varias categorías',
-                      style: TextStyle(color: ColoresApp.violeta, fontWeight: FontWeight.w600, fontSize: 13),
+                      style: TextStyle(
+                        color: ColoresApp.violeta,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],

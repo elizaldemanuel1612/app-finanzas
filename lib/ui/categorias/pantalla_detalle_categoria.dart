@@ -2,20 +2,25 @@ import 'package:flutter/material.dart';
 
 import '../../core/ciclo.dart';
 import '../../core/money.dart';
-import '../../core/result.dart';
+import '../../data/repositorios/ajuste_presupuesto_ciclo_repositorio.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
+import '../../data/repositorios/ciclo_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
+import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/estado_movimiento.dart';
 import '../../domain/modelos/movimiento.dart';
+import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/plan_de_ajuste.dart';
 import '../../domain/presupuesto/rebalanceo.dart';
+import '../../domain/pronostico/historico_desde_movimientos.dart';
 import '../../domain/pronostico/pronostico_categoria.dart';
-import '../../domain/pronostico/punto_monto.dart';
 import '../../domain/rollups/calcular_rollups.dart';
 import '../../domain/rollups/estado_ritmo.dart';
 import '../comun/barra_ritmo.dart';
+import '../comun/formato_dinero.dart';
 import '../comun/tema.dart';
+import 'pantalla_mover_presupuesto.dart';
 import 'pantalla_nueva_categoria.dart';
 
 /// app-finanzas-gastos-v3.html §4 — "aquí vive el pronóstico". El motor
@@ -34,6 +39,9 @@ class PantallaDetalleCategoria extends StatefulWidget {
   final double avanceCiclo;
   final CategoriaRepositorio categoriaRepositorio;
   final MovimientoRepositorio movimientoRepositorio;
+  final ReglasAprendidasRepositorio reglasAprendidasRepositorio;
+  final AjustePresupuestoCicloRepositorio ajustePresupuestoCicloRepositorio;
+  final CicloRepositorio cicloRepositorio;
 
   const PantallaDetalleCategoria({
     super.key,
@@ -42,62 +50,107 @@ class PantallaDetalleCategoria extends StatefulWidget {
     required this.avanceCiclo,
     required this.categoriaRepositorio,
     required this.movimientoRepositorio,
+    required this.reglasAprendidasRepositorio,
+    required this.ajustePresupuestoCicloRepositorio,
+    required this.cicloRepositorio,
   });
 
   @override
-  State<PantallaDetalleCategoria> createState() => _PantallaDetalleCategoriaState();
+  State<PantallaDetalleCategoria> createState() =>
+      _PantallaDetalleCategoriaState();
 }
 
 class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
-  late Future<_DatosDetalle> _datos;
+  _DatosDetalle? _datos;
 
   @override
   void initState() {
     super.initState();
-    _datos = _cargar();
+    _cargar();
   }
 
-  Future<_DatosDetalle> _cargar() async {
+  Future<void> _cargar() async {
+    final datos = await _cargarDatos();
+    if (!mounted) return;
+    setState(() => _datos = datos);
+  }
+
+  Future<_DatosDetalle> _cargarDatos() async {
     final todos = await widget.movimientoRepositorio.listarTodos();
     final movimientosCiclo = todos
-        .where((m) =>
-            m.categoriaId == widget.categoria.id &&
-            m.estado == EstadoMovimiento.activo &&
-            m.cicloId == widget.ciclo.id)
+        .where(
+          (m) =>
+              m.categoriaId == widget.categoria.id &&
+              m.estado == EstadoMovimiento.activo &&
+              m.cicloId == widget.ciclo.id,
+        )
         .toList();
+
+    final ajustes = await widget.ajustePresupuestoCicloRepositorio
+        .listarPorCiclo(widget.ciclo.id);
+    final deltaCategoria =
+        sumarDeltasPorCategoria(ajustes)[widget.categoria.id];
+    final categoriaEfectiva = presupuestosEfectivosParaCiclo(
+      base: [widget.categoria],
+      ajustesDelCiclo: ajustes,
+    ).single;
 
     PronosticoCategoria? pronostico;
     PlanDeAjuste? plan;
     Rebalanceo? rebalanceo;
-    final categoria = widget.categoria;
-    if (categoria is CategoriaVariable) {
-      pronostico = _pronosticoPara(categoria, todos, widget.ciclo);
+    final hoy = DateTime.now();
+    if (categoriaEfectiva is CategoriaVariable) {
+      pronostico = pronosticoDeCategoria(
+        categoria: categoriaEfectiva,
+        todos: todos,
+        ciclo: widget.ciclo,
+        hoy: hoy,
+      );
 
       plan = calcularPlanDeAjuste(
-        categoria: categoria,
+        categoria: categoriaEfectiva,
         pronostico: pronostico,
-        ciclosCerradosRecienteAAntiguo: _ciclosCerrados(categoria.id, todos, widget.ciclo.id),
+        ciclosCerradosRecienteAAntiguo: ciclosCerradosDeCategoria(
+          todos: todos,
+          categoriaId: categoriaEfectiva.id,
+          cicloActualId: widget.ciclo.id,
+        ),
         fechaInicioCiclo: widget.ciclo.fechaInicio,
         fechaFinCiclo: widget.ciclo.fechaFin,
-        hoy: DateTime.now(),
+        hoy: hoy,
       );
 
       // El rebalanceo solo necesita mirar las demás categorías cuando el
       // plan de ajuste ya no alcanza (ya se pasó del presupuesto) — no
       // vale la pena calcular el pronóstico de todas las categorías en
       // cada visita si de entrada no aplica.
-      if (pronostico.observado.centavos > categoria.presupuestoMensualCentavos.centavos) {
-        final otrasCategorias =
-            (await widget.categoriaRepositorio.listarActivas()).whereType<CategoriaVariable>().where(
-                  (c) => c.id != categoria.id,
-                );
+      if (pronostico.observado.centavos >
+          categoriaEfectiva.presupuestoMensualCentavos.centavos) {
+        final otrasCategoriasBase =
+            (await widget.categoriaRepositorio.listarActivas())
+                .where((c) => c.id != categoriaEfectiva.id)
+                .toList();
+        // Pasan también por el ajuste del ciclo: una categoría que ya
+        // prestó presupuesto en un rebalanceo anterior de este mismo
+        // ciclo debe aparecer con menos holgura en el siguiente — los
+        // ajustes se acumulan, nunca se reemplazan (§2.5).
+        final otrasCategorias = presupuestosEfectivosParaCiclo(
+          base: otrasCategoriasBase,
+          ajustesDelCiclo: ajustes,
+        ).whereType<CategoriaVariable>().toList();
         final otrosPronosticos = [
-          for (final c in otrasCategorias) _pronosticoPara(c, todos, widget.ciclo),
+          for (final c in otrasCategorias)
+            pronosticoDeCategoria(
+              categoria: c,
+              todos: todos,
+              ciclo: widget.ciclo,
+              hoy: hoy,
+            ),
         ];
         rebalanceo = calcularRebalanceo(
-          categoriaObjetivo: categoria,
+          categoriaObjetivo: categoriaEfectiva,
           pronosticoObjetivo: pronostico,
-          otrasCategorias: otrasCategorias.toList(),
+          otrasCategorias: otrasCategorias,
           otrosPronosticos: otrosPronosticos,
         );
       }
@@ -108,45 +161,27 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
       pronostico: pronostico,
       plan: plan,
       rebalanceo: rebalanceo,
+      categoriaEfectiva: categoriaEfectiva,
+      deltaCategoria: deltaCategoria,
     );
   }
 
-  /// Aplica la categoría con más holgura de [rebalanceo.candidatas] hasta
-  /// cubrir el faltante (o hasta agotar las 3, lo que ocurra primero) y
-  /// persiste el resultado — "el usuario decide" (§2.5): esto solo corre
-  /// cuando la persona toca el botón, nunca solo.
-  Future<void> _aplicarRebalanceo(Rebalanceo rebalanceo) async {
-    var faltanteCentavos = rebalanceo.faltante.centavos;
-    final movimientos = <MovimientoRebalanceo>[];
-    for (final candidata in rebalanceo.candidatas) {
-      if (faltanteCentavos <= 0) break;
-      final monto = faltanteCentavos < candidata.holgura.centavos
-          ? Dinero(faltanteCentavos)
-          : candidata.holgura;
-      movimientos.add(MovimientoRebalanceo(categoriaOrigenId: candidata.categoria.id, monto: monto));
-      faltanteCentavos -= monto.centavos;
-    }
-    if (movimientos.isEmpty) return;
-
-    final resultado = aplicarRebalanceo(
-      objetivo: widget.categoria as CategoriaVariable,
-      origenes: [for (final c in rebalanceo.candidatas) c.categoria],
-      movimientos: movimientos,
-      cuando: DateTime.now(),
-      dispositivo: 'app',
+  /// Abre la pantalla donde el usuario decide, candidata por candidata,
+  /// cuánto mover — "el usuario decide" (§2.5): esto solo corre cuando la
+  /// persona toca el botón, nunca solo. El resultado es temporal (solo
+  /// para este ciclo), por eso recarga en vez de guardar una categoría.
+  Future<void> _abrirMoverPresupuesto(Rebalanceo rebalanceo) async {
+    final guardado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => PantallaMoverPresupuesto(
+          rebalanceo: rebalanceo,
+          ciclo: widget.ciclo,
+          ajustePresupuestoCicloRepositorio:
+              widget.ajustePresupuestoCicloRepositorio,
+        ),
+      ),
     );
-    if (resultado case Falla(:final mensaje)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
-      }
-      return;
-    }
-    final r = resultado.valorOLanza;
-    await widget.categoriaRepositorio.guardar(r.objetivoActualizada);
-    for (final origen in r.origenesActualizadas) {
-      await widget.categoriaRepositorio.guardar(origen);
-    }
-    if (mounted) setState(() => _datos = _cargar());
+    if (guardado == true) await _cargar();
   }
 
   @override
@@ -164,123 +199,171 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
                   builder: (_) => PantallaNuevaCategoria(
                     categoriaRepositorio: widget.categoriaRepositorio,
                     movimientoRepositorio: widget.movimientoRepositorio,
+                    reglasAprendidasRepositorio:
+                        widget.reglasAprendidasRepositorio,
+                    cicloRepositorio: widget.cicloRepositorio,
                     categoriaExistente: widget.categoria,
                   ),
                 ),
               );
-              if (editada == true && context.mounted) Navigator.of(context).pop();
+              if (editada == true && context.mounted) {
+                Navigator.of(context).pop();
+              }
             },
           ),
         ],
       ),
-      body: FutureBuilder<_DatosDetalle>(
-        future: _datos,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final movimientos = snapshot.data!.movimientos;
-          final pronostico = snapshot.data!.pronostico;
-          final plan = snapshot.data!.plan;
-          final rebalanceo = snapshot.data!.rebalanceo;
-          final rollup = calcularRollups(
-            movimientos: movimientos,
-            categorias: [widget.categoria],
-            cicloId: widget.ciclo.id,
-          ).single;
-          final estado = calcularEstadoRitmo(
-            porcentajeUsado: rollup.porcentajeUsado,
-            avanceCiclo: widget.avanceCiclo,
-          );
+      body: _datos == null
+          ? const Center(child: CircularProgressIndicator())
+          : _buildContenido(_datos!),
+    );
+  }
 
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(rollup.totalCentavos.formateado(),
-                              style: const TextStyle(
-                                  fontSize: 30, fontWeight: FontWeight.w800, color: ColoresApp.tinta)),
-                          if (rollup.presupuestoCentavos != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: colorEstadoRitmo(estado).withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(99),
-                              ),
-                              child: Text(
-                                etiquetaEstadoRitmo(estado),
-                                style: TextStyle(
-                                    color: colorEstadoRitmo(estado), fontWeight: FontWeight.w700, fontSize: 12),
-                              ),
-                            ),
-                        ],
+  Widget _buildContenido(_DatosDetalle datos) {
+    final movimientos = datos.movimientos;
+    final pronostico = datos.pronostico;
+    final plan = datos.plan;
+    final rebalanceo = datos.rebalanceo;
+    final rollup = calcularRollups(
+      movimientos: movimientos,
+      categorias: [datos.categoriaEfectiva],
+      cicloId: widget.ciclo.id,
+    ).single;
+    // Una fija no tiene "presupuesto" que se pueda exceder — tiene un
+    // monto conocido que se paga o no (spec-app-finanzas-v2.md §1.5:
+    // "Barra de ritmo: No aplica" / "Estado: Pagado / pendiente" para
+    // fijas). El chip de ritmo (Vas bien/Justo/Excedido) y la barra son
+    // solo para variables; `pantalla_inicio.dart` ya sigue esta regla en
+    // su lista de "Gastos fijos" — aquí faltaba aplicarla también.
+    final esFija = widget.categoria is CategoriaFija;
+    final pagado = rollup.conteoMovimientos > 0;
+    final estado = calcularEstadoRitmo(porcentajeUsado: rollup.porcentajeUsado);
+    final vaRapido = vaMuyRapido(
+      porcentajeUsado: rollup.porcentajeUsado,
+      avanceCiclo: widget.avanceCiclo,
+    );
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      rollup.totalCentavos.formateado(),
+                      style: const TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w800,
+                        color: ColoresApp.tinta,
                       ),
-                      if (rollup.presupuestoCentavos != null) ...[
-                        Text(
-                          'de ${rollup.presupuestoCentavos!.formateado()}'
-                          '${widget.categoria is CategoriaFija ? '' : ' este ciclo'}',
-                          style: const TextStyle(color: ColoresApp.medio),
+                    ),
+                    if (rollup.presupuestoCentavos != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
                         ),
-                        const SizedBox(height: 16),
-                        BarraRitmo(
-                          porcentajeUsado: rollup.porcentajeUsado ?? 0,
-                          avanceCiclo: widget.avanceCiclo,
-                          estado: estado,
+                        decoration: BoxDecoration(
+                          color: (esFija
+                                  ? (pagado ? ColoresApp.verde : ColoresApp.medio)
+                                  : colorEstadoRitmo(estado))
+                              .withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(99),
                         ),
-                      ],
-                      const SizedBox(height: 12),
-                      Text('${rollup.conteoMovimientos} movimiento(s) en el ciclo',
-                          style: const TextStyle(color: ColoresApp.medio, fontSize: 12)),
-                    ],
+                        child: Text(
+                          esFija
+                              ? (pagado ? 'Pagado' : 'Pendiente')
+                              : etiquetaEstadoRitmo(estado),
+                          style: TextStyle(
+                            color: esFija
+                                ? (pagado ? ColoresApp.verdeTexto : ColoresApp.medio)
+                                : colorTextoEstadoRitmo(estado),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                if (rollup.presupuestoCentavos != null) ...[
+                  Text(
+                    'de ${rollup.presupuestoCentavos!.formateado()}'
+                    '${esFija ? '' : ' este ciclo'}',
+                    style: const TextStyle(color: ColoresApp.medio),
                   ),
+                  if (datos.deltaCategoria != null &&
+                      !datos.deltaCategoria!.esCero)
+                    Text(
+                      'ajustado por ${signoYMonto(datos.deltaCategoria!)}',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  if (!esFija) ...[
+                    const SizedBox(height: 16),
+                    BarraRitmo(
+                      porcentajeUsado: rollup.porcentajeUsado ?? 0,
+                      avanceCiclo: widget.avanceCiclo,
+                      estado: estado,
+                      descripcion: widget.categoria.nombre,
+                      vaMuyRapido: vaRapido,
+                    ),
+                  ],
+                ],
+                const SizedBox(height: 12),
+                Text(
+                  '${rollup.conteoMovimientos} movimiento(s) en el ciclo',
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (pronostico != null) ...[
+          const SizedBox(height: 12),
+          _TarjetaPronostico(pronostico: pronostico),
+        ],
+        if (plan != null) ...[
+          const SizedBox(height: 12),
+          _TarjetaPlanDeAjuste(plan: plan),
+        ],
+        if (rebalanceo != null && rebalanceo.candidatas.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _TarjetaRebalanceo(
+            rebalanceo: rebalanceo,
+            onAplicar: () => _abrirMoverPresupuesto(rebalanceo),
+          ),
+        ],
+        const SizedBox(height: 20),
+        if (movimientos.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(
+              child: Text(
+                'Nada en esta categoría todavía.',
+                style: TextStyle(color: ColoresApp.medio),
+              ),
+            ),
+          )
+        else
+          ...(movimientos..sort((a, b) => b.fecha.compareTo(a.fecha))).map(
+            (m) => Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                title: Text(m.descripcion),
+                subtitle: Text('${_fechaCorta(m.fecha)} · ${m.medio.name}'),
+                trailing: Text(
+                  m.monto.formateado(),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
-              if (pronostico != null) ...[
-                const SizedBox(height: 12),
-                _TarjetaPronostico(pronostico: pronostico),
-              ],
-              if (plan != null) ...[
-                const SizedBox(height: 12),
-                _TarjetaPlanDeAjuste(plan: plan),
-              ],
-              if (rebalanceo != null && rebalanceo.candidatas.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                _TarjetaRebalanceo(
-                  rebalanceo: rebalanceo,
-                  onAplicar: () => _aplicarRebalanceo(rebalanceo),
-                ),
-              ],
-              const SizedBox(height: 20),
-              if (movimientos.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Center(
-                    child: Text('Nada en esta categoría todavía.',
-                        style: TextStyle(color: ColoresApp.medio)),
-                  ),
-                )
-              else
-                ...(movimientos..sort((a, b) => b.fecha.compareTo(a.fecha))).map((m) => Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        title: Text(m.descripcion),
-                        subtitle: Text('${_fechaCorta(m.fecha)} · ${m.medio.name}'),
-                        trailing: Text(m.monto.formateado(),
-                            style: const TextStyle(fontWeight: FontWeight.w700)),
-                      ),
-                    )),
-            ],
-          );
-        },
-      ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -298,52 +381,17 @@ class _DatosDetalle {
   final PronosticoCategoria? pronostico;
   final PlanDeAjuste? plan;
   final Rebalanceo? rebalanceo;
+  final Categoria categoriaEfectiva;
+  final Dinero? deltaCategoria;
 
   const _DatosDetalle({
     required this.movimientos,
     required this.pronostico,
     required this.plan,
     required this.rebalanceo,
+    required this.categoriaEfectiva,
+    required this.deltaCategoria,
   });
-}
-
-/// Ciclos cerrados de [categoriaId] a partir de todos los movimientos —
-/// cualquier `cicloId` distinto al del ciclo que se está viendo (ver nota
-/// de clase sobre "ciclo cerrado" al inicio del archivo).
-List<List<PuntoMonto>> _ciclosCerrados(String categoriaId, List<Movimiento> todos, String cicloActualId) {
-  final porCiclo = <String, List<Movimiento>>{};
-  for (final m in todos) {
-    if (m.categoriaId != categoriaId) continue;
-    if (m.estado != EstadoMovimiento.activo) continue;
-    if (m.cicloId == cicloActualId) continue;
-    porCiclo.putIfAbsent(m.cicloId, () => []).add(m);
-  }
-  final cicloIdsOrdenados = porCiclo.keys.toList()..sort((a, b) => b.compareTo(a));
-  return [
-    for (final id in cicloIdsOrdenados)
-      [for (final m in porCiclo[id]!) PuntoMonto(m.fecha, m.monto.centavos.toDouble())],
-  ];
-}
-
-/// Pronóstico MPC de una categoría cualquiera a partir de todos los
-/// movimientos — la misma llamada que arma la tarjeta de "cierre
-/// estimado" de la categoría que se está viendo, reutilizada para las
-/// candidatas de rebalanceo.
-PronosticoCategoria _pronosticoPara(Categoria categoria, List<Movimiento> todos, Ciclo ciclo) {
-  final movimientosCiclo = todos
-      .where((m) => m.categoriaId == categoria.id && m.estado == EstadoMovimiento.activo && m.cicloId == ciclo.id)
-      .toList();
-  return calcularPronosticoCategoria(
-    categoria: categoria,
-    cicloId: ciclo.id,
-    fechaInicioCiclo: ciclo.fechaInicio,
-    fechaFinCiclo: ciclo.fechaFin,
-    hoy: DateTime.now(),
-    movimientosCicloActual: [
-      for (final m in movimientosCiclo) PuntoMonto(m.fecha, m.monto.centavos.toDouble()),
-    ],
-    ciclosCerradosRecienteAAntiguo: _ciclosCerrados(categoria.id, todos, ciclo.id),
-  );
 }
 
 /// Presentación de §6 del MPC: "Súper/Comida — cierre estimado $9,200
@@ -366,23 +414,35 @@ class _TarjetaPronostico extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Cierre estimado',
-                    style: TextStyle(fontWeight: FontWeight.w700, color: ColoresApp.violeta)),
+                const Text(
+                  'Cierre estimado',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: ColoresApp.violeta,
+                  ),
+                ),
                 _EtiquetaConfianza(confianza: pronostico.confianza),
               ],
             ),
             const SizedBox(height: 6),
             Text(
               pronostico.pronosticoP50.formateado(),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: ColoresApp.tinta),
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: ColoresApp.tinta,
+              ),
             ),
             Text(
               'rango ${pronostico.pronosticoP10.formateado()} – ${pronostico.pronosticoP90.formateado()}',
-              style: const TextStyle(color: ColoresApp.medio, fontSize: 12),
+              style: Theme.of(context).textTheme.labelSmall,
             ),
             for (final texto in pronostico.explicacion) ...[
               const SizedBox(height: 8),
-              Text(texto, style: const TextStyle(color: ColoresApp.medio, fontSize: 11)),
+              Text(
+                texto,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 11),
+              ),
             ],
           ],
         ),
@@ -408,14 +468,27 @@ class _TarjetaPlanDeAjuste extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Plan de ajuste',
-                style: TextStyle(fontWeight: FontWeight.w700, color: ColoresApp.tinta)),
+            const Text(
+              'Plan de ajuste',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: ColoresApp.tinta,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text(plan.piezaCuantoQueda, style: const TextStyle(color: ColoresApp.medio, fontSize: 13)),
-            Text(plan.piezaContraCostumbre, style: const TextStyle(color: ColoresApp.medio, fontSize: 13)),
+            Text(
+              plan.piezaCuantoQueda,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            Text(
+              plan.piezaContraCostumbre,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 6),
-            Text(plan.piezaNumeroASeguir,
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: ColoresApp.tinta)),
+            Text(
+              plan.piezaNumeroASeguir,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ],
         ),
       ),
@@ -442,29 +515,51 @@ class _TarjetaRebalanceo extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Rebalanceo sugerido',
-                style: TextStyle(fontWeight: FontWeight.w700, color: ColoresApp.tinta)),
+            const Text(
+              'Rebalanceo sugerido',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: ColoresApp.tinta,
+              ),
+            ),
             const SizedBox(height: 6),
-            Text('Ya se pasó del presupuesto y falta ${rebalanceo.faltante.formateado()} este ciclo.',
-                style: const TextStyle(color: ColoresApp.medio, fontSize: 13)),
+            Text(
+              'Ya se pasó del presupuesto y falta ${rebalanceo.faltante.formateado()} este ciclo.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 10),
-            const Text('Categorías con holgura para mover:',
-                style: TextStyle(color: ColoresApp.medio, fontSize: 12, fontWeight: FontWeight.w600)),
+            Text(
+              'Categorías con holgura para mover:',
+              style: Theme.of(context)
+                  .textTheme
+                  .labelSmall
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
             for (final c in rebalanceo.candidatas)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('${c.categoria.emoji} ${c.categoria.nombre}',
-                        style: const TextStyle(fontSize: 13)),
-                    Text(c.holgura.formateado(),
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                    Text(
+                      '${c.categoria.emoji} ${c.categoria.nombre}',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    Text(
+                      c.holgura.formateado(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
               ),
             const SizedBox(height: 12),
-            ElevatedButton(onPressed: onAplicar, child: const Text('Mover presupuesto')),
+            ElevatedButton(
+              onPressed: onAplicar,
+              child: const Text('Mover presupuesto'),
+            ),
           ],
         ),
       ),
@@ -479,15 +574,27 @@ class _EtiquetaConfianza extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (texto, color) = switch (confianza) {
-      ConfianzaMpc.alta => ('confianza alta', ColoresApp.verde),
-      ConfianzaMpc.media => ('confianza media', ColoresApp.ambar),
-      ConfianzaMpc.baja => ('confianza baja', ColoresApp.coral),
+    final (texto, color, colorTexto) = switch (confianza) {
+      ConfianzaMpc.alta => ('confianza alta', ColoresApp.verde, ColoresApp.verdeTexto),
+      ConfianzaMpc.media => ('confianza media', ColoresApp.ambar, ColoresApp.ambarTexto),
+      ConfianzaMpc.baja => ('confianza baja', ColoresApp.coral, ColoresApp.coralTexto),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(99)),
-      child: Text(texto, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 10)),
+      decoration: BoxDecoration(
+        // El fondo se queda con el color brillante (elemento gráfico,
+        // umbral 3:1); el texto usa la variante oscurecida (umbral 4.5:1).
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        texto,
+        style: TextStyle(
+          color: colorTexto,
+          fontWeight: FontWeight.w700,
+          fontSize: 10,
+        ),
+      ),
     );
   }
 }

@@ -20,6 +20,10 @@ abstract interface class MovimientoRepositorio {
 
   Future<List<Movimiento>> listarPorCiclo(String cicloId);
 
+  /// Todos los movimientos de una categoría, sin filtrar por estado — los
+  /// anulados cuentan también (ver eliminacion_categoria.dart).
+  Future<List<Movimiento>> listarPorCategoria(String categoriaId);
+
   Future<List<Movimiento>> listarTodos();
 
   Future<bool> existeClientId(String clientId);

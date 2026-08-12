@@ -68,6 +68,25 @@ void main() {
     expect(julio.single.clientId, 'cliente-julio');
   });
 
+  test('listarPorCategoria filtra por categoriaId', () async {
+    await repo.guardar(_mov('cliente-super', pesos: 100));
+    final movTransporte = _mov('cliente-transporte').copyWith(categoriaId: 'transporte');
+    await repo.guardar(movTransporte);
+
+    final deSuper = await repo.listarPorCategoria('super');
+    expect(deSuper, hasLength(1));
+    expect(deSuper.single.clientId, 'cliente-super');
+  });
+
+  test('listarPorCategoria incluye movimientos anulados (no filtra por estado)', () async {
+    final guardado = await repo.guardar(_mov('cliente-super'));
+    await repo.anular(guardado.id!);
+
+    final deSuper = await repo.listarPorCategoria('super');
+    expect(deSuper, hasLength(1));
+    expect(deSuper.single.estado, EstadoMovimiento.anulado);
+  });
+
   test('existeClientId', () async {
     await repo.guardar(_mov('cliente-1-uuid'));
     expect(await repo.existeClientId('cliente-1-uuid'), isTrue);

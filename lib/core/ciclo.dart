@@ -37,6 +37,16 @@ final class Ciclo {
     return !dia.isBefore(fechaInicio) && !dia.isAfter(fechaFin);
   }
 
+  /// Días que faltan para que termine el ciclo, comparando por fecha (no
+  /// por instante — normaliza [hoy] y [fechaFin] a medianoche antes de
+  /// restar). `0` = hoy es el último día. Nunca negativo.
+  int diasParaTerminar(DateTime hoy) {
+    final h = DateTime(hoy.year, hoy.month, hoy.day);
+    final f = DateTime(fechaFin.year, fechaFin.month, fechaFin.day);
+    final dias = f.difference(h).inDays;
+    return dias < 0 ? 0 : dias;
+  }
+
   /// Cierra el ciclo. Falla si ya estaba cerrado — cerrar dos veces suele
   /// ser un error de quien llama, no un estado válido a ignorar en silencio.
   Resultado<Ciclo> cerrar() {

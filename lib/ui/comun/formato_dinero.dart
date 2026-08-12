@@ -8,3 +8,9 @@ String textoEditableDeDinero(Dinero d) {
   final centavos = (d.centavos % 100).toString().padLeft(2, '0');
   return '$pesos.$centavos';
 }
+
+/// [Dinero.formateado] no antepone "+" a positivos — este helper sí, para
+/// mostrar el efecto de un ajuste temporal de presupuesto ("ajustado por
+/// +$X" / "ajustado por -$X").
+String signoYMonto(Dinero delta) =>
+    '${delta.esPositivo ? '+' : '-'}${delta.absoluto.formateado()}';

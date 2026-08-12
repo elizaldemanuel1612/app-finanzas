@@ -1,0 +1,99 @@
+{
+  "_comentario": "Semilla versionada de la prueba de paridad §3.2 (paquete-construccion-final.md). NUNCA editar a mano tras congelar valores_congelados_v1.json — regenerar con test/paridad/herramientas/regenerar_esperado.dart y revisar el diff en el commit.",
+  "cicloEvaluadoId": "2026-07",
+  "hoy": "2026-07-20T00:00:00.000",
+  "perfil": {
+    "diaCorte": 15,
+    "ingresoBaseMensualCentavos": 2000000,
+    "moneda": "MXN",
+    "zonaHoraria": "America/Mexico_City"
+  },
+  "categorias": [
+    {
+      "tipo": "fija",
+      "id": "renta",
+      "nombre": "Renta",
+      "emoji": "🏠",
+      "activa": true,
+      "esNecesaria": true,
+      "montoFijoCentavos": 500000,
+      "diaDelCiclo": 15
+    },
+    {
+      "tipo": "fija",
+      "id": "servicios",
+      "nombre": "Servicios",
+      "emoji": "💡",
+      "activa": true,
+      "esNecesaria": true,
+      "montoFijoCentavos": 85037,
+      "diaDelCiclo": 20
+    },
+    {
+      "tipo": "variable",
+      "id": "super",
+      "nombre": "Súper/Comida",
+      "emoji": "🛒",
+      "activa": true,
+      "esNecesaria": true,
+      "presupuestoMensualCentavos": 350000
+    },
+    {
+      "tipo": "variable",
+      "id": "transporte",
+      "nombre": "Transporte",
+      "emoji": "🚌",
+      "activa": true,
+      "esNecesaria": false,
+      "presupuestoMensualCentavos": 200000
+    },
+    {
+      "tipo": "variable",
+      "id": "entretenimiento",
+      "nombre": "Entretenimiento",
+      "emoji": "🎬",
+      "activa": true,
+      "esNecesaria": false,
+      "presupuestoMensualCentavos": 150000
+    }
+  ],
+  "movimientos": [
+    { "clientId": "super-2026-03-a", "fecha": "2026-03-18T00:00:00.000", "cicloId": "2026-03", "periodoNatural": "2026-03", "montoCentavos": 45000, "categoriaId": "super", "medio": "tarjeta", "descripcion": "Súper", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "super-2026-03-b", "fecha": "2026-03-20T00:00:00.000", "cicloId": "2026-03", "periodoNatural": "2026-03", "montoCentavos": 32050, "categoriaId": "super", "medio": "tarjeta", "descripcion": "Súper", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "super-2026-03-c", "fecha": "2026-03-23T00:00:00.000", "cicloId": "2026-03", "periodoNatural": "2026-03", "montoCentavos": 61025, "categoriaId": "super", "medio": "efectivo", "descripcion": "Súper", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "transporte-2026-03", "fecha": "2026-03-19T00:00:00.000", "cicloId": "2026-03", "periodoNatural": "2026-03", "montoCentavos": 15000, "categoriaId": "transporte", "medio": "tarjeta", "descripcion": "Transporte", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "entretenimiento-2026-03", "fecha": "2026-03-22T00:00:00.000", "cicloId": "2026-03", "periodoNatural": "2026-03", "montoCentavos": 20000, "categoriaId": "entretenimiento", "medio": "tarjeta", "descripcion": "Entretenimiento", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+
+    { "clientId": "super-2026-04-a", "fecha": "2026-04-18T00:00:00.000", "cicloId": "2026-04", "periodoNatural": "2026-04", "montoCentavos": 50000, "categoriaId": "super", "medio": "tarjeta", "descripcion": "Súper", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "super-2026-04-b", "fecha": "2026-04-21T00:00:00.000", "cicloId": "2026-04", "periodoNatural": "2026-04", "montoCentavos": 27575, "categoriaId": "super", "medio": "tarjeta", "descripcion": "Súper", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "super-2026-04-c", "fecha": "2026-04-25T00:00:00.000", "cicloId": "2026-04", "periodoNatural": "2026-04", "montoCentavos": 69000, "categoriaId": "super", "medio": "efectivo", "descripcion": "Súper", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "transporte-2026-04", "fecha": "2026-04-19T00:00:00.000", "cicloId": "2026-04", "periodoNatural": "2026-04", "montoCentavos": 16000, "categoriaId": "transporte", "medio": "tarjeta", "descripcion": "Transporte", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "entretenimiento-2026-04", "fecha": "2026-04-22T00:00:00.000", "cicloId": "2026-04", "periodoNatural": "2026-04", "montoCentavos": 18000, "categoriaId": "entretenimiento", "medio": "tarjeta", "descripcion": "Entretenimiento", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+
+    { "clientId": "super-2026-05-a", "fecha": "2026-05-18T00:00:00.000", "cicloId": "2026-05", "periodoNatural": "2026-05", "montoCentavos": 61010, "categoriaId": "super", "medio": "tarjeta", "descripcion": "Súper", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "super-2026-05-b", "fecha": "2026-05-21T00:00:00.000", "cicloId": "2026-05", "periodoNatural": "2026-05", "montoCentavos": 30000, "categoriaId": "super", "medio": "tarjeta", "descripcion": "Súper", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "super-2026-05-c", "fecha": "2026-05-24T00:00:00.000", "cicloId": "2026-05", "periodoNatural": "2026-05", "montoCentavos": 42040, "categoriaId": "super", "medio": "efectivo", "descripcion": "Súper", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "transporte-2026-05", "fecha": "2026-05-19T00:00:00.000", "cicloId": "2026-05", "periodoNatural": "2026-05", "montoCentavos": 14500, "categoriaId": "transporte", "medio": "tarjeta", "descripcion": "Transporte", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "entretenimiento-2026-05", "fecha": "2026-05-22T00:00:00.000", "cicloId": "2026-05", "periodoNatural": "2026-05", "montoCentavos": 21000, "categoriaId": "entretenimiento", "medio": "tarjeta", "descripcion": "Entretenimiento", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+
+    { "clientId": "super-2026-06-a", "fecha": "2026-06-18T00:00:00.000", "cicloId": "2026-06", "periodoNatural": "2026-06", "montoCentavos": 55000, "categoriaId": "super", "medio": "tarjeta", "descripcion": "Súper", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "super-2026-06-b", "fecha": "2026-06-21T00:00:00.000", "cicloId": "2026-06", "periodoNatural": "2026-06", "montoCentavos": 61000, "categoriaId": "super", "medio": "tarjeta", "descripcion": "Súper", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "super-2026-06-c", "fecha": "2026-06-24T00:00:00.000", "cicloId": "2026-06", "periodoNatural": "2026-06", "montoCentavos": 27530, "categoriaId": "super", "medio": "efectivo", "descripcion": "Súper", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "transporte-2026-06", "fecha": "2026-06-19T00:00:00.000", "cicloId": "2026-06", "periodoNatural": "2026-06", "montoCentavos": 15500, "categoriaId": "transporte", "medio": "tarjeta", "descripcion": "Transporte", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "entretenimiento-2026-06", "fecha": "2026-06-22T00:00:00.000", "cicloId": "2026-06", "periodoNatural": "2026-06", "montoCentavos": 19500, "categoriaId": "entretenimiento", "medio": "tarjeta", "descripcion": "Entretenimiento", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+
+    { "clientId": "renta-2026-07", "fecha": "2026-07-15T00:00:00.000", "cicloId": "2026-07", "periodoNatural": "2026-07", "montoCentavos": 500000, "categoriaId": "renta", "medio": "tarjeta", "descripcion": "Renta", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "servicios-2026-07-propuesto", "fecha": "2026-07-20T00:00:00.000", "cicloId": "2026-07", "periodoNatural": "2026-07", "montoCentavos": 85037, "categoriaId": "servicios", "medio": "tarjeta", "descripcion": "Luz y agua (recurrencia sugerida)", "estado": "propuesto", "origenCaptura": "recurrente", "clasificadoPorIA": false },
+    { "clientId": "super-2026-07-a", "fecha": "2026-07-16T00:00:00.000", "cicloId": "2026-07", "periodoNatural": "2026-07", "montoCentavos": 120000, "categoriaId": "super", "medio": "tarjeta", "descripcion": "Súper de quincena", "estado": "activo", "origenCaptura": "ticket", "clasificadoPorIA": true, "confianzaIA": 0.92 },
+    { "clientId": "super-2026-07-b", "fecha": "2026-07-17T00:00:00.000", "cicloId": "2026-07", "periodoNatural": "2026-07", "montoCentavos": 85550, "categoriaId": "super", "medio": "tarjeta", "descripcion": "Súper", "estado": "activo", "origenCaptura": "voz", "clasificadoPorIA": true, "confianzaIA": 0.81 },
+    { "clientId": "super-2026-07-c", "fecha": "2026-07-19T00:00:00.000", "cicloId": "2026-07", "periodoNatural": "2026-07", "montoCentavos": 65099, "categoriaId": "super", "medio": "efectivo", "descripcion": "Súper", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "super-2026-07-anulado", "fecha": "2026-07-17T00:00:00.000", "cicloId": "2026-07", "periodoNatural": "2026-07", "montoCentavos": 99999, "categoriaId": "super", "medio": "tarjeta", "descripcion": "Súper (capturado por error)", "estado": "anulado", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "transporte-2026-07-a", "fecha": "2026-07-16T00:00:00.000", "cicloId": "2026-07", "periodoNatural": "2026-07", "montoCentavos": 8000, "categoriaId": "transporte", "medio": "efectivo", "descripcion": "Transporte", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "transporte-2026-07-b", "fecha": "2026-07-18T00:00:00.000", "cicloId": "2026-07", "periodoNatural": "2026-07", "montoCentavos": 7500, "categoriaId": "transporte", "medio": "efectivo", "descripcion": "Transporte", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false },
+    { "clientId": "entretenimiento-2026-07", "fecha": "2026-07-18T00:00:00.000", "cicloId": "2026-07", "periodoNatural": "2026-07", "montoCentavos": 9500, "categoriaId": "entretenimiento", "medio": "tarjeta", "descripcion": "Cine", "estado": "activo", "origenCaptura": "manual", "clasificadoPorIA": false }
+  ],
+  "ingresosExtra": [
+    { "id": "extra-apartado-2026-07", "cicloId": "2026-07", "etiqueta": "Bono", "montoCentavos": 300000, "fecha": "2026-07-16T00:00:00.000", "destino": "apartado", "estado": "activo" },
+    { "id": "extra-gasto-2026-07", "cicloId": "2026-07", "etiqueta": "Venta de garage", "montoCentavos": 85000, "fecha": "2026-07-17T00:00:00.000", "destino": "gasto", "estado": "activo" }
+  ]
+}

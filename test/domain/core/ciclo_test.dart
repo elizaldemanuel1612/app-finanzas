@@ -86,6 +86,34 @@ void main() {
     });
   });
 
+  group('Ciclo.diasParaTerminar', () {
+    final ciclo = const CalculadoraCiclo(12).calcularPara(DateTime(2026, 7, 15));
+    // ciclo: fechaInicio 2026-07-12, fechaFin 2026-08-11
+
+    test('hoy es fechaInicio: duración completa', () {
+      expect(ciclo.diasParaTerminar(DateTime(2026, 7, 12)), 30);
+    });
+
+    test('hoy es fechaFin exacto: 0', () {
+      expect(ciclo.diasParaTerminar(DateTime(2026, 8, 11)), 0);
+    });
+
+    test('hoy es un día antes de fechaFin: 1', () {
+      expect(ciclo.diasParaTerminar(DateTime(2026, 8, 10)), 1);
+    });
+
+    test('hoy es después de fechaFin: se clampea a 0', () {
+      expect(ciclo.diasParaTerminar(DateTime(2026, 8, 15)), 0);
+    });
+
+    test('compara por fecha, no por instante (hora ≠ medianoche)', () {
+      expect(
+        ciclo.diasParaTerminar(DateTime(2026, 8, 10, 23, 59)),
+        ciclo.diasParaTerminar(DateTime(2026, 8, 10)),
+      );
+    });
+  });
+
   group('Ciclo — cerrar y reabrir (regla no negociable #6)', () {
     final abierto = const CalculadoraCiclo(12).calcularPara(DateTime(2026, 7, 15));
 

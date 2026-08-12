@@ -1,0 +1,16 @@
+# `dart test` (sin argumentos) solo carga estas rutas — deja fuera
+# `test/ui/`, que usa `flutter_test` y por lo tanto necesita `flutter test`
+# (ver CLAUDE.md, sección "Comandos", y Fase 6 Bloque 4.6). Sin esto,
+# `dart test` intenta cargar los archivos de `test/ui/` y falla al
+# compilar, porque el binding de `flutter_test` no existe fuera de
+# `flutter test`.
+#
+# `flutter test test/ui` sigue funcionando igual: pasar una ruta explícita
+# en la línea de comandos tiene prioridad sobre `paths:` de este archivo.
+paths:
+  - test/data
+  - test/domain
+  - test/integracion
+  - test/paridad
+  - test/estilos_ui_test.dart
+  - test/ui_contraste_test.dart

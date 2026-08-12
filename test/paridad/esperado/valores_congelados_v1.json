@@ -1,0 +1,94 @@
+{
+  "_comentario": "Generado por test/paridad/herramientas/regenerar_esperado.dart contra semilla_paridad_v1.json. Verificado a mano al congelar (Fase 6, Bloque 1.5): totalGastadoCentavos (795649 = 500000+0+270649+15500+9500), listaDeGastos.conteo (7, excluye el anulado y el propuesto), y planDeAjuste.super.sugeridoPromedioPorDiaCentavos (79351 ÷ 26 = 3052). No editar a mano: regenerar y revisar el diff.",
+  "cicloEvaluado": "2026-07",
+  "cierreDelCiclo": {
+    "ingresoTotalCentavos": 2385000,
+    "metaApartadoCentavos": 1014963,
+    "totalGastadoCentavos": 795649,
+    "renglones": [
+      {
+        "categoriaId": "renta",
+        "realCentavos": 500000,
+        "presupuestoCentavos": 500000,
+        "conteo": 1
+      },
+      {
+        "categoriaId": "servicios",
+        "realCentavos": 0,
+        "presupuestoCentavos": 85037,
+        "conteo": 0
+      },
+      {
+        "categoriaId": "super",
+        "realCentavos": 270649,
+        "presupuestoCentavos": 350000,
+        "conteo": 3
+      },
+      {
+        "categoriaId": "transporte",
+        "realCentavos": 15500,
+        "presupuestoCentavos": 200000,
+        "conteo": 2
+      },
+      {
+        "categoriaId": "entretenimiento",
+        "realCentavos": 9500,
+        "presupuestoCentavos": 150000,
+        "conteo": 1
+      }
+    ]
+  },
+  "cierreEstimadoMpc": {
+    "porCategoria": {
+      "super": {
+        "p50": 385279,
+        "p10": 331340,
+        "p90": 439218,
+        "tipo": "esporadica",
+        "confianza": "alta",
+        "nivelMadurez": "conEstacionalidad"
+      },
+      "transporte": {
+        "p50": 27796,
+        "p10": 23904,
+        "p90": 31687,
+        "tipo": "esporadica",
+        "confianza": "alta",
+        "nivelMadurez": "conEstacionalidad"
+      },
+      "entretenimiento": {
+        "p50": 25427,
+        "p10": 21867,
+        "p90": 28987,
+        "tipo": "esporadica",
+        "confianza": "alta",
+        "nivelMadurez": "conEstacionalidad"
+      }
+    }
+  },
+  "planDeAjuste": {
+    "porCategoria": {
+      "super": {
+        "disponibleCentavos": 79351,
+        "sugeridoPromedioPorDiaCentavos": 3052,
+        "diasRestantes": 26,
+        "piezaCuantoQueda": "Te quedan $793.51 para 26 días",
+        "piezaContraCostumbre": "Normalmente gastas $317.94 por semana",
+        "piezaNumeroASeguir": "Apunta a $213.64 por semana · $30.52 al día"
+      },
+      "transporte": null,
+      "entretenimiento": null
+    }
+  },
+  "listaDeGastos": {
+    "conteo": 7,
+    "totalCentavos": 795649,
+    "totalFormateado": "$7,956.49"
+  },
+  "formatos": {
+    "123456": "$1,234.56",
+    "-99": "-$0.99",
+    "0": "$0.00",
+    "100000000": "$1,000,000.00"
+  }
+}
