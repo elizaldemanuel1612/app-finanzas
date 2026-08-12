@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de privacidad — App Finanzas</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #5b5b5b;
+    --border: #e2e2e2;
+    --accent: #0a6e4e;
+    --table-bg: #f7f7f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171a;
+      --fg: #f0f0f0;
+      --muted: #a8a8a8;
+      --border: #2c2f33;
+      --accent: #4ecb96;
+      --table-bg: #1d2023;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.65;
+  }
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+  nav a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin: 1rem 0 0.25rem;
+  }
+  .fecha {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.15rem;
+    margin-top: 2.25rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.35rem;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 0.6rem 0.7rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--table-bg);
+  }
+  a { color: var(--accent); }
+  footer {
+    margin-top: 3rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<main>
+  <nav><a href="../">&larr; App Finanzas</a></nav>
+  <h1>Política de privacidad — App Finanzas</h1>
+  <p class="fecha">Última actualización: 2026-08-07.</p>
+
+  <p>App Finanzas es una herramienta personal de registro y pronóstico de
+  gastos. Esta política describe, en términos llanos, qué datos usa la app,
+  dónde se guardan y qué control tienes sobre ellos.</p>
+
+  <h2>Qué NO hace la app</h2>
+  <ul>
+    <li><strong>No da asesoría financiera.</strong> Las cifras que muestra son estimaciones
+    basadas en lo que tú capturas, no recomendaciones de inversión ni de
+    crédito.</li>
+    <li><strong>No se conecta a bancos ni tarjetas.</strong> No hay integración bancaria de
+    ningún tipo.</li>
+    <li><strong>No maneja dinero real.</strong> Nunca mueve, transfiere ni retiene fondos.</li>
+  </ul>
+
+  <h2>Qué datos usa la app</h2>
+  <table>
+    <thead>
+      <tr><th>Dato</th><th>Para qué</th><th>Dónde se guarda</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Correo y UID de tu cuenta de Google</td>
+        <td>Identificarte al iniciar sesión</td>
+        <td>Servidores de Firebase Authentication (Google)</td>
+      </tr>
+      <tr>
+        <td>Movimientos, categorías, ciclos, ingresos extra que capturas</td>
+        <td>El propósito completo de la app: registrar y pronosticar tus gastos</td>
+        <td><strong>Solo en tu dispositivo</strong>, en archivos locales</td>
+      </tr>
+      <tr>
+        <td>Fotos de tickets que adjuntas</td>
+        <td>Referencia visual de un gasto</td>
+        <td><strong>Solo en tu dispositivo</strong>, en una carpeta propia de la app</td>
+      </tr>
+      <tr>
+        <td>Audio de dictado por voz</td>
+        <td>Convertir tu voz a texto al capturar un gasto</td>
+        <td>Procesado por el motor de reconocimiento de voz del sistema operativo (Android/iOS); <strong>la app no guarda el audio</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Hoy no existe sincronización en la nube de tus movimientos, categorías ni
+  fotos: viven únicamente en el almacenamiento local de tu dispositivo. Si
+  desinstalas la app o usas otro dispositivo, esos datos no te acompañan
+  automáticamente — para eso existe "Exportar mis gastos" en Ajustes.</p>
+
+  <h2>Cifrado</h2>
+  <ul>
+    <li><strong>En tránsito:</strong> la comunicación con Firebase Authentication usa HTTPS/TLS,
+    el estándar de la plataforma.</li>
+    <li><strong>En reposo:</strong> los datos locales quedan protegidos por el cifrado de
+    almacenamiento del sistema operativo de tu dispositivo (el mismo que
+    protege cualquier otro archivo de tus apps). App Finanzas no aplica un
+    cifrado adicional propio sobre esos archivos.</li>
+  </ul>
+
+  <h2>Tus controles</h2>
+  <ul>
+    <li><strong>Exportar:</strong> Ajustes → "Exportar mis gastos" genera un CSV con todo tu
+    historial que puedes compartir o guardar donde quieras.</li>
+    <li><strong>Cerrar sesión:</strong> tus datos locales permanecen en el dispositivo; puedes
+    volver a entrar con la misma cuenta de Google.</li>
+    <li><strong>Eliminar cuenta:</strong> Ajustes → "Eliminar cuenta" borra tu cuenta de
+    Google Sign-In <strong>y</strong> todos los datos locales (movimientos, categorías,
+    ciclos, ingresos extra, fotos de tickets) de ese dispositivo, de forma
+    irreversible. La app ofrece exportar tus datos antes de confirmar el
+    borrado.</li>
+  </ul>
+
+  <h2>Terceros involucrados</h2>
+  <ul>
+    <li><strong>Google (Firebase Authentication, Google Sign-In):</strong> procesa el inicio
+    de sesión. Consulta la <a href="https://policies.google.com/privacy">política de privacidad de
+    Google</a> para lo que Google hace con esos datos.</li>
+    <li><strong>Motor de reconocimiento de voz del sistema (Android/iOS):</strong> procesa el
+    audio de dictado según la política de privacidad de tu sistema
+    operativo. App Finanzas no envía ese audio a servidores propios.</li>
+  </ul>
+
+  <h2>Menores de edad</h2>
+  <p>App Finanzas no está dirigida a menores de edad y no recopila a sabiendas
+  información de menores.</p>
+
+  <h2>Cambios a esta política</h2>
+  <p>Si esta política cambia de forma relevante, la fecha de "Última
+  actualización" se actualiza y, cuando el cambio sea significativo, se
+  avisa dentro de la app.</p>
+
+  <h2>Contacto</h2>
+  <p>Para preguntas sobre esta política o para solicitar la eliminación de tus
+  datos, contacta a: <em>[correo de contacto pendiente de publicar]</em>.</p>
+
+  <footer><a href="../terminos/">Ver también: Términos y condiciones</a></footer>
+</main>
+</body>
+</html>
