@@ -7,10 +7,12 @@ import 'package:share_plus/share_plus.dart';
 import '../../data/firebase/servicio_auth.dart';
 import '../../data/repositorios/local/almacen_local.dart';
 import '../../domain/exportacion/exportar_csv.dart';
+import '../../domain/importacion/plantilla_csv.dart';
 import '../../domain/modelos/perfil.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../comun/documento_legal.dart';
 import '../comun/tema.dart';
+import '../importacion/pantalla_importar.dart';
 import '../meta/pantalla_meta_ahorro.dart';
 
 /// §8 del paquete: "Ajustes" es donde viven la exportación de datos, los
@@ -63,6 +65,32 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     final perfilActualizado = await widget.almacenLocal.perfil.obtener();
     if (!mounted || perfilActualizado == null) return;
     setState(() => _perfil = perfilActualizado);
+  }
+
+  Future<void> _irAImportar() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaImportar(
+          perfil: _perfil,
+          categoriaRepositorio: widget.almacenLocal.categorias,
+          movimientoRepositorio: widget.almacenLocal.movimientos,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _descargarPlantilla() async {
+    setState(() => _procesando = true);
+    try {
+      final temporal = await getTemporaryDirectory();
+      final archivo = File('${temporal.path}/plantilla_importacion.csv');
+      await archivo.writeAsString(generarPlantillaCsvDeEjemplo());
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(archivo.path)], subject: 'Plantilla de importación — App Finanzas'),
+      );
+    } finally {
+      if (mounted) setState(() => _procesando = false);
+    }
   }
 
   Future<void> _exportarCsv() async {
@@ -247,6 +275,18 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                   titulo: 'Exportar mis gastos',
                   subtitulo: 'Un archivo CSV con todo tu historial',
                   onTap: _exportarCsv,
+                ),
+                _Renglon(
+                  icono: Icons.file_upload_outlined,
+                  titulo: 'Importar gastos',
+                  subtitulo: 'Desde un CSV, en cualquier momento',
+                  onTap: _irAImportar,
+                ),
+                _Renglon(
+                  icono: Icons.description_outlined,
+                  titulo: 'Descargar plantilla de ejemplo',
+                  subtitulo: 'El formato que espera la importación',
+                  onTap: _descargarPlantilla,
                 ),
               ],
             ),

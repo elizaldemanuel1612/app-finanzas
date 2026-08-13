@@ -1,7 +1,10 @@
 import '../modelos/categoria.dart';
 import '../modelos/movimiento.dart';
 
-const _encabezados = [
+/// Pública para que `domain/importacion/plantilla_csv.dart` genere la
+/// plantilla de ejemplo con los mismos encabezados — lo que la app exporta
+/// se puede reimportar tal cual.
+const encabezadosExportacion = [
   'Fecha',
   'Categoría',
   'Descripción',
@@ -27,7 +30,7 @@ String exportarMovimientosCsv({
 }) {
   final categoriasPorId = {for (final c in categorias) c.id: c};
   final buffer = StringBuffer('﻿');
-  buffer.writeln(_encabezados.map(_celda).join(','));
+  buffer.writeln(encabezadosExportacion.map(_celda).join(','));
 
   for (final m in movimientos) {
     final categoria = categoriasPorId[m.categoriaId];
