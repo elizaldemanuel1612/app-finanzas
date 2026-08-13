@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/ciclo.dart';
 import '../../core/money.dart';
-import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
@@ -10,10 +9,9 @@ import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/ciclo_de_vida/evolucion_ciclos.dart';
 import '../../domain/ciclo_de_vida/historial_ciclos.dart';
 import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
-import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/estado_movimiento.dart';
 import '../../domain/modelos/perfil.dart';
-import '../../domain/presupuesto/reparto.dart';
+import '../../domain/presupuesto/meta_base.dart';
 import '../comun/formato_fecha.dart';
 import '../comun/grafica_evolucion.dart';
 import '../comun/tema.dart';
@@ -70,16 +68,10 @@ class _PantallaCiclosAnterioresState extends State<PantallaCiclosAnteriores> {
       cicloActualId: widget.cicloActual.id,
     );
 
-    // Mismos cinco insumos que arma `PantallaCierreCiclo` para el ciclo
-    // vigente (pantalla_cierre_ciclo.dart:94-105) — el ciclo en curso no
-    // tiene snapshot todavía, así que se recalculan en vivo.
-    final reparto = calcularReparto(
-      ingresoDisponible: widget.perfil.ingresoBaseMensual,
-      fijas: categorias.whereType<CategoriaFija>().toList(),
-      variables: categorias.whereType<CategoriaVariable>().toList(),
-    );
-    final metaBase =
-        reparto is Exito<ResultadoReparto> ? reparto.valor.sinAsignar : const Dinero.cero();
+    // Mismos insumos que arma `PantallaCierreCiclo` para el ciclo vigente
+    // (pantalla_cierre_ciclo.dart) — el ciclo en curso no tiene snapshot
+    // todavía, así que se recalculan en vivo.
+    final metaBase = calcularMetaBase(perfil: widget.perfil, categorias: categorias);
     final ingresos = calcularIngresosDelCiclo(
       ingresoBase: widget.perfil.ingresoBaseMensual,
       cicloId: widget.cicloActual.id,

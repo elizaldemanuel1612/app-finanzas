@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/ciclo.dart';
-import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
@@ -10,11 +9,10 @@ import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/ciclo_de_vida/alcance.dart';
 import '../../domain/ciclo_de_vida/cierre_ciclo.dart';
 import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
-import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/ciclo_guardado.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/modelos/snapshot_ciclo.dart';
-import '../../domain/presupuesto/reparto.dart';
+import '../../domain/presupuesto/meta_base.dart';
 import '../../domain/rollups/estado_ritmo.dart';
 import '../comun/barra_ritmo.dart';
 import '../comun/formato_fecha.dart';
@@ -23,9 +21,10 @@ import '../comun/tema.dart';
 /// Cierre de ciclo (app-finanzas-fijos-cierre-v6.html §5): lo primero que
 /// se ve no es cuánto gastaste, es qué tanto lograste.
 ///
-/// `metaBase` sale de `ResultadoReparto.sinAsignar` — lo que queda del
-/// ingreso después de fijas y presupuesto variable, "lo que vas a poder
-/// invertir" del addendum-v3. El ingreso extra se suma vía
+/// `metaBase` sale de [calcularMetaBase]: la meta declarada en
+/// `Perfil.metaApartado` si existe, o `ResultadoReparto.sinAsignar` (lo que
+/// queda del ingreso después de fijas y presupuesto variable, "lo que vas a
+/// poder invertir" del addendum-v3) si no. El ingreso extra se suma vía
 /// `calcularIngresosDelCiclo`/`calcularMetaDelCiclo` (ingresos_ciclo.dart).
 ///
 /// **Importante:** la rama de ciclo ya cerrado (con snapshot) **no
@@ -101,13 +100,7 @@ class _PantallaCierreCicloState extends State<PantallaCierreCiclo> {
     final movimientos = await widget.movimientoRepositorio.listarPorCiclo(cicloVigente.id);
     final extras = await widget.ingresoExtraRepositorio.listarPorCiclo(cicloVigente.id);
 
-    final reparto = calcularReparto(
-      ingresoDisponible: widget.perfil.ingresoBaseMensual,
-      fijas: categorias.whereType<CategoriaFija>().toList(),
-      variables: categorias.whereType<CategoriaVariable>().toList(),
-    );
-    final metaBase =
-        reparto is Exito<ResultadoReparto> ? reparto.valor.sinAsignar : const Dinero.cero();
+    final metaBase = calcularMetaBase(perfil: widget.perfil, categorias: categorias);
     final ingresos = calcularIngresosDelCiclo(
       ingresoBase: widget.perfil.ingresoBaseMensual,
       cicloId: cicloVigente.id,

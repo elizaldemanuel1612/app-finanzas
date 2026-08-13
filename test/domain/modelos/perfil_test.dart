@@ -1,4 +1,5 @@
 import 'package:app_finanzas/core/money.dart';
+import 'package:app_finanzas/domain/modelos/meta_apartado.dart';
 import 'package:app_finanzas/domain/modelos/perfil.dart';
 import 'package:test/test.dart';
 
@@ -12,6 +13,10 @@ void main() {
     final p = _base();
     expect(p.moneda, 'MXN');
     expect(p.zonaHoraria, 'America/Mexico_City');
+  });
+
+  test('metaApartado es null por defecto (perfil viejo, meta derivada)', () {
+    expect(_base().metaApartado, isNull);
   });
 
   test('igualdad estructural', () {
@@ -41,9 +46,47 @@ void main() {
     expect(editado.diaCorte, _base().diaCorte);
   });
 
+  group('meta de apartado', () {
+    test('copyWith puede declarar una meta', () {
+      final editado = _base().copyWith(metaApartado: const MetaPorPorcentaje(30));
+      expect(editado.metaApartado, const MetaPorPorcentaje(30));
+    });
+
+    test('copyWith con quitarMeta regresa al modo derivado aunque no se pase metaApartado', () {
+      final conMeta = _base().copyWith(metaApartado: const MetaPorPorcentaje(30));
+      final sinMeta = conMeta.copyWith(quitarMeta: true);
+      expect(sinMeta.metaApartado, isNull);
+    });
+
+    test('copyWith sin quitarMeta ni metaApartado conserva la meta existente', () {
+      final conMeta = _base().copyWith(metaApartado: const MetaPorPorcentaje(30));
+      expect(conMeta.copyWith(diaCorte: 5).metaApartado, const MetaPorPorcentaje(30));
+    });
+
+    test('quitarMeta gana aunque también se pase metaApartado por accidente', () {
+      final conMeta = _base().copyWith(metaApartado: const MetaPorPorcentaje(30));
+      final resultado = conMeta.copyWith(metaApartado: const MetaPorPorcentaje(50), quitarMeta: true);
+      expect(resultado.metaApartado, isNull);
+    });
+
+    test('la meta entra a la igualdad estructural', () {
+      final a = _base().copyWith(metaApartado: const MetaPorPorcentaje(30));
+      final b = _base().copyWith(metaApartado: const MetaPorPorcentaje(30));
+      final c = _base().copyWith(metaApartado: const MetaPorPorcentaje(40));
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+      expect(a == c, isFalse);
+    });
+  });
+
   group('JSON', () {
     test('viaje redondo exacto', () {
       final original = _base();
+      expect(Perfil.fromJson(original.toJson()), original);
+    });
+
+    test('viaje redondo exacto con meta declarada', () {
+      final original = _base().copyWith(metaApartado: const MetaPorPorcentaje(30));
       expect(Perfil.fromJson(original.toJson()), original);
     });
 
@@ -54,6 +97,16 @@ void main() {
       });
       expect(p.moneda, 'MXN');
       expect(p.zonaHoraria, 'America/Mexico_City');
+    });
+
+    test('fromJson de un perfil viejo sin metaApartado sigue abriendo con meta derivada', () {
+      final p = Perfil.fromJson({
+        'diaCorte': 12,
+        'ingresoBaseMensualCentavos': 8700000,
+        'moneda': 'MXN',
+        'zonaHoraria': 'America/Mexico_City',
+      });
+      expect(p.metaApartado, isNull);
     });
   });
 }

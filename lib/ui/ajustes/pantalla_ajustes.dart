@@ -7,18 +7,23 @@ import 'package:share_plus/share_plus.dart';
 import '../../data/firebase/servicio_auth.dart';
 import '../../data/repositorios/local/almacen_local.dart';
 import '../../domain/exportacion/exportar_csv.dart';
+import '../../domain/modelos/perfil.dart';
+import '../categorias/pantalla_categorias.dart';
 import '../comun/documento_legal.dart';
 import '../comun/tema.dart';
+import '../meta/pantalla_meta_ahorro.dart';
 
 /// §8 del paquete: "Ajustes" es donde viven la exportación de datos, los
 /// avisos legales y la eliminación de cuenta que ambas tiendas exigen para
 /// una app que maneja datos personales (Fase 6, Bloque 2).
 class PantallaAjustes extends StatefulWidget {
+  final Perfil perfil;
   final ServicioAuth servicioAuth;
   final AlmacenLocal almacenLocal;
 
   const PantallaAjustes({
     super.key,
+    required this.perfil,
     required this.servicioAuth,
     required this.almacenLocal,
   });
@@ -29,6 +34,36 @@ class PantallaAjustes extends StatefulWidget {
 
 class _PantallaAjustesState extends State<PantallaAjustes> {
   bool _procesando = false;
+  late Perfil _perfil = widget.perfil;
+
+  Future<void> _irACategorias() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaCategorias(
+          categoriaRepositorio: widget.almacenLocal.categorias,
+          movimientoRepositorio: widget.almacenLocal.movimientos,
+          reglasAprendidasRepositorio: widget.almacenLocal.reglasAprendidas,
+          cicloRepositorio: widget.almacenLocal.ciclos,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _irAMetaAhorro() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaMetaAhorro(
+          perfil: _perfil,
+          categoriaRepositorio: widget.almacenLocal.categorias,
+          perfilRepositorio: widget.almacenLocal.perfil,
+          onIrACategorias: _irACategorias,
+        ),
+      ),
+    );
+    final perfilActualizado = await widget.almacenLocal.perfil.obtener();
+    if (!mounted || perfilActualizado == null) return;
+    setState(() => _perfil = perfilActualizado);
+  }
 
   Future<void> _exportarCsv() async {
     setState(() => _procesando = true);
@@ -188,6 +223,20 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
             _Seccion(
               titulo: 'Cuenta',
               children: [_Renglon(icono: Icons.person_outline, titulo: correo)],
+            ),
+            const SizedBox(height: 20),
+            _Seccion(
+              titulo: 'Tu plan',
+              children: [
+                _Renglon(
+                  icono: Icons.savings_outlined,
+                  titulo: 'Meta de apartado',
+                  subtitulo: _perfil.metaApartado == null
+                      ? 'Hoy: lo que sobre de tus presupuestos'
+                      : 'Editar cuánto quieres apartar cada ciclo',
+                  onTap: _irAMetaAhorro,
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             _Seccion(

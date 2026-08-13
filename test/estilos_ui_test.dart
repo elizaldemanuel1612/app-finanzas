@@ -34,6 +34,7 @@ const _maximoPorArchivo = {
   'lib/ui/comun/tema.dart': 8,
   'lib/ui/gastos/pantalla_gastos.dart': 2,
   'lib/ui/inicio/pantalla_inicio.dart': 4,
+  'lib/ui/meta/selector_meta.dart': 2,
 };
 
 void main() {

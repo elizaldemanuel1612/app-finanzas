@@ -5,11 +5,14 @@ import '../../core/money.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/perfil_repositorio.dart';
+import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
 import '../../domain/modelos/ingreso_extra.dart';
 import '../../domain/modelos/perfil.dart';
+import '../../domain/presupuesto/meta_base.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/formato_fecha.dart';
 import '../comun/tema.dart';
+import '../meta/pantalla_meta_ahorro.dart';
 import 'pantalla_registrar_ingreso_extra.dart';
 
 /// Ingresos del ciclo (app-finanzas-ingresos-ajustes-v11.html §1): el
@@ -39,6 +42,7 @@ class PantallaIngresosDelCiclo extends StatefulWidget {
 class _PantallaIngresosDelCicloState extends State<PantallaIngresosDelCiclo> {
   late Perfil _perfil = widget.perfil;
   List<IngresoExtra>? _extras;
+  Dinero? _metaDelCiclo;
 
   @override
   void initState() {
@@ -48,15 +52,39 @@ class _PantallaIngresosDelCicloState extends State<PantallaIngresosDelCiclo> {
 
   Future<void> _cargar() async {
     final todos = await widget.ingresoExtraRepositorio.listarPorCiclo(widget.ciclo.id);
+    final categorias = await widget.categoriaRepositorio.listarTodas();
     if (!mounted) return;
+    final metaBase = calcularMetaBase(perfil: _perfil, categorias: categorias);
+    final ingresosCiclo = calcularIngresosDelCiclo(
+      ingresoBase: _perfil.ingresoBaseMensual,
+      cicloId: widget.ciclo.id,
+      extras: todos,
+    );
     setState(() {
       _extras = todos.where((i) => i.estado == EstadoIngreso.activo).toList()
         ..sort((a, b) => a.fecha.compareTo(b.fecha));
+      _metaDelCiclo = calcularMetaDelCiclo(metaBase: metaBase, ingresos: ingresosCiclo);
     });
   }
 
   Dinero get _total =>
       _perfil.ingresoBaseMensual + Dinero.suma((_extras ?? const []).map((e) => e.monto));
+
+  Future<void> _irAMeta() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaMetaAhorro(
+          perfil: _perfil,
+          categoriaRepositorio: widget.categoriaRepositorio,
+          perfilRepositorio: widget.perfilRepositorio,
+        ),
+      ),
+    );
+    final perfilActualizado = await widget.perfilRepositorio.obtener();
+    if (!mounted) return;
+    if (perfilActualizado != null) setState(() => _perfil = perfilActualizado);
+    await _cargar();
+  }
 
   Future<void> _editarIngresoBase() async {
     final controlador = TextEditingController(
@@ -186,6 +214,18 @@ class _PantallaIngresosDelCicloState extends State<PantallaIngresosDelCiclo> {
                           const Divider(height: 24),
                           _FilaIngreso(icono: null, etiqueta: 'Total', monto: _total, negrita: true),
                         ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: _FilaIngreso(
+                        icono: '🎯',
+                        etiqueta: 'Meta de este ciclo',
+                        monto: _metaDelCiclo ?? const Dinero.cero(),
+                        onTap: _irAMeta,
                       ),
                     ),
                   ),

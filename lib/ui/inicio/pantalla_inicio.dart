@@ -11,10 +11,12 @@ import '../../data/repositorios/local/almacen_local.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../data/repositorios/perfil_repositorio.dart';
 import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
+import '../../domain/ciclo_de_vida/alcance.dart';
 import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
+import '../../domain/presupuesto/meta_base.dart';
 import '../../domain/rollups/calcular_rollups.dart';
 import '../../domain/rollups/estado_ritmo.dart';
 import '../../domain/rollups/rollup.dart';
@@ -29,6 +31,7 @@ import '../comun/tarjeta_resumen_ciclo.dart';
 import '../comun/tema.dart';
 import '../gastos/pantalla_gastos.dart';
 import '../ingresos/pantalla_ingresos_del_ciclo.dart';
+import '../meta/pantalla_meta_ahorro.dart';
 
 /// app-finanzas-mockup-v2.html §1, con rollups precalculados (Fase 2) y la
 /// marca de ritmo en su versión simple — el motor de pronóstico completo
@@ -136,6 +139,16 @@ class _PantallaInicioState extends State<PantallaInicio> {
     );
     final disponibleParaInvertir = ingresos.total - totalGastado;
 
+    final metaBase = calcularMetaBase(perfil: _perfil, categorias: categorias);
+    final metaDelCiclo = calcularMetaDelCiclo(metaBase: metaBase, ingresos: ingresos);
+    final metricasMeta = calcularMetricasApartado(
+      ingresoTotal: ingresos.total,
+      totalGastado: totalGastado,
+      meta: metaDelCiclo,
+      extraAApartado: ingresos.extraAApartado,
+      extraAGasto: ingresos.extraAGasto,
+    );
+
     return _DatosInicio(
       categorias: categorias,
       rollupPorCategoria: rollupPorCategoria,
@@ -145,6 +158,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
       ingresos: ingresos,
       disponibleParaInvertir: disponibleParaInvertir,
       deltaPorCategoria: deltaPorCategoria,
+      metaDelCiclo: metaDelCiclo,
+      metricasMeta: metricasMeta,
     );
   }
 
@@ -235,15 +250,37 @@ class _PantallaInicioState extends State<PantallaInicio> {
     await _cargar();
   }
 
-  void _irAAjustes() {
-    Navigator.of(context).push(
+  Future<void> _irAAjustes() async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PantallaAjustes(
+          perfil: _perfil,
           servicioAuth: widget.servicioAuth,
           almacenLocal: widget.almacenLocal,
         ),
       ),
     );
+    final perfilActualizado = await widget.perfilRepositorio.obtener();
+    if (!mounted) return;
+    if (perfilActualizado != null) setState(() => _perfil = perfilActualizado);
+    await _cargar();
+  }
+
+  Future<void> _irAMeta() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaMetaAhorro(
+          perfil: _perfil,
+          categoriaRepositorio: widget.categoriaRepositorio,
+          perfilRepositorio: widget.perfilRepositorio,
+          onIrACategorias: _irACategorias,
+        ),
+      ),
+    );
+    final perfilActualizado = await widget.perfilRepositorio.obtener();
+    if (!mounted) return;
+    if (perfilActualizado != null) setState(() => _perfil = perfilActualizado);
+    await _cargar();
   }
 
   void _irADetalle(Categoria categoria) {
@@ -342,6 +379,11 @@ class _PantallaInicioState extends State<PantallaInicio> {
           totalGastado: datos.totalGastado,
           disponibleParaInvertir: datos.disponibleParaInvertir,
           onTapIngreso: _irAIngresos,
+        ),
+        _TarjetaMeta(
+          meta: datos.metaDelCiclo,
+          metricas: datos.metricasMeta,
+          onTap: _irAMeta,
         ),
         Card(
           margin: const EdgeInsets.only(top: 16),
@@ -502,6 +544,8 @@ class _DatosInicio {
   final IngresosDelCiclo ingresos;
   final Dinero disponibleParaInvertir;
   final Map<String, Dinero> deltaPorCategoria;
+  final Dinero metaDelCiclo;
+  final MetricasApartado metricasMeta;
 
   const _DatosInicio({
     required this.categorias,
@@ -512,5 +556,69 @@ class _DatosInicio {
     required this.ingresos,
     required this.disponibleParaInvertir,
     required this.deltaPorCategoria,
+    required this.metaDelCiclo,
+    required this.metricasMeta,
   });
+}
+
+/// Tarjeta propia (no un campo más dentro de [TarjetaResumenCiclo], para no
+/// mover el layout que `test/ui/escalado_test.dart` ya vigila) con la meta
+/// de apartado del ciclo y qué tanto se lleva — toca a [PantallaMetaAhorro].
+class _TarjetaMeta extends StatelessWidget {
+  final Dinero meta;
+  final MetricasApartado metricas;
+  final VoidCallback onTap;
+
+  const _TarjetaMeta({required this.meta, required this.metricas, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final alcance = metricas.alcance;
+    final nivel = calcularNivelAlcance(alcance);
+    final (colorTexto, colorFondo) = switch (nivel) {
+      null => (ColoresApp.violeta, ColoresApp.violetaSuave),
+      NivelAlcance.logrado => (ColoresApp.verdeTexto, ColoresApp.verdeSuave),
+      NivelAlcance.cerca => (ColoresApp.ambarTexto, ColoresApp.ambarSuave),
+      NivelAlcance.corto => (ColoresApp.coralTexto, ColoresApp.coralSuave),
+    };
+
+    return Card(
+      margin: const EdgeInsets.only(top: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Meta de este ciclo', style: TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Llevas ${metricas.apartado.formateado()} de ${meta.formateado()}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: colorFondo, borderRadius: BorderRadius.circular(99)),
+                child: Text(
+                  alcance == null ? '—' : '${(alcance * 100).round()}%',
+                  style: TextStyle(color: colorTexto, fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right, color: ColoresApp.medio),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
