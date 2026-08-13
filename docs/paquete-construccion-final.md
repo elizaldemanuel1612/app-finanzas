@@ -158,6 +158,10 @@ cuentas/{cuentaId}
 │                         queda pendiente de `metas/pctApartado`)
 ├── destinos/{dId}        nombre (default "Reserva"), acumuladoCentavos
 ├── metas/                pctApartado, montoMetaCentavos, historialPorCiclo
+│                         (implementado hoy dentro de `perfil.metaApartado`,
+│                         no como colección aparte — `domain/modelos/meta_apartado.dart`,
+│                         `null` = meta derivada de `ResultadoReparto.sinAsignar`;
+│                         `historialPorCiclo` queda pendiente)
 ├── reglasAprendidas/{r}  patron, categoriaId, confirmaciones, origen: usuario|ia
 ├── rollups/{...}         agregados precalculados por ciclo y categoría
 ├── pronosticos/{...}     salida del MPC (§5)

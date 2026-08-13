@@ -106,6 +106,17 @@ Mac, antes de la primera build de iOS):
    el punto 4, una vez que haya Firestore) queda satisfecho y este
    documento se actualiza para quitar la nota de sustitución.
 
+## Superficie nativa nueva: selector de archivos (`file_picker`)
+
+"Importar gastos" (Ajustes → "Tus datos") agrega `file_picker` como
+dependencia nativa nueva (Bloque C, ver "Estado actual" en `CLAUDE.md`).
+El selector de archivos del sistema operativo no es determinista ni
+automatizable con `dart test` ni `flutter test test/ui` — hay que
+verificarlo a mano en el pase manual de arriba: elegir un CSV real desde
+el picker nativo de Android (y, cuando exista Mac, iOS) y confirmar que la
+vista previa de `previsualizarImportacion` se ve bien antes de la primera
+publicación.
+
 ## Lo que este documento no cubre
 
 - Accesibilidad y escalado de texto en pantalla real (ver

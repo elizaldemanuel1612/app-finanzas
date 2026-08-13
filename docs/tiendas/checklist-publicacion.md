@@ -8,9 +8,18 @@ no se movieron.
 
 ## Bloqueante
 
-- [x] `test/paridad/paridad_3_2_test.dart` en verde (661 pruebas totales
+- [x] `test/paridad/paridad_3_2_test.dart` en verde (~800 pruebas totales
       con `dart test`, más `flutter test test/ui` en verde aparte — ver
       `docs/paridad-3-2-procedimiento.md`).
+- [ ] **`file_picker` es superficie nativa nueva** (selector de archivos de
+      "Importar gastos", Fase 6 posterior a este bloque): hay que volver a
+      correr el guion manual de `docs/paridad-3-2-procedimiento.md` en
+      dispositivo — el selector de archivos no está cubierto por
+      `test/paridad/` ni por `test/ui/` — y revisar si Play Data Safety /
+      App Privacy piden declarar acceso a archivos. Fijado en
+      `12.0.0-beta.7` (prerelease, ver "Estado actual" en `CLAUDE.md`):
+      confirmar que sigue siendo la versión correcta antes de publicar, por
+      si ya salió una estable compatible con `share_plus`.
 - [x] `INTERNET` en el manifest de release (antes solo estaba en
       `debug/`, fallo solo-en-release).
 - [x] `android:allowBackup="false"` + reglas de extracción de datos.
@@ -78,8 +87,9 @@ no se movieron.
       (Dismissible) da 2.62:1, por debajo incluso del umbral gráfico 3:1 —
       requeriría cambiar el color de marca, fuera de alcance de este
       bloque.
-- [x] `PopScope` de "¿Descartar lo capturado?" en las 6 pantallas de
-      captura/formularios (`lib/ui/comun/popscope_descartar.dart`).
+- [x] `PopScope` de "¿Descartar lo capturado?" en las pantallas de
+      captura/formularios, incluidas Importar y Meta de apartado
+      (`lib/ui/comun/popscope_descartar.dart`).
 - [x] Selección de locale de dictado (`es_MX` sobre `es-ES`,
       `lib/domain/voz/seleccion_locale.dart`) y mensaje accionable cuando
       el micrófono está denegado.
@@ -109,8 +119,11 @@ no se movieron.
 - Widgets de inicio y atajos de voz (diferidos por decisión).
 - Firestore y el punto 4 del §3.2 (diferidos con justificación escrita en
   `docs/paridad-3-2-procedimiento.md`).
-- UI de importación desde Excel (`lib/domain/migracion/` se conserva sin
-  consumidor, documentado en `CLAUDE.md`).
+- Migración inicial desde Excel con reconciliación de totales declarados
+  (`lib/domain/migracion/reconciliacion.dart` se conserva sin consumidor,
+  documentado en `CLAUDE.md`) — distinta de la importación de CSV "siempre
+  disponible" que sí se implementó (`lib/ui/importacion/`), que reusa
+  `movimiento_migrado.dart` pero no exige totales declarados que cuadren.
 - Todo el Bloque 6 (iOS): el árbol está preparado para recibir Firebase
   iOS y Apple Sign-In, pero nada de eso se implementó en esta sesión — no
   hay forma de verificarlo sin Mac de cualquier manera.
