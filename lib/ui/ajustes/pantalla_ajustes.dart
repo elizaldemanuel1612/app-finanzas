@@ -14,6 +14,7 @@ import '../comun/documento_legal.dart';
 import '../comun/tema.dart';
 import '../importacion/pantalla_importar.dart';
 import '../meta/pantalla_meta_ahorro.dart';
+import '../onboarding/pantalla_onboarding.dart';
 
 /// §8 del paquete: "Ajustes" es donde viven la exportación de datos, los
 /// avisos legales y la eliminación de cuenta que ambas tiendas exigen para
@@ -91,6 +92,20 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     } finally {
       if (mounted) setState(() => _procesando = false);
     }
+  }
+
+  void _irAComoFunciona() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaOnboarding(
+          perfilRepositorio: widget.almacenLocal.perfil,
+          categoriaRepositorio: widget.almacenLocal.categorias,
+          movimientoRepositorio: widget.almacenLocal.movimientos,
+          soloRepaso: true,
+          alTerminar: () => Navigator.of(context).pop(),
+        ),
+      ),
+    );
   }
 
   Future<void> _exportarCsv() async {
@@ -251,6 +266,18 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
             _Seccion(
               titulo: 'Cuenta',
               children: [_Renglon(icono: Icons.person_outline, titulo: correo)],
+            ),
+            const SizedBox(height: 20),
+            _Seccion(
+              titulo: 'Ayuda',
+              children: [
+                _Renglon(
+                  icono: Icons.help_outline,
+                  titulo: 'Cómo funciona la app',
+                  subtitulo: 'Un repaso rápido, sin volver a pedirte datos',
+                  onTap: _irAComoFunciona,
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             _Seccion(

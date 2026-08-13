@@ -62,3 +62,22 @@ Resultado<ResultadoReparto> calcularReparto({
         Dinero.suma(variables.map((v) => v.presupuestoMensualCentavos)),
   ));
 }
+
+/// Reparte [total] entre [pesos] proporcionalmente, en enteros — sin punto
+/// flotante en ningún punto (mismo criterio que `L.repartir` del prototipo
+/// interactivo, `app-finanzas-onboarding-INTERACTIVO.html`). Cada parte se
+/// redondea hacia abajo y el residuo de esos redondeos se le suma completo
+/// a la primera, para que la suma cuadre exacto contra [total] en vez de
+/// quedar unos centavos cortos.
+///
+/// Usado por el paso "¿En qué se te va?" del onboarding (Bloque C) para
+/// repartir el disponible entre las categorías sugeridas según su peso.
+List<Dinero> repartirPorPesos(Dinero total, List<int> pesos) {
+  if (pesos.isEmpty) return const [];
+  final sumaPesos = pesos.fold(0, (a, b) => a + b);
+  if (sumaPesos == 0) return List.filled(pesos.length, const Dinero.cero());
+
+  final partes = [for (final peso in pesos) Dinero(total.centavos * peso ~/ sumaPesos)];
+  final residuo = total - Dinero.suma(partes);
+  return [partes.first + residuo, ...partes.skip(1)];
+}

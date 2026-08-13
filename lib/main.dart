@@ -13,10 +13,10 @@ import 'data/firebase/servicio_auth.dart';
 import 'data/repositorios/local/almacen_local.dart';
 import 'domain/modelos/perfil.dart';
 import 'firebase_options.dart';
-import 'ui/comun/pantalla_configuracion_inicial.dart';
 import 'ui/comun/pantalla_login.dart';
 import 'ui/comun/tema.dart';
 import 'ui/inicio/pantalla_inicio.dart';
+import 'ui/onboarding/pantalla_onboarding.dart';
 
 const _licenciasFuentes = {
   'Outfit': 'assets/fuentes/OFL-Outfit.txt',
@@ -212,8 +212,10 @@ class _ContenidoAppState extends State<_ContenidoApp> {
         }
         final perfil = snapshot.data;
         if (perfil == null) {
-          return PantallaConfiguracionInicial(
+          return PantallaOnboarding(
             perfilRepositorio: _almacenLocal.perfil,
+            categoriaRepositorio: _almacenLocal.categorias,
+            movimientoRepositorio: _almacenLocal.movimientos,
             alTerminar: () => setState(() {
               _perfil = _almacenLocal.perfil.obtener();
             }),

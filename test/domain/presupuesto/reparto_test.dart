@@ -92,4 +92,40 @@ void main() {
     final texto = (r as Exito<ResultadoReparto>).valor.toString();
     expect(texto, contains('ResultadoReparto'));
   });
+
+  group('repartirPorPesos', () {
+    test('la suma de las partes cuadra exacta contra el total', () {
+      final partes = repartirPorPesos(const Dinero.pesos(10000), [30, 25, 20, 15, 10]);
+      expect(Dinero.suma(partes), const Dinero.pesos(10000));
+      expect(partes, hasLength(5));
+    });
+
+    test('reparte proporcional a los pesos', () {
+      final partes = repartirPorPesos(const Dinero.pesos(10000), [50, 50]);
+      expect(partes[0], const Dinero.pesos(5000));
+      expect(partes[1], const Dinero.pesos(5000));
+    });
+
+    test('el residuo del redondeo se le suma completo a la primera parte', () {
+      // 100 centavos entre pesos [1,1,1]: 33+33+33=99, sobra 1 centavo.
+      final partes = repartirPorPesos(const Dinero(100), [1, 1, 1]);
+      expect(partes[0], const Dinero(34));
+      expect(partes[1], const Dinero(33));
+      expect(partes[2], const Dinero(33));
+      expect(Dinero.suma(partes), const Dinero(100));
+    });
+
+    test('lista de pesos vacía regresa lista vacía', () {
+      expect(repartirPorPesos(const Dinero.pesos(1000), []), isEmpty);
+    });
+
+    test('pesos todos en cero regresa ceros sin tronar por división entre cero', () {
+      final partes = repartirPorPesos(const Dinero.pesos(1000), [0, 0]);
+      expect(partes, [const Dinero.cero(), const Dinero.cero()]);
+    });
+
+    test('un solo peso se lleva todo el total', () {
+      expect(repartirPorPesos(const Dinero.pesos(500), [10]), [const Dinero.pesos(500)]);
+    });
+  });
 }
