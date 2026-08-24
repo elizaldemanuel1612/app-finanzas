@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eliminar tu cuenta y tus datos — App Finanzas</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #5b5b5b;
+    --border: #e2e2e2;
+    --accent: #0a6e4e;
+    --table-bg: #f7f7f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171a;
+      --fg: #f0f0f0;
+      --muted: #a8a8a8;
+      --border: #2c2f33;
+      --accent: #4ecb96;
+      --table-bg: #1d2023;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.65;
+  }
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+  nav a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin: 1rem 0 0.25rem;
+  }
+  .fecha {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.15rem;
+    margin-top: 2.25rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.35rem;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 0.6rem 0.7rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--table-bg);
+  }
+  a { color: var(--accent); }
+  .pasos {
+    background: var(--table-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+  }
+  footer {
+    margin-top: 3rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<main>
+  <nav><a href="../">&larr; App Finanzas</a></nav>
+  <h1>Eliminar tu cuenta y tus datos</h1>
+  <p class="fecha">Última actualización: 2026-08-24.</p>
+
+  <p>App Finanzas guarda tu información en dos lugares distintos, y la
+  forma de eliminarla depende de cuál sea:</p>
+
+  <table>
+    <thead>
+      <tr><th>Dato</th><th>Dónde vive</th><th>Cómo se elimina</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Movimientos, categorías, ciclos, ingresos extra, fotos de tickets</td>
+        <td><strong>Solo en tu dispositivo</strong>, nunca en un servidor</td>
+        <td>Se borran al eliminar tu cuenta desde la app, o automáticamente si desinstalas la app</td>
+      </tr>
+      <tr>
+        <td>Tu cuenta de inicio de sesión (correo y UID de Google)</td>
+        <td>Firebase Authentication (Google)</td>
+        <td>Se borra al eliminar tu cuenta desde la app, o por solicitud manual (ver abajo)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Opción 1 — Desde la app (recomendada, inmediata)</h2>
+  <div class="pasos">
+    <p>Si todavía tienes la app instalada:</p>
+    <ol>
+      <li>Abre App Finanzas e inicia sesión.</li>
+      <li>Ve a <strong>Ajustes</strong>.</li>
+      <li>Si quieres conservar tu historial, primero usa <strong>"Exportar
+      mis gastos"</strong> para guardar una copia en CSV.</li>
+      <li>Toca <strong>"Eliminar cuenta"</strong> y confirma.</li>
+    </ol>
+    <p>Esto borra de inmediato tu cuenta de Google Sign-In <strong>y</strong>
+    todos los datos locales del dispositivo (movimientos, categorías, ciclos,
+    ingresos extra y fotos de tickets). La acción es irreversible.</p>
+  </div>
+
+  <h2>Opción 2 — Sin la app instalada, o si no puedes acceder</h2>
+  <p>Los movimientos, categorías y fotos nunca salen de tu dispositivo, así
+  que si ya desinstalaste la app, esos datos ya no existen en ningún
+  servidor de App Finanzas — no hay nada que borrar ahí. Lo único que
+  permanece en un servidor es tu cuenta de inicio de sesión (Firebase
+  Authentication).</p>
+  <p>Para solicitar que se elimine esa cuenta, escribe a
+  <em>[correo de contacto pendiente de publicar]</em> desde el mismo correo
+  con el que iniciabas sesión (o indicándolo en el mensaje), pidiendo la
+  eliminación de tu cuenta. Se procesa manualmente en un plazo máximo de 30
+  días, y se te confirma por correo cuando quede completada.</p>
+
+  <h2>Contacto</h2>
+  <p>Para dudas sobre este proceso: <em>[correo de contacto pendiente de
+  publicar]</em>. Ver también la <a href="../privacidad/">política de
+  privacidad</a>.</p>
+
+  <footer><a href="../">Volver a App Finanzas</a></footer>
+</main>
+</body>
+</html>
