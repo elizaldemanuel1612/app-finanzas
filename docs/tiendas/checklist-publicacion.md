@@ -32,24 +32,28 @@ no se movieron.
       Play (`ficha-play.md`).
 - [x] Formulario de Seguridad de datos / App Privacy redactado y
       coherente entre ambas tiendas (`seguridad-de-datos.md`).
-- [ ] **Política de privacidad y términos publicados en una URL pública.**
+- [x] **Política de privacidad y términos publicados en una URL pública.**
       Dentro de la app ya funciona: Ajustes → "Política de privacidad" /
       "Términos y condiciones" abre `lib/ui/comun/documento_legal.dart`,
       que renderiza `docs/legal/privacidad.md`/`terminos.md` (empaquetados
-      como asset) directamente en la app — ya no depende de una URL
-      externa para eso. Lo que **sigue pendiente** es la URL pública que
-      las tiendas piden aparte, en la ficha de la app (Play Console /
-      App Store Connect piden un link, no aceptan "está dentro de la
-      app"): este repo no tiene remoto de GitHub configurado todavía, así
-      que no hay GitHub Pages posible. Pendiente: crear el repo remoto,
-      habilitar Pages, y publicar ahí el mismo contenido de
-      `docs/legal/`.
-      También pendiente: el correo de contacto real en la sección
+      como asset) directamente en la app. Además, desde 2026-08-12 existe
+      el repo remoto `https://github.com/elizaldemanuel1612/app-finanzas`
+      con GitHub Pages activo en la rama huérfana `gh-pages` (aislada de
+      `docs/` interno a propósito): `https://elizaldemanuel1612.github.io/app-finanzas/privacidad/`
+      y `.../terminos/`, con el contenido transcrito a mano de
+      `docs/legal/*.md`. Si esos `.md` cambian, hay que editar a mano los
+      HTML de `gh-pages` y volver a hacer push — no hay sincronización
+      automática.
+      **Sigue pendiente:** el correo de contacto real en la sección
       "Contacto" de ambos documentos (`_[correo de contacto pendiente de
-      publicar]_`) — decisión del usuario aplazada a propósito.
+      publicar]_`) — decisión del usuario aplazada a propósito. Al
+      resolverlo hay que actualizar los cuatro lugares: los dos `.md` en
+      `master` y los dos HTML en `gh-pages`.
 - [ ] **URL web pública de solicitud de eliminación de cuenta** (Play la
-      exige aparte de la eliminación in-app) — depende del mismo
-      GitHub Pages de arriba.
+      exige aparte de la eliminación in-app). El `gh-pages` de arriba ya
+      existe y está activo — falta agregar ahí una página nueva (p. ej.
+      `eliminar-cuenta/index.html`) con el procedimiento; no requiere
+      crear infraestructura nueva, solo contenido y push a esa rama.
 - [ ] **Bundle IDs unificados** (Android `com.manuelelizalde.appfinanzas.app_finanzas`
       vs. el de iOS) — diferido a propósito hasta el mismo viaje a
       Firebase Console que registra la SHA-1 de firma (Bloque 5), porque
