@@ -76,7 +76,7 @@ Se ofrecen las 3 mayores. El usuario decide, candidata por candidata, cuánto mo
 Si una pantalla responde dos preguntas, se parte en dos.
 
 ### 3.2 Un solo elemento que hay que aprender
-**La marca vertical** = dónde deberías ir hoy. Barra pasada de la marca: vas rápido. Barra corta: vas bien. Se explica una vez en el onboarding y se usa en toda la app, idéntica.
+**La marca vertical** = dónde deberías ir hoy. Barra pasada de la marca: vas rápido. Barra corta: vas bien. Se explica una vez en el onboarding y se usa en toda la app, idéntica — y queda consultable en la guía (Ajustes → "Cómo funciona la app") para quien quiera repasarla.
 
 No hay porcentajes que interpretar, ni variaciones con signo, ni ciclos que entender. Esos datos siguen existiendo, pero en la vista de detalle, para quien los busque.
 

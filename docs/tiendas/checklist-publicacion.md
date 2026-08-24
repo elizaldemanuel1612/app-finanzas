@@ -105,12 +105,16 @@ no se movieron.
       texto verificado sin overflow a 1.0x/1.5x/2.0x en `PantallaInicio` y
       `PantallaGastos` (`test/ui/escalado_test.dart`); `clamp(maxScaleFactor:
       1.6)` en las 2 cifras héroe de 34px, sin fijar ningún `textScaler`
-      global; labels verificados en `test/ui/semantica_test.dart`.
-      **Gap conocido, no corregido:** el emoji 🎁 va concatenado dentro del
-      mismo `Text` que la etiqueta en `pantalla_ciclos_anteriores.dart` y
-      `pantalla_ingresos_del_ciclo.dart` — un lector de pantalla dice
-      "gift emoji Cerrado" en vez de solo "Cerrado". Restructurar esos dos
-      `Text` en un `Row` con el emoji excluido aparte queda pendiente.
+      global; labels verificados en `test/ui/semantica_test.dart`. La guía
+      por temas (`lib/ui/ayuda/`) y el onboarding rediseñado de 7 pasos
+      quedan cubiertos aparte, sin overflow a 1.0x/2.0x
+      (`test/ui/guia_test.dart`, `test/ui/onboarding_test.dart`).
+      **Gap corregido:** el emoji 🎁 ya no va concatenado dentro del mismo
+      `Text` que la etiqueta en `pantalla_ciclos_anteriores.dart` ni en
+      `_FilaIngreso` de `pantalla_ingresos_del_ciclo.dart` — ambos pasaron
+      a un `Row` con el emoji en su propio `Text` (`ExcludeSemantics`), así
+      que un lector de pantalla dice solo "Cerrado" o la etiqueta, sin el
+      nombre del emoji por delante.
 - [ ] Minify/R8 — no hecho en esta sesión (depende de que exista firma
       propia primero, Bloque 5).
 
@@ -144,7 +148,8 @@ no se movieron.
    y el directorio de fotos desaparecen (`AlmacenLocal.borrarTodo`).
 6. Recorrer la app con TalkBack activado y con el tamaño de fuente del
    sistema al máximo — las pruebas automáticas (`test/ui/semantica_test.dart`,
-   `test/ui/escalado_test.dart`) cubren `BarraRitmo`, `GraficaEvolucion` y
-   overflow a 2.0x, pero un recorrido real con TalkBack en dispositivo
-   sigue siendo el único modo de confirmar que se escucha bien de punta a
-   punta.
+   `test/ui/escalado_test.dart`, `test/ui/guia_test.dart`,
+   `test/ui/onboarding_test.dart`) cubren `BarraRitmo`, `GraficaEvolucion`,
+   los 10 temas de la guía, la bienvenida del onboarding y overflow a
+   2.0x, pero un recorrido real con TalkBack en dispositivo sigue siendo
+   el único modo de confirmar que se escucha bien de punta a punta.

@@ -288,6 +288,14 @@ class _TarjetaCiclo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cerrado = resumen.ciclo.estado == EstadoCiclo.cerrado;
+    // Reusada para el 🎁 y la etiqueta: así el emoji va en su propio Text
+    // (ExcludeSemantics) sin subir el cupo de tamaños sueltos auditado
+    // para este archivo en test/estilos_ui_test.dart.
+    final estiloEtiqueta = TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      color: cerrado ? ColoresApp.verdeTexto : ColoresApp.ambarTexto,
+    );
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
@@ -307,15 +315,15 @@ class _TarjetaCiclo extends StatelessWidget {
                 color: cerrado ? ColoresApp.verdeSuave : ColoresApp.ambarSuave,
                 borderRadius: BorderRadius.circular(99),
               ),
-              child: Text(
-                resumen.tuvoIngresoExtra
-                    ? '🎁 ${cerrado ? 'Cerrado' : 'Sin cerrar'}'
-                    : (cerrado ? 'Cerrado' : 'Sin cerrar'),
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: cerrado ? ColoresApp.verdeTexto : ColoresApp.ambarTexto,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (resumen.tuvoIngresoExtra) ...[
+                    ExcludeSemantics(child: Text('🎁', style: estiloEtiqueta)),
+                    const SizedBox(width: 4),
+                  ],
+                  Text(cerrado ? 'Cerrado' : 'Sin cerrar', style: estiloEtiqueta),
+                ],
               ),
             ),
           ],

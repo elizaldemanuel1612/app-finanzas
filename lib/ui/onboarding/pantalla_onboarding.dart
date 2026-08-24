@@ -11,7 +11,11 @@ import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/categorias.dart';
 import '../../domain/presupuesto/reparto.dart';
 import '../../domain/rollups/estado_ritmo.dart';
+import '../ayuda/contenido_guia.dart';
+import '../ayuda/modelo_guia.dart';
+import '../ayuda/pantalla_guia.dart';
 import '../comun/barra_ritmo.dart';
+import '../comun/nota_destacada.dart';
 import '../comun/tema.dart';
 import '../importacion/pantalla_importar.dart';
 import '../meta/selector_meta.dart';
@@ -52,21 +56,20 @@ const _categoriasSugeridas = [
 const _seleccionInicial = {'vivienda', 'super', 'salidas', 'auto', 'salud'};
 
 /// Inducción de primer uso (Bloque C): la promesa, el ciclo, el ingreso, la
-/// meta y las primeras categorías en 6 pasos de `PageView`, más la marca de
-/// ritmo explicada al final. Sustituye a `PantallaConfiguracionInicial`
-/// (que pedía dos datos y soltaba al usuario) como paso obligatorio para
-/// cuentas nuevas.
+/// meta y las primeras categorías, más la marca de ritmo explicada al
+/// final — un `PageView` de 7 pasos que cierra ofreciendo la guía por
+/// temas. Sustituye a `PantallaConfiguracionInicial` (que pedía dos datos
+/// y soltaba al usuario) como paso obligatorio para cuentas nuevas.
 ///
-/// Con [soloRepaso] en `true` (Ajustes → "Cómo funciona la app") solo se
-/// muestran los pasos explicativos (Bienvenida y la marca de ritmo), sin
-/// volver a pedir ningún dato — [alTerminar] simplemente cierra la
-/// pantalla en vez de continuar hacia el resto de la app.
+/// El último paso ofrece **Omitir** o **Ver la guía**: en ambos casos
+/// [alTerminar] ya se invoca — el perfil y las categorías quedaron
+/// guardados desde antes — así que "Omitir" salta solo la guía, nunca la
+/// configuración.
 class PantallaOnboarding extends StatefulWidget {
   final PerfilRepositorio perfilRepositorio;
   final CategoriaRepositorio categoriaRepositorio;
   final MovimientoRepositorio movimientoRepositorio;
   final VoidCallback alTerminar;
-  final bool soloRepaso;
 
   const PantallaOnboarding({
     super.key,
@@ -74,7 +77,6 @@ class PantallaOnboarding extends StatefulWidget {
     required this.categoriaRepositorio,
     required this.movimientoRepositorio,
     required this.alTerminar,
-    this.soloRepaso = false,
   });
 
   @override
@@ -82,29 +84,29 @@ class PantallaOnboarding extends StatefulWidget {
 }
 
 class _PantallaOnboardingState extends State<PantallaOnboarding> {
+  static const _totalPasos = 7;
+
   final _controlador = PageController();
   int _paso = 0;
 
-  // Paso 2 — ¿Cuándo empieza tu mes?
+  // Paso 1 — ¿Cuándo empieza tu mes?
   _TipoCiclo _tipoCiclo = _TipoCiclo.corte;
   int _diaCorte = 12;
 
-  // Paso 3 — ¿Cuánto entra al mes?
+  // Paso 2 — ¿Cuánto entra al mes?
   final _ingresoControlador = TextEditingController();
   String? _errorIngreso;
 
-  // Paso 4 — ¿Cuánto quieres apartar?
+  // Paso 3 — ¿Cuánto quieres apartar?
   MetaApartado? _meta = const MetaPorPorcentaje(10);
 
-  // Paso 5 — ¿En qué se te va?
+  // Paso 4 — ¿En qué se te va?
   final Set<String> _seleccionadas = {..._seleccionInicial};
   final Set<String> _marcadasComoFijas =
       {for (final c in _categoriasSugeridas) if (c.fijaSugerida) c.id};
 
   bool _guardando = false;
   Perfil? _perfilGuardado;
-
-  int get _totalPasos => widget.soloRepaso ? 2 : 6;
 
   @override
   void dispose() {
@@ -116,16 +118,6 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
   Dinero? get _ingreso => Dinero.intentarDesdeTexto(_ingresoControlador.text);
 
   Future<void> _avanzar() async {
-    if (widget.soloRepaso) {
-      if (_paso == 0) {
-        setState(() => _paso = 1);
-        await _controlador.animateToPage(1, duration: const Duration(milliseconds: 250), curve: Curves.ease);
-        return;
-      }
-      widget.alTerminar();
-      return;
-    }
-
     if (_paso == 2) {
       final ingreso = _ingreso;
       if (ingreso == null || !ingreso.esPositivo) {
@@ -137,9 +129,6 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
       await _guardarPerfil();
     } else if (_paso == 4) {
       await _guardarCategoriasSeleccionadas();
-    } else if (_paso == 5) {
-      widget.alTerminar();
-      return;
     }
 
     if (!mounted) return;
@@ -149,9 +138,32 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
 
   Future<void> _retroceder() async {
     if (_paso == 0) return;
-    final destino = widget.soloRepaso ? 0 : _paso - 1;
-    setState(() => _paso = destino);
-    await _controlador.animateToPage(destino, duration: const Duration(milliseconds: 250), curve: Curves.ease);
+    setState(() => _paso -= 1);
+    await _controlador.animateToPage(_paso, duration: const Duration(milliseconds: 250), curve: Curves.ease);
+  }
+
+  /// "Omitir" salta solo la guía: el perfil se guardó al llegar al paso 4
+  /// y las categorías al llegar al paso 5, así que [alTerminar] cierra la
+  /// inducción con la configuración ya lista.
+  Future<void> _omitirGuia() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Cuando quieras, la guía está en Ajustes → "Cómo funciona la app".'),
+        duration: Duration(seconds: 6),
+      ),
+    );
+    widget.alTerminar();
+  }
+
+  Future<void> _verGuia() async {
+    // Capturado ANTES de alTerminar(): esa llamada hace setState en
+    // _ContenidoAppState (main.dart) y desmonta esta pantalla, así que
+    // `context` deja de servir. El NavigatorState es el de MaterialApp y
+    // sigue vivo — empujar después deja PantallaInicio abajo y la guía
+    // encima, que es lo que queremos: al cerrar la guía, cae en Inicio.
+    final navegador = Navigator.of(context);
+    widget.alTerminar();
+    await navegador.push(MaterialPageRoute(builder: (_) => const PantallaGuia()));
   }
 
   int get _diaEfectivo => _tipoCiclo == _TipoCiclo.mesNatural ? 1 : _diaCorte;
@@ -257,16 +269,15 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
 
   @override
   Widget build(BuildContext context) {
-    final paginas = widget.soloRepaso
-        ? [_PaginaBienvenida(soloRepaso: true), _paginaRitmo()]
-        : [
-            _PaginaBienvenida(soloRepaso: false),
-            _paginaCiclo(),
-            _paginaIngreso(),
-            _paginaMeta(),
-            _paginaCategorias(),
-            _paginaRitmo(),
-          ];
+    final paginas = [
+      const _PaginaBienvenida(),
+      _paginaCiclo(),
+      _paginaIngreso(),
+      _paginaMeta(),
+      _paginaCategorias(),
+      _paginaRitmo(),
+      _paginaGuia(),
+    ];
 
     return Scaffold(
       body: SafeArea(
@@ -278,12 +289,13 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   for (var i = 0; i < _totalPasos; i++)
-                    Container(
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
                       margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: 8,
+                      width: i == _paso ? 20 : 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(99),
                         color: i == _paso ? ColoresApp.violeta : ColoresApp.linea,
                       ),
                     ),
@@ -301,12 +313,16 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               child: Row(
                 children: [
-                  if (_paso > 0)
+                  if (_paso == 6)
+                    TextButton(onPressed: _guardando ? null : _omitirGuia, child: const Text('Omitir'))
+                  else if (_paso > 0)
                     TextButton(onPressed: _guardando ? null : _retroceder, child: const Text('Atrás')),
                   const Spacer(),
-                  ElevatedButton(
-                    onPressed: _guardando ? null : _avanzar,
-                    child: Text(_textoBoton()),
+                  Flexible(
+                    child: ElevatedButton(
+                      onPressed: _guardando ? null : (_paso == 6 ? _verGuia : _avanzar),
+                      child: Text(_textoBoton(), overflow: TextOverflow.ellipsis),
+                    ),
                   ),
                 ],
               ),
@@ -319,9 +335,9 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
 
   String _textoBoton() {
     if (_guardando) return 'Guardando…';
-    if (widget.soloRepaso) return _paso == 0 ? 'Siguiente' : 'Cerrar';
     return switch (_paso) {
-      5 => 'Empezar',
+      0 => 'Empezar',
+      6 => 'Ver la guía',
       _ => 'Siguiente',
     };
   }
@@ -511,7 +527,7 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
             porcentajeUsado: 0.62,
             avanceCiclo: 0.5,
             estado: _estadoRitmoDeEjemplo,
-            descripcion: 'ejemplo',
+            descripcion: 'este ejemplo',
           ),
           const SizedBox(height: 16),
           const Text(
@@ -520,43 +536,174 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
             textAlign: TextAlign.center,
             style: TextStyle(color: ColoresApp.medio),
           ),
-          if (!widget.soloRepaso) ...[
-            const SizedBox(height: 24),
-            const Text('¿Traes historial?', style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            OutlinedButton(onPressed: _irAImportar, child: const Text('Importar mi historial')),
-          ],
+          const SizedBox(height: 24),
+          const Text('¿Traes historial?', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          OutlinedButton(onPressed: _irAImportar, child: const Text('Importar mi historial')),
+        ],
+      ),
+    );
+  }
+
+  Widget _paginaGuia() {
+    final muestraTemas = temasEnOrden.take(3).toList();
+    final restantes = temasEnOrden.length - muestraTemas.length;
+    return _Paso(
+      titulo: '¿Te enseño a usarla?',
+      subtitulo: 'Es un manual corto por temas. Léelo entero o solo lo que te sirva.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                children: [
+                  for (final tema in muestraTemas) _RenglonTemaMuestra(tema),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'y $restantes temas más',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const NotaDestacada(
+            etiqueta: 'SIEMPRE A LA MANO',
+            texto: 'Si la omites, la guía vive en Ajustes → "Cómo funciona la app".',
+          ),
         ],
       ),
     );
   }
 }
 
-// Estado neutral solo para dibujar el ejemplo de BarraRitmo del paso 6 —
-// no representa ninguna categoría real.
+// Estado neutral solo para dibujar el ejemplo de BarraRitmo del paso de la
+// marca de ritmo — no representa ninguna categoría real.
 const _estadoRitmoDeEjemplo = EstadoRitmo.justo;
 
 class _PaginaBienvenida extends StatelessWidget {
-  final bool soloRepaso;
-
-  const _PaginaBienvenida({required this.soloRepaso});
+  const _PaginaBienvenida();
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return _Paso(
-      titulo: 'Sabe si vas a pasarte antes de que pase',
-      subtitulo: soloRepaso ? 'Un repaso rápido de cómo funciona.' : 'Toma 2 minutos.',
-      child: const SizedBox.shrink(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: ColoresApp.tinta, borderRadius: BorderRadius.circular(18)),
+            child: Column(
+              children: [
+                Container(
+                  width: 96,
+                  height: 96,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.10),
+                  ),
+                  child: ExcludeSemantics(child: Text('💰', style: textTheme.displaySmall)),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  '¡Te ayudaré a lograr tu meta de ahorro!',
+                  textAlign: TextAlign.center,
+                  style: textTheme.headlineMedium?.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tú registras en segundos. Yo te aviso a tiempo, para que llegues '
+                  'a fin de ciclo con lo que querías apartar.',
+                  textAlign: TextAlign.center,
+                  style: textTheme.bodySmall?.copyWith(color: const Color(0xFFB4BACF)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: const [
+                  _PromesaOnboarding(emoji: '⚡', texto: 'Dos toques por gasto. Monto y categoría, y ya.'),
+                  SizedBox(height: 12),
+                  _PromesaOnboarding(
+                    emoji: '🎯',
+                    texto: 'Te aviso a tiempo. Antes de que te pases, no en el estado de cuenta.',
+                  ),
+                  SizedBox(height: 12),
+                  _PromesaOnboarding(emoji: '📱', texto: 'Todo vive en tu teléfono. No se conecta a tus bancos.'),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text('Toma 2 minutos.', textAlign: TextAlign.center, style: textTheme.labelSmall),
+        ],
+      ),
+    );
+  }
+}
+
+class _PromesaOnboarding extends StatelessWidget {
+  final String emoji;
+  final String texto;
+
+  const _PromesaOnboarding({required this.emoji, required this.texto});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ExcludeSemantics(child: Text(emoji, style: theme.titleMedium)),
+        const SizedBox(width: 10),
+        Expanded(child: Text(texto, style: theme.bodyMedium?.copyWith(color: ColoresApp.medio))),
+      ],
+    );
+  }
+}
+
+class _RenglonTemaMuestra extends StatelessWidget {
+  final TemaGuia tema;
+
+  const _RenglonTemaMuestra(this.tema);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    return ListTile(
+      leading: Container(
+        width: 40,
+        height: 40,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(color: ColoresApp.violetaSuave, shape: BoxShape.circle),
+        child: ExcludeSemantics(child: Text(tema.emoji, style: theme.titleMedium)),
+      ),
+      title: Text(tema.titulo, style: theme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+      subtitle: Text(tema.resumen),
     );
   }
 }
 
 class _Paso extends StatelessWidget {
-  final String titulo;
-  final String subtitulo;
+  final String? titulo;
+  final String? subtitulo;
   final Widget child;
 
-  const _Paso({required this.titulo, required this.subtitulo, required this.child});
+  const _Paso({this.titulo, this.subtitulo, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -566,17 +713,12 @@ class _Paso extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 12),
-          Text(
-            titulo,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitulo,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: ColoresApp.medio),
-          ),
+          if (titulo != null) ...[
+            Text(titulo!, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
+            const SizedBox(height: 8),
+          ],
+          if (subtitulo != null)
+            Text(subtitulo!, textAlign: TextAlign.center, style: const TextStyle(color: ColoresApp.medio)),
           const SizedBox(height: 28),
           child,
         ],

@@ -260,12 +260,22 @@ class _FilaIngreso extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final texto = Text(
-      '${icono != null ? '$icono ' : ''}$etiqueta',
-      style: TextStyle(
-        fontWeight: negrita ? FontWeight.w800 : FontWeight.w600,
-        color: negrita ? ColoresApp.tinta : ColoresApp.medio,
-      ),
+    final estiloEtiqueta = TextStyle(
+      fontWeight: negrita ? FontWeight.w800 : FontWeight.w600,
+      color: negrita ? ColoresApp.tinta : ColoresApp.medio,
+    );
+    // Icono y etiqueta en Text separados (el icono en ExcludeSemantics):
+    // concatenados en un solo Text, un lector de pantalla anunciaba
+    // "gift emoji Ingreso extra" en vez de solo la etiqueta.
+    final texto = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icono != null) ...[
+          ExcludeSemantics(child: Text(icono!, style: estiloEtiqueta)),
+          const SizedBox(width: 4),
+        ],
+        Flexible(child: Text(etiqueta, style: estiloEtiqueta)),
+      ],
     );
     final valor = Text(
       monto.formateado(),

@@ -37,7 +37,11 @@ final class CategoriaRepositorioMemoria implements CategoriaRepositorio {
   }
 
   @override
-  Future<void> guardar(Categoria categoria) => throw UnimplementedError();
+  Future<void> guardar(Categoria categoria) async {
+    items.removeWhere((c) => c.id == categoria.id);
+    items.add(categoria);
+  }
+
   @override
   Future<void> eliminar(String id) => throw UnimplementedError();
 }

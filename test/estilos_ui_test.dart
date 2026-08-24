@@ -19,7 +19,7 @@ import 'dart:io';
 import 'package:test/test.dart';
 
 const _maximoPorArchivo = {
-  'lib/ui/ajustes/pantalla_ajustes.dart': 2,
+  'lib/ui/ajustes/pantalla_ajustes.dart': 1,
   'lib/ui/captura/hoja_dictado.dart': 3,
   'lib/ui/captura/pantalla_captura.dart': 4,
   'lib/ui/captura/pantalla_dividir_ticket.dart': 2,

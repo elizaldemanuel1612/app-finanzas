@@ -9,12 +9,13 @@ import '../../data/repositorios/local/almacen_local.dart';
 import '../../domain/exportacion/exportar_csv.dart';
 import '../../domain/importacion/plantilla_csv.dart';
 import '../../domain/modelos/perfil.dart';
+import '../ayuda/pantalla_guia.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../comun/documento_legal.dart';
+import '../comun/seccion_lista.dart';
 import '../comun/tema.dart';
 import '../importacion/pantalla_importar.dart';
 import '../meta/pantalla_meta_ahorro.dart';
-import '../onboarding/pantalla_onboarding.dart';
 
 /// §8 del paquete: "Ajustes" es donde viven la exportación de datos, los
 /// avisos legales y la eliminación de cuenta que ambas tiendas exigen para
@@ -96,15 +97,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
 
   void _irAComoFunciona() {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PantallaOnboarding(
-          perfilRepositorio: widget.almacenLocal.perfil,
-          categoriaRepositorio: widget.almacenLocal.categorias,
-          movimientoRepositorio: widget.almacenLocal.movimientos,
-          soloRepaso: true,
-          alTerminar: () => Navigator.of(context).pop(),
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => const PantallaGuia()),
     );
   }
 
@@ -263,26 +256,26 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _Seccion(
+            SeccionLista(
               titulo: 'Cuenta',
-              children: [_Renglon(icono: Icons.person_outline, titulo: correo)],
+              hijos: [_Renglon(icono: Icons.person_outline, titulo: correo)],
             ),
             const SizedBox(height: 20),
-            _Seccion(
+            SeccionLista(
               titulo: 'Ayuda',
-              children: [
+              hijos: [
                 _Renglon(
                   icono: Icons.help_outline,
                   titulo: 'Cómo funciona la app',
-                  subtitulo: 'Un repaso rápido, sin volver a pedirte datos',
+                  subtitulo: 'Guía por temas: categorías, movimientos, registrar un gasto…',
                   onTap: _irAComoFunciona,
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            _Seccion(
+            SeccionLista(
               titulo: 'Tu plan',
-              children: [
+              hijos: [
                 _Renglon(
                   icono: Icons.savings_outlined,
                   titulo: 'Meta de apartado',
@@ -294,9 +287,9 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
               ],
             ),
             const SizedBox(height: 20),
-            _Seccion(
+            SeccionLista(
               titulo: 'Tus datos',
-              children: [
+              hijos: [
                 _Renglon(
                   icono: Icons.ios_share_outlined,
                   titulo: 'Exportar mis gastos',
@@ -318,9 +311,9 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
               ],
             ),
             const SizedBox(height: 20),
-            _Seccion(
+            SeccionLista(
               titulo: 'Legal',
-              children: [
+              hijos: [
                 _Renglon(
                   icono: Icons.privacy_tip_outlined,
                   titulo: 'Política de privacidad',
@@ -361,9 +354,9 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
               ],
             ),
             const SizedBox(height: 20),
-            _Seccion(
+            SeccionLista(
               titulo: 'Cuenta',
-              children: [
+              hijos: [
                 _Renglon(
                   icono: Icons.logout,
                   titulo: 'Cerrar sesión',
@@ -388,34 +381,6 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _Seccion extends StatelessWidget {
-  final String titulo;
-  final List<Widget> children;
-
-  const _Seccion({required this.titulo, required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8, left: 4),
-          child: Text(
-            titulo,
-            style: const TextStyle(
-              color: ColoresApp.medio,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
-            ),
-          ),
-        ),
-        Card(child: Padding(padding: const EdgeInsets.all(4), child: Column(children: children))),
-      ],
     );
   }
 }

@@ -8,6 +8,7 @@
 # `flutter test test/ui` sigue funcionando igual: pasar una ruta explícita
 # en la línea de comandos tiene prioridad sobre `paths:` de este archivo.
 paths:
+  - test/ayuda
   - test/data
   - test/domain
   - test/integracion
