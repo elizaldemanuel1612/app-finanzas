@@ -11,15 +11,22 @@ no se movieron.
 - [x] `test/paridad/paridad_3_2_test.dart` en verde (~800 pruebas totales
       con `dart test`, más `flutter test test/ui` en verde aparte — ver
       `docs/paridad-3-2-procedimiento.md`).
-- [ ] **`file_picker` es superficie nativa nueva** (selector de archivos de
-      "Importar gastos", Fase 6 posterior a este bloque): hay que volver a
-      correr el guion manual de `docs/paridad-3-2-procedimiento.md` en
-      dispositivo — el selector de archivos no está cubierto por
-      `test/paridad/` ni por `test/ui/` — y revisar si Play Data Safety /
-      App Privacy piden declarar acceso a archivos. Fijado en
-      `12.0.0-beta.7` (prerelease, ver "Estado actual" en `CLAUDE.md`):
-      confirmar que sigue siendo la versión correcta antes de publicar, por
-      si ya salió una estable compatible con `share_plus`.
+- [x] **`file_picker` es superficie nativa nueva** (selector de archivos de
+      "Importar gastos"): verificado a mano el 2026-08-24 en el emulador
+      `finanzas_pixel7` (Android 16, API 36, arranque en frío) — el
+      selector nativo de Android (SAF) abre, la selección de un CSV real
+      se refleja en pantalla, `previsualizarImportacion` muestra el conteo
+      de movimientos y las categorías nuevas detectadas, y el `PopScope`
+      "¿Descartar lo capturado?" dispara correctamente al salir sin
+      importar (capturas en `docs/tiendas/capturas/importar_vista_previa.png`).
+      **Sigue pendiente:** repetir en un dispositivo físico real (no
+      emulador) antes de publicar — el guion completo de
+      `docs/paridad-3-2-procedimiento.md`, incluido el segundo dispositivo
+      — y revisar si Play Data Safety / App Privacy piden declarar acceso
+      a archivos. Fijado en `12.0.0-beta.7` (prerelease, ver "Estado
+      actual" en `CLAUDE.md`): confirmar que sigue siendo la versión
+      correcta antes de publicar, por si ya salió una estable compatible
+      con `share_plus`.
 - [x] `INTERNET` en el manifest de release (antes solo estaba en
       `debug/`, fallo solo-en-release).
 - [x] `android:allowBackup="false"` + reglas de extracción de datos.
@@ -49,11 +56,16 @@ no se movieron.
       publicar]_`) — decisión del usuario aplazada a propósito. Al
       resolverlo hay que actualizar los cuatro lugares: los dos `.md` en
       `master` y los dos HTML en `gh-pages`.
-- [ ] **URL web pública de solicitud de eliminación de cuenta** (Play la
-      exige aparte de la eliminación in-app). El `gh-pages` de arriba ya
-      existe y está activo — falta agregar ahí una página nueva (p. ej.
-      `eliminar-cuenta/index.html`) con el procedimiento; no requiere
-      crear infraestructura nueva, solo contenido y push a esa rama.
+- [x] **URL web pública de solicitud de eliminación de cuenta** (Play la
+      exige aparte de la eliminación in-app):
+      `https://elizaldemanuel1612.github.io/app-finanzas/eliminar-cuenta/`,
+      publicada el 2026-08-24 en el mismo `gh-pages`, enlazada desde el
+      índice. Explica qué se borra de inmediato desde la app (cuenta +
+      todos los datos locales) y cómo solicitar la eliminación de la
+      cuenta de Firebase Authentication cuando ya no se tiene la app
+      instalada. **Sigue pendiente:** el mismo correo de contacto real que
+      falta en privacidad/términos (ver arriba) — hoy usa el mismo
+      marcador de posición.
 - [ ] **Bundle IDs unificados** (Android `com.manuelelizalde.appfinanzas.app_finanzas`
       vs. el de iOS) — diferido a propósito hasta el mismo viaje a
       Firebase Console que registra la SHA-1 de firma (Bloque 5), porque
@@ -64,18 +76,32 @@ no se movieron.
       la pista de pruebas internas — no hecho en esta sesión (requiere
       generar y resguardar un keystore, y acceso a Firebase/Play
       Console).
-- [ ] Ícono y splash propios (`flutter_launcher_icons`,
-      `flutter_native_splash`) — no hecho en esta sesión (requiere el
-      arte, `assets/icono/icono_1024.png`, que no existe todavía).
+- [~] Ícono y splash — `flutter_launcher_icons` y `flutter_native_splash`
+      ya están instalados, configurados en `pubspec.yaml` y corridos
+      (Android e iOS regenerados, sin canal alpha en iOS). Las imágenes
+      fuente (`assets/icono/icono_1024.png`,
+      `assets/icono/icono_foreground_1024.png`) son un **marcador de
+      posición** generado por programa (moneda "$" en violeta/verde de
+      marca, `lib/ui/comun/paleta.dart`), no arte final. **Sigue
+      pendiente:** reemplazar esas dos imágenes por el arte definitivo y
+      volver a correr `dart run flutter_launcher_icons` +
+      `dart run flutter_native_splash:create`.
 - [ ] Sign in with Apple presente en el código — no hecho en esta sesión
       (Bloque 6, iOS); de cualquier forma no verificable sin Mac.
 - [ ] Declaración de funciones financieras de Play: "Ninguna de estas"
       (documentado en `ficha-play.md`, pendiente de marcarla en Play
       Console al crear la ficha).
-- [ ] Capturas de pantalla, gráfico destacado e ícono de tienda — no
-      tomadas en esta sesión (requiere un dispositivo o emulador real).
-      Las fuentes ya están empaquetadas, así que ya no hay que esperar a
-      un pase de tipografía para tomarlas.
+- [~] Capturas de pantalla — 4 tomadas el 2026-08-24 en el emulador
+      (`docs/tiendas/capturas/`: inicio, ajustes, guía, vista previa de
+      importación). **Sigue pendiente:** `Gastos` y `Ciclos anteriores`
+      salieron vacíos (la cuenta usada no tenía movimientos capturados;
+      no se sembraron datos falsos a propósito); repetir esas dos con una
+      cuenta de prueba con historial. También falta recortarlas al
+      formato de marketing que piden las tiendas (no son las capturas
+      crudas del dispositivo) y el gráfico destacado (feature graphic) de
+      Play. El ícono de tienda en alta resolución ya puede salir de
+      `assets/icono/icono_1024.png` (ver arriba), aunque sigue siendo
+      placeholder.
 
 ## Deseable, alto valor
 
