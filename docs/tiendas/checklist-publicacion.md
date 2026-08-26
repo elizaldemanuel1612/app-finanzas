@@ -71,11 +71,36 @@ no se movieron.
       Firebase Console que registra la SHA-1 de firma (Bloque 5), porque
       cambiar `applicationId` invalida `google-services.json`. Ver
       "Estado actual" en `CLAUDE.md`.
-- [ ] Firma con keystore propia + **ambas** huellas SHA-1/SHA-256 en
-      Firebase (upload key y App signing key de Play), verificado desde
-      la pista de pruebas internas — no hecho en esta sesión (requiere
-      generar y resguardar un keystore, y acceso a Firebase/Play
-      Console).
+- [~] **Firma con keystore propia.** Generada el 2026-08-26: upload key en
+      `android/app/upload-keystore.jks` (RSA 2048, validez 27 años,
+      alias `upload`), referenciada desde `android/key.properties` —
+      **ninguno de los dos se versiona** (ya estaban en `.gitignore` desde
+      antes). `build.gradle.kts` carga `key.properties` y firma
+      `buildTypes.release` con esa key si el archivo existe, cayendo a la
+      firma de debug si no (para que `flutter run --release` siga
+      funcionando en otra máquina sin el keystore). De paso se activó
+      `isMinifyEnabled`/`isShrinkResources` (R8) con
+      `android/app/proguard-rules.pro`. Verificado con
+      `flutter build apk --release --no-tree-shake-icons`: compila,
+      queda firmado con la upload key (no la de debug — confirmado con
+      `apksigner verify --print-certs`), y la app arranca sin crashes en
+      el emulador con R8 activo. El login con Google falla ahí con
+      `UNREGISTERED_ON_API_CONSOLE` — **esperado**, porque esta huella
+      todavía no está en Firebase, no es una regresión de R8.
+      **Huellas para pegar en Firebase Console → Configuración del
+      proyecto → tus apps → agregar huella:**
+      SHA-1 `88:A9:6D:D5:10:C1:06:50:8B:56:A8:6B:39:4E:7E:35:BE:86:AB:4A`
+      · SHA-256 `2F:33:0E:A8:22:7E:94:40:37:93:33:F7:A8:78:3A:D2:BD:A3:60:38:8F:4E:ED:E5:6C:87:33:5C:76:61:9E:28`.
+      **Sigue pendiente (requiere Firebase/Play Console, fuera de
+      alcance sin esas cuentas):** pegar esas huellas en Firebase, subir
+      un `.aab` a la pista de pruebas internas de Play para que Play
+      genere la *App signing key* (huellas distintas a las de arriba,
+      hay que agregar esas también), y verificar el login **desde esa
+      instalación** — la App signing key re-firma el bundle. **Guardar
+      `upload-keystore.jks` y las contraseñas de `key.properties` en un
+      lugar seguro fuera de este repo (gestor de contraseñas): perder el
+      archivo después de la primera subida a Play significa no poder
+      actualizar la app nunca más bajo esa ficha.**
 - [~] Ícono y splash — `flutter_launcher_icons` y `flutter_native_splash`
       ya están instalados, configurados en `pubspec.yaml` y corridos
       (Android e iOS regenerados, sin canal alpha en iOS). Las imágenes
@@ -145,8 +170,9 @@ no se movieron.
       a un `Row` con el emoji en su propio `Text` (`ExcludeSemantics`), así
       que un lector de pantalla dice solo "Cerrado" o la etiqueta, sin el
       nombre del emoji por delante.
-- [ ] Minify/R8 — no hecho en esta sesión (depende de que exista firma
-      propia primero, Bloque 5).
+- [x] Minify/R8 — activado el 2026-08-26 junto con la firma propia (ver
+      arriba), `android/app/proguard-rules.pro`, verificado con
+      `flutter build apk --release`.
 
 ## Explícitamente fuera de esta fase
 
