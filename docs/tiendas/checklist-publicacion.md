@@ -85,22 +85,45 @@ no se movieron.
       queda firmado con la upload key (no la de debug — confirmado con
       `apksigner verify --print-certs`), y la app arranca sin crashes en
       el emulador con R8 activo. El login con Google falla ahí con
-      `UNREGISTERED_ON_API_CONSOLE` — **esperado**, porque esta huella
-      todavía no está en Firebase, no es una regresión de R8.
+      `UNREGISTERED_ON_API_CONSOLE`.
+      **Hallazgo (no causado por este cambio):** ese mismo error también
+      ocurre en el emulador con el build de **debug**, con la firma que
+      ya existía antes de esta sesión — confirmado por logcat
+      (`bvip: [8] Unknown error [status=UNREGISTERED_ON_API_CONSOLE]`) y
+      por `android/app/google-services.json`, cuyo arreglo `oauth_client`
+      está vacío **desde el commit inicial del proyecto**
+      (`git log --follow` no muestra ningún cambio a ese archivo). Es
+      decir: Firebase nunca ha tenido registrada ninguna huella SHA-1
+      para este paquete Android, ni siquiera la de debug — el login
+      nativo de Google en Android probablemente nunca ha funcionado de
+      punta a punta en un dispositivo/emulador fresco en este proyecto.
       **Huellas para pegar en Firebase Console → Configuración del
-      proyecto → tus apps → agregar huella:**
-      SHA-1 `88:A9:6D:D5:10:C1:06:50:8B:56:A8:6B:39:4E:7E:35:BE:86:AB:4A`
-      · SHA-256 `2F:33:0E:A8:22:7E:94:40:37:93:33:F7:A8:78:3A:D2:BD:A3:60:38:8F:4E:ED:E5:6C:87:33:5C:76:61:9E:28`.
+      proyecto → tus apps → app Android → agregar huella** (de una sola
+      vez, son dos pares):
+      - Debug (para poder probar login en desarrollo):
+        SHA-1 `59:82:96:B9:BF:B8:49:9B:9D:7E:B0:DB:B7:C2:5A:C4:E8:D3:FB:57`
+        · SHA-256 `31:09:71:5F:78:A6:31:6E:00:92:FA:7D:06:C9:4E:8D:C1:68:E4:66:56:46:6F:76:AD:56:1C:A6:3D:F2:7F:92`
+        (de `~/.android/debug.keystore`, alias `androiddebugkey` —
+        estándar de Gradle, distinto por máquina; si se prueba en otra
+        computadora hay que sacar y agregar también la huella de esa).
+      - Upload key (para los builds de release firmados hoy):
+        SHA-1 `88:A9:6D:D5:10:C1:06:50:8B:56:A8:6B:39:4E:7E:35:BE:86:AB:4A`
+        · SHA-256 `2F:33:0E:A8:22:7E:94:40:37:93:33:F7:A8:78:3A:D2:BD:A3:60:38:8F:4E:ED:E5:6C:87:33:5C:76:61:9E:28`.
+      Después de agregar ambas, descargar el `google-services.json`
+      actualizado desde Firebase Console y reemplazar
+      `android/app/google-services.json` (el de hoy tiene el arreglo
+      `oauth_client` vacío).
       **Sigue pendiente (requiere Firebase/Play Console, fuera de
-      alcance sin esas cuentas):** pegar esas huellas en Firebase, subir
-      un `.aab` a la pista de pruebas internas de Play para que Play
-      genere la *App signing key* (huellas distintas a las de arriba,
-      hay que agregar esas también), y verificar el login **desde esa
-      instalación** — la App signing key re-firma el bundle. **Guardar
-      `upload-keystore.jks` y las contraseñas de `key.properties` en un
-      lugar seguro fuera de este repo (gestor de contraseñas): perder el
-      archivo después de la primera subida a Play significa no poder
-      actualizar la app nunca más bajo esa ficha.**
+      alcance sin esas cuentas):** pegar las huellas de arriba en
+      Firebase y volver a probar el login en el emulador; subir un
+      `.aab` a la pista de pruebas internas de Play para que Play genere
+      la *App signing key* (huella distinta a las de arriba, agregar
+      también); y verificar el login **desde esa instalación** — la App
+      signing key re-firma el bundle. **Guardar `upload-keystore.jks` y
+      las contraseñas de `key.properties` en un lugar seguro fuera de
+      este repo (gestor de contraseñas): perder el archivo después de la
+      primera subida a Play significa no poder actualizar la app nunca
+      más bajo esa ficha.**
 - [~] Ícono y splash — `flutter_launcher_icons` y `flutter_native_splash`
       ya están instalados, configurados en `pubspec.yaml` y corridos
       (Android e iOS regenerados, sin canal alpha en iOS). Las imágenes
