@@ -12,7 +12,28 @@
           "package_name": "com.manuelelizalde.appfinanzas.app_finanzas"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "549374317068-8mg94oc02oe353u86tplchmpadkripsc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.manuelelizalde.appfinanzas.app_finanzas",
+            "certificate_hash": "598296b9bfb8499b9d7eb0dbb7c25ac4e8d3fb57"
+          }
+        },
+        {
+          "client_id": "549374317068-a3cee18517oa83st1ufrvac0kq3obfjb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.manuelelizalde.appfinanzas.app_finanzas",
+            "certificate_hash": "88a96dd510c106508b56a86b394e7e35be86ab4a"
+          }
+        },
+        {
+          "client_id": "549374317068-oaevgsoluq8k6fpm52h5amukdstccf0g.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD39Mb6LCA7Ltc-wq218W0n-BlSp-jPwJA"
@@ -20,7 +41,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "549374317068-oaevgsoluq8k6fpm52h5amukdstccf0g.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

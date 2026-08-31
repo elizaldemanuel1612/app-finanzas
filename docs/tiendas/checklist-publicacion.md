@@ -120,11 +120,20 @@ no se movieron.
       actualizado desde Firebase Console y reemplazar
       `android/app/google-services.json` (el de hoy tiene el arreglo
       `oauth_client` vacío).
+      **Confirmado el 2026-08-31: resuelto.** El usuario agregó las 4
+      huellas (2 SHA-1 + 2 SHA-256) en Firebase Console y descargó el
+      `google-services.json` nuevo — confirmado que trae
+      `android_info.certificate_hash` con ambas huellas de debug y de la
+      upload key. Reemplazado en el repo. Login probado en el emulador
+      (build debug): completa de punta a punta (`GetGoogleIdOperation`
+      exitoso, ya no aparece `UNREGISTERED_ON_API_CONSOLE`), llega al
+      onboarding de cuenta nueva. Nota aparte: en el primer intento salió
+      `unknownError` por falta de red del emulador (no relacionado a
+      Firebase) — se resolvió con un arranque en frío del emulador.
       **Sigue pendiente (requiere Firebase/Play Console, fuera de
-      alcance sin esas cuentas):** pegar las huellas de arriba en
-      Firebase y volver a probar el login en el emulador; subir un
-      `.aab` a la pista de pruebas internas de Play para que Play genere
-      la *App signing key* (huella distinta a las de arriba, agregar
+      alcance sin esas cuentas):** subir un `.aab` a la pista de pruebas
+      internas de Play para que Play genere la *App signing key* (huella
+      distinta a las de arriba, agregar
       también); y verificar el login **desde esa instalación** — la App
       signing key re-firma el bundle. **Guardar `upload-keystore.jks` y
       las contraseñas de `key.properties` en un lugar seguro fuera de
@@ -163,13 +172,15 @@ no se movieron.
 Varios puntos de arriba comparten el mismo viaje — hacerlos juntos, en
 este orden, para no ir y venir:
 
-1. Firebase Console → Configuración del proyecto → tus apps → app
+1. ~~Firebase Console → Configuración del proyecto → tus apps → app
    Android → agregar huella: pegar las dos huellas SHA-1/SHA-256 (debug
-   y upload key) del punto "Firma con keystore propia" de arriba.
-2. Descargar el `google-services.json` actualizado y reemplazar
-   `android/app/google-services.json`.
-3. Probar el login en el emulador/dispositivo para confirmar que ya no
-   sale `UNREGISTERED_ON_API_CONSOLE`.
+   y upload key) del punto "Firma con keystore propia" de arriba.~~
+   **Hecho el 2026-08-31.**
+2. ~~Descargar el `google-services.json` actualizado y reemplazar
+   `android/app/google-services.json`.~~ **Hecho el 2026-08-31.**
+3. ~~Probar el login en el emulador/dispositivo para confirmar que ya no
+   sale `UNREGISTERED_ON_API_CONSOLE`.~~ **Hecho el 2026-08-31: login
+   completo, llega al onboarding.**
 4. Cambiar `applicationId` de Android a `com.manuelelizalde.appfinanzas`
    (unificando con iOS) **solo después** de que el paso 2 ya haya
    actualizado `google-services.json` con ese `package_name` — si se
