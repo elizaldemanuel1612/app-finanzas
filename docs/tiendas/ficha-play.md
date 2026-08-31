@@ -40,7 +40,9 @@ QUÉ HACE
   para mover presupuesto, y tú decides.
 • Trazabilidad mes a mes: cuánto has apartado por ciclo, con tu promedio
   de alcance.
-• Exporta tu historial completo a CSV cuando quieras.
+• Exporta o importa tu historial completo en CSV cuando quieras.
+• Guía por temas dentro de la app, para consultar cómo funciona cada
+  parte cuando la necesites.
 
 LO QUE APP FINANZAS NO ES
 

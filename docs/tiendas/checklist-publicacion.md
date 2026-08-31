@@ -19,14 +19,20 @@ no se movieron.
       de movimientos y las categorías nuevas detectadas, y el `PopScope`
       "¿Descartar lo capturado?" dispara correctamente al salir sin
       importar (capturas en `docs/tiendas/capturas/importar_vista_previa.png`).
+      **Actualizado el 2026-08-31:** `file_picker` subió de `12.0.0-beta.7`
+      a la serie estable `^12.1.2` — `flutter pub get` resolvió sin
+      conflicto con `share_plus ^13.3.0` (el problema de rango de `win32`
+      que fijaba la versión en beta ya no aplica), y tanto
+      `flutter build apk --debug` como `--release` (con minify/R8)
+      compilan bien. Pendiente repetir la prueba interactiva del selector
+      en dispositivo/emulador (bloqueado hoy por el login, ver el punto de
+      firma/Firebase más abajo) para confirmar que el comportamiento en
+      pantalla no cambió con la versión estable.
       **Sigue pendiente:** repetir en un dispositivo físico real (no
       emulador) antes de publicar — el guion completo de
-      `docs/paridad-3-2-procedimiento.md`, incluido el segundo dispositivo
-      — y revisar si Play Data Safety / App Privacy piden declarar acceso
-      a archivos. Fijado en `12.0.0-beta.7` (prerelease, ver "Estado
-      actual" en `CLAUDE.md`): confirmar que sigue siendo la versión
-      correcta antes de publicar, por si ya salió una estable compatible
-      con `share_plus`.
+      `docs/paridad-3-2-procedimiento.md`, incluido el segundo dispositivo.
+      Play Data Safety / App Privacy: ver auditoría en
+      `docs/tiendas/seguridad-de-datos.md` (actualizada el 2026-08-31).
 - [x] `INTERNET` en el manifest de release (antes solo estaba en
       `debug/`, fallo solo-en-release).
 - [x] `android:allowBackup="false"` + reglas de extracción de datos.

@@ -15,6 +15,7 @@ Escrito para copiarse verbatim entre ambos formularios.
 | Categorías y presupuestos | Sí | No | Solo local | El propósito de la app |
 | Fotos de tickets | Sí | No | Solo local, `<documentos>/tickets/` (`AlmacenFotos`) | Referencia visual del gasto |
 | Audio de dictado por voz | Procesado, no almacenado | Sí — el motor de reconocimiento de voz del sistema operativo (Google/Apple), fuera del control de la app | No se guarda | Convertir voz a texto al capturar |
+| Archivo CSV elegido en "Importar gastos" (`file_picker`) | El archivo en sí: no. Su contenido, sí — pero se convierte en el mismo dato ya declarado arriba (movimientos financieros) | No | El archivo se lee una vez (`previsualizarImportacion`) y no se copia a ningún lado; solo persisten los movimientos ya parseados, en el mismo almacén local de siempre | Importar historial en lote en vez de captura manual una por una |
 | Identificadores de dispositivo, publicidad, ubicación, contactos, etc. | **No** | — | — | La app no los pide ni los usa |
 
 ## Respuestas sugeridas — Google Play (Seguridad de datos)
@@ -32,6 +33,15 @@ Escrito para copiarse verbatim entre ambos formularios.
 - **Audio:** procesado transitoriamente para dictado; **no se recolecta ni
   se almacena** por la app — declarar como "no recolectado", con nota de
   que el sistema operativo procesa el audio bajo su propia política.
+- **Archivos y documentos (CSV de "Importar gastos"):** interpretación de
+  esta auditoría (no es asesoría legal — confirmar contra la política
+  vigente de Play al llenar el formulario): **no** parece necesitar su
+  propia categoría "Files and docs" separada, porque la app no retiene ni
+  comparte el archivo — lo lee una vez, extrae los movimientos y descarta
+  el archivo; lo que persiste es exactamente el mismo dato ya declarado
+  como "Información financiera" arriba, solo que capturado en lote en vez
+  de uno por uno. Análogo al audio de dictado: el mecanismo de entrada
+  cambia, el dato resultante no.
 - **Cifrado en tránsito:** Sí (HTTPS/TLS, vía Firebase).
 - **Los usuarios pueden solicitar que se borren los datos:** Sí — dentro
   de la app (Ajustes → Eliminar cuenta) y por la URL web de solicitud de
@@ -61,7 +71,10 @@ Mismo inventario, mapeado a las categorías de Apple:
 
 Este inventario se generó leyendo directamente `lib/data/` (qué
 repositorios existen y qué guardan) y `lib/domain/voz/` (que el audio se
-transcribe con `speech_to_text` sin persistirlo). Si se agrega una
+transcribe con `speech_to_text` sin persistirlo). Revisado de nuevo el
+2026-08-31 tras agregar `file_picker`/importación de CSV
+(`lib/domain/importacion/`): no cambia el inventario de tipos de datos,
+solo agrega una fila explicando por qué (ver arriba). Si se agrega una
 integración nueva (por ejemplo, Firestore real, o un proveedor de IA en el
 Nivel 3 de la cascada de clasificación), **este documento y ambos
 formularios deben actualizarse antes de la siguiente publicación** — no
