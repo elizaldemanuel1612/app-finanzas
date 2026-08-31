@@ -76,7 +76,8 @@ no se movieron.
       vs. el de iOS) — diferido a propósito hasta el mismo viaje a
       Firebase Console que registra la SHA-1 de firma (Bloque 5), porque
       cambiar `applicationId` invalida `google-services.json`. Ver
-      "Estado actual" en `CLAUDE.md`.
+      "Estado actual" en `CLAUDE.md` y el orden de pasos en "Próxima
+      visita a Firebase/Play Console" más abajo.
 - [~] **Firma con keystore propia.** Generada el 2026-08-26: upload key en
       `android/app/upload-keystore.jks` (RSA 2048, validez 27 años,
       alias `upload`), referenciada desde `android/key.properties` —
@@ -156,6 +157,31 @@ no se movieron.
       Play. El ícono de tienda en alta resolución ya puede salir de
       `assets/icono/icono_1024.png` (ver arriba), aunque sigue siendo
       placeholder.
+
+## Próxima visita a Firebase/Play Console (Bloque 5)
+
+Varios puntos de arriba comparten el mismo viaje — hacerlos juntos, en
+este orden, para no ir y venir:
+
+1. Firebase Console → Configuración del proyecto → tus apps → app
+   Android → agregar huella: pegar las dos huellas SHA-1/SHA-256 (debug
+   y upload key) del punto "Firma con keystore propia" de arriba.
+2. Descargar el `google-services.json` actualizado y reemplazar
+   `android/app/google-services.json`.
+3. Probar el login en el emulador/dispositivo para confirmar que ya no
+   sale `UNREGISTERED_ON_API_CONSOLE`.
+4. Cambiar `applicationId` de Android a `com.manuelelizalde.appfinanzas`
+   (unificando con iOS) **solo después** de que el paso 2 ya haya
+   actualizado `google-services.json` con ese `package_name` — si se
+   cambia antes, el archivo viejo deja de coincidir y rompe Auth.
+5. `flutter build appbundle --release` y subir el `.aab` a la pista de
+   pruebas internas de Play — esto genera la *App signing key* de Play
+   (huella distinta a la upload key).
+6. Volver a Firebase Console y agregar también la huella de la App
+   signing key (paso 1, mismo lugar).
+7. Verificar el login **desde la instalación de la pista de pruebas**,
+   no desde el APK/`.aab` local — la App signing key re-firma el bundle
+   y cambia la SHA-1 con la que corre en producción.
 
 ## Deseable, alto valor
 
