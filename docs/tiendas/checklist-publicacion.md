@@ -183,10 +183,17 @@ este orden, para no ir y venir:
 3. ~~Probar el login en el emulador/dispositivo para confirmar que ya no
    sale `UNREGISTERED_ON_API_CONSOLE`.~~ **Hecho el 2026-08-31: login
    completo, llega al onboarding.**
-4. Cambiar `applicationId` de Android a `com.manuelelizalde.appfinanzas`
-   (unificando con iOS) **solo después** de que el paso 2 ya haya
-   actualizado `google-services.json` con ese `package_name` — si se
-   cambia antes, el archivo viejo deja de coincidir y rompe Auth.
+4. **Corrección al plan original (2026-08-31):** el paso 2 solo trae el
+   `package_name` viejo (`com.manuelelizalde.appfinanzas.app_finanzas`) —
+   Firebase no renombra una app Android existente, hay que **registrar
+   una app Android nueva** en el mismo proyecto con el paquete
+   `com.manuelelizalde.appfinanzas`, agregarle las mismas 4 huellas
+   (debug + upload key, ver arriba), y volver a descargar
+   `google-services.json` (debe traer las dos apps Android). Recién
+   entonces cambiar `applicationId` en `android/app/build.gradle.kts` —
+   si se cambia antes de que el archivo tenga ese `package_name`, el
+   plugin de Google Services falla el build al no encontrar una app
+   registrada con ese nombre.
 5. `flutter build appbundle --release` y subir el `.aab` a la pista de
    pruebas internas de Play — esto genera la *App signing key* de Play
    (huella distinta a la upload key).
