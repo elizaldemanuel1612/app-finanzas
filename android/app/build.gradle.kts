@@ -25,8 +25,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.manuelelizalde.appfinanzas.app_finanzas"
+        // Unificado con el bundle ID de iOS (Fase 6, Bloque 5) — el
+        // `namespace` de arriba se queda igual a propósito, es solo el
+        // paquete Kotlin interno y no afecta identidad de tienda/Firebase.
+        applicationId = "com.manuelelizalde.appfinanzas"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

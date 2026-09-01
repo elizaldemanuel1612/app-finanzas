@@ -72,12 +72,11 @@ no se movieron.
       instalada. **Sigue pendiente:** el mismo correo de contacto real que
       falta en privacidad/términos (ver arriba) — hoy usa el mismo
       marcador de posición.
-- [ ] **Bundle IDs unificados** (Android `com.manuelelizalde.appfinanzas.app_finanzas`
-      vs. el de iOS) — diferido a propósito hasta el mismo viaje a
-      Firebase Console que registra la SHA-1 de firma (Bloque 5), porque
-      cambiar `applicationId` invalida `google-services.json`. Ver
-      "Estado actual" en `CLAUDE.md` y el orden de pasos en "Próxima
-      visita a Firebase/Play Console" más abajo.
+- [~] **Bundle ID de Android unificado** a `com.manuelelizalde.appfinanzas`
+      — hecho el 2026-08-31, ver detalle y verificación en el paso 4 de
+      "Próxima visita a Firebase/Play Console" más abajo y en "Estado
+      actual" de `CLAUDE.md`. **Sigue pendiente:** el lado iOS sigue con
+      su propio identificador — unificarlo cuando exista Mac (Bloque 6).
 - [~] **Firma con keystore propia.** Generada el 2026-08-26: upload key en
       `android/app/upload-keystore.jks` (RSA 2048, validez 27 años,
       alias `upload`), referenciada desde `android/key.properties` —
@@ -183,17 +182,17 @@ este orden, para no ir y venir:
 3. ~~Probar el login en el emulador/dispositivo para confirmar que ya no
    sale `UNREGISTERED_ON_API_CONSOLE`.~~ **Hecho el 2026-08-31: login
    completo, llega al onboarding.**
-4. **Corrección al plan original (2026-08-31):** el paso 2 solo trae el
-   `package_name` viejo (`com.manuelelizalde.appfinanzas.app_finanzas`) —
-   Firebase no renombra una app Android existente, hay que **registrar
-   una app Android nueva** en el mismo proyecto con el paquete
-   `com.manuelelizalde.appfinanzas`, agregarle las mismas 4 huellas
-   (debug + upload key, ver arriba), y volver a descargar
-   `google-services.json` (debe traer las dos apps Android). Recién
-   entonces cambiar `applicationId` en `android/app/build.gradle.kts` —
-   si se cambia antes de que el archivo tenga ese `package_name`, el
-   plugin de Google Services falla el build al no encontrar una app
-   registrada con ese nombre.
+4. ~~Cambiar `applicationId` de Android a `com.manuelelizalde.appfinanzas`
+   (unificando con iOS).~~ **Hecho el 2026-08-31.** Requirió un paso
+   adicional no previsto en el plan original: Firebase no renombra una
+   app Android existente, así que primero se registró una app Android
+   **nueva** en el mismo proyecto con el paquete unificado, se le
+   agregaron las mismas 4 huellas (debug + upload key), y se descargó un
+   `google-services.json` con las dos apps Android. Con eso ya en el
+   repo, se cambió `applicationId` en `android/app/build.gradle.kts`
+   (el `namespace` se dejó igual a propósito). Verificado: build de
+   debug y de release (firmado + minify/R8) compilan, y el login con
+   Google completa de punta a punta en ambos.
 5. `flutter build appbundle --release` y subir el `.aab` a la pista de
    pruebas internas de Play — esto genera la *App signing key* de Play
    (huella distinta a la upload key).
