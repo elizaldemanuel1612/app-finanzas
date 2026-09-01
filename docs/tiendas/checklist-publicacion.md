@@ -155,17 +155,19 @@ no se movieron.
 - [ ] Declaración de funciones financieras de Play: "Ninguna de estas"
       (documentado en `ficha-play.md`, pendiente de marcarla en Play
       Console al crear la ficha).
-- [~] Capturas de pantalla — 4 tomadas el 2026-08-24 en el emulador
-      (`docs/tiendas/capturas/`: inicio, ajustes, guía, vista previa de
-      importación). **Sigue pendiente:** `Gastos` y `Ciclos anteriores`
-      salieron vacíos (la cuenta usada no tenía movimientos capturados;
-      no se sembraron datos falsos a propósito); repetir esas dos con una
-      cuenta de prueba con historial. También falta recortarlas al
-      formato de marketing que piden las tiendas (no son las capturas
-      crudas del dispositivo) y el gráfico destacado (feature graphic) de
-      Play. El ícono de tienda en alta resolución ya puede salir de
-      `assets/icono/icono_1024.png` (ver arriba), aunque sigue siendo
-      placeholder.
+- [~] Capturas de pantalla — 5 en `docs/tiendas/capturas/`: inicio y
+      gastos (actualizadas 2026-08-31, cuenta de prueba con 20
+      movimientos importados vía CSV — ver `capturas/README.md`),
+      ajustes, guía, vista previa de importación (2026-08-24).
+      **Sigue pendiente:** `Ciclos anteriores` sigue vacío — correcto
+      para una cuenta nueva con el primer ciclo todavía abierto, no
+      poblable sin una cuenta con meses reales de uso o sin manipular el
+      reloj (ninguna honesta para una captura de tienda). También falta
+      recortarlas al formato de marketing que piden las tiendas (no son
+      las capturas crudas del dispositivo) y el gráfico destacado
+      (feature graphic) de Play. El ícono de tienda en alta resolución ya
+      puede salir de `assets/icono/icono_1024.png` (ver arriba), aunque
+      sigue siendo placeholder.
 
 ## Próxima visita a Firebase/Play Console (Bloque 5)
 
