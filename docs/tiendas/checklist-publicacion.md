@@ -57,11 +57,10 @@ no se movieron.
       `docs/legal/*.md`. Si esos `.md` cambian, hay que editar a mano los
       HTML de `gh-pages` y volver a hacer push — no hay sincronización
       automática.
-      **Sigue pendiente:** el correo de contacto real en la sección
-      "Contacto" de ambos documentos (`_[correo de contacto pendiente de
-      publicar]_`) — decisión del usuario aplazada a propósito. Al
-      resolverlo hay que actualizar los cuatro lugares: los dos `.md` en
-      `master` y los dos HTML en `gh-pages`.
+      **Resuelto el 2026-09-06:** correo de contacto real
+      (`elizaldemanuel1612@gmail.com`) publicado en los cuatro lugares —
+      los dos `.md` en `master` y los dos HTML en `gh-pages` (como enlace
+      `mailto:` en estos últimos).
 - [x] **URL web pública de solicitud de eliminación de cuenta** (Play la
       exige aparte de la eliminación in-app):
       `https://elizaldemanuel1612.github.io/app-finanzas/eliminar-cuenta/`,
@@ -69,9 +68,8 @@ no se movieron.
       índice. Explica qué se borra de inmediato desde la app (cuenta +
       todos los datos locales) y cómo solicitar la eliminación de la
       cuenta de Firebase Authentication cuando ya no se tiene la app
-      instalada. **Sigue pendiente:** el mismo correo de contacto real que
-      falta en privacidad/términos (ver arriba) — hoy usa el mismo
-      marcador de posición.
+      instalada. **Resuelto el 2026-09-06:** mismo correo de contacto real
+      que privacidad/términos (ver arriba), publicado también aquí.
 - [~] **Bundle ID de Android unificado** a `com.manuelelizalde.appfinanzas`
       — hecho el 2026-08-31, ver detalle y verificación en el paso 4 de
       "Próxima visita a Firebase/Play Console" más abajo y en "Estado
