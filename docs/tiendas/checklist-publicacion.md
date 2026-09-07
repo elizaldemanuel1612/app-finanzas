@@ -6,6 +6,59 @@ ejecutable del criterio de aceptación de la fase — es el primer punto de
 esta lista, no el último, porque todo lo demás se apoya en que las cifras
 no se movieron.
 
+**Decisión del usuario (2026-09-07): publicar en las tiendas queda en
+pausa indefinida.** La prioridad inmediata es compilar para iOS y usar
+la app en el iPhone propio — el resto de este checklist (Play Console,
+capturas de marketing, ficha de Play) se retoma después, si acaso. Ver
+la sección "Próxima sesión con Mac" más abajo, que es lo que aplica
+ahora; el resto del documento sigue vigente para cuando se retome la
+publicación.
+
+## Próxima sesión con Mac — uso personal en iPhone
+
+Para instalar en un iPhone sin cuenta de Apple Developer de pago,
+Xcode firma con un "Personal Team" (el Apple ID normal, gratis): la
+instalación dura 7 días y hay que reconectar el iPhone a la Mac y
+volver a correr desde Xcode para renovarla. **Sign in with Apple no es
+un requisito técnico para esto** — Apple solo lo exige en revisión de
+App Store/TestFlight, así que el resto del Bloque 6 (iOS) sigue sin
+necesitarlo mientras no se publique.
+
+Orden de los pasos la primera vez que haya Mac a la mano (el paso 1 no
+necesita Mac, se puede hacer antes desde cualquier navegador):
+
+1. **Registrar la app iOS en Firebase**: Firebase Console → engrane →
+   Configuración del proyecto → tus apps → Agregar app → iOS → Bundle
+   ID `com.manuelelizalde.appfinanzas` (ya unificado en el proyecto
+   desde el 2026-09-07, ver `CLAUDE.md`) → dejar App Store ID vacío →
+   descargar `GoogleService-Info.plist`.
+2. Poner ese archivo en `ios/Runner/GoogleService-Info.plist` y
+   agregarlo al target Runner **desde Xcode** (arrastrarlo al
+   navegador de proyecto con "Copy items if needed" y el target
+   Runner marcado) — sin este paso Xcode lo ve en disco pero no lo
+   empaqueta.
+3. Completar el bloque `iOS` de `lib/firebase_options.dart` (hoy lanza
+   `UnsupportedError` a propósito, ver el archivo) con los valores
+   reales del plist descargado.
+4. Agregar el esquema de URL de Google Sign-In a
+   `ios/Runner/Info.plist` (`CFBundleURLTypes` con el
+   `REVERSED_CLIENT_ID` del plist) — sin esto el login de Google abre
+   Safari y no regresa a la app.
+5. Dentro de `ios/`: `flutter pub get` y `pod install` (CocoaPods,
+   solo corre en macOS).
+6. Abrir `ios/Runner.xcworkspace` (no el `.xcodeproj`) en Xcode →
+   pestaña Signing & Capabilities del target Runner → Team = tu Apple
+   ID personal → dejar "Automatically manage signing" activado (ya
+   está `CODE_SIGN_STYLE = Automatic` en el proyecto, no hay que
+   tocarlo).
+7. Conectar el iPhone por cable, confiar en la Mac desde el propio
+   iPhone, elegirlo como destino de build en Xcode, Cmd+R.
+8. En el iPhone: Ajustes → General → VPN y gestión de dispositivos →
+   confiar en el certificado de desarrollador — sin esto la app no
+   abre aunque haya quedado instalada.
+9. Repetir el paso 7 cada ~7 días mientras no haya cuenta de Apple
+   Developer de pago — la firma gratuita expira y deja de abrir.
+
 ## Bloqueante
 
 - [x] `test/paridad/paridad_3_2_test.dart` en verde (~800 pruebas totales
