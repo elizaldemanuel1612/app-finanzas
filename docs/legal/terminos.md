@@ -67,5 +67,4 @@ avisa dentro de la app.
 
 ## 10. Contacto
 
-Para preguntas sobre estos términos, contacta a: _[correo de contacto
-pendiente de publicar]_.
+Para preguntas sobre estos términos, contacta a: elizaldemanuel1612@gmail.com.

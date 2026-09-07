@@ -74,4 +74,4 @@ avisa dentro de la app.
 ## Contacto
 
 Para preguntas sobre esta política o para solicitar la eliminación de tus
-datos, contacta a: _[correo de contacto pendiente de publicar]_.
+datos, contacta a: elizaldemanuel1612@gmail.com.
