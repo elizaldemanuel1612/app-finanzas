@@ -59,18 +59,22 @@ const _temaInicio = TemaGuia(
       'Debajo está tu tarjeta de meta, con el porcentaje de alcance de lo '
       'que quieres apartar este ciclo.',
     ),
-    Subtitulo('Dónde está la atención'),
+    Subtitulo('Gastos Variables'),
     Parrafo(
       'La lista de categorías variables se ordena sola: las que van '
       'excedidas aparecen primero, para que sepas dónde mirar sin '
-      'recorrer toda la lista.',
+      'recorrer toda la lista. El encabezado siempre muestra cuánto llevas '
+      'gastado de lo presupuestado para toda la sección, y puedes tocarlo '
+      'para contraer o desplegar la lista.',
     ),
     Ejemplo(EjemploGuia.tarjetaAtencion, pie: 'Cada renglón trae su propia marca de ritmo.'),
     Subtitulo('Gastos fijos'),
     Parrafo(
-      'Más abajo, tus categorías fijas se listan con su estado: '
-      '**Pagado** o **Pendiente**, según si ya registraste el gasto de '
-      'este ciclo.',
+      'Igual que Gastos Variables, el encabezado se puede contraer y '
+      'siempre muestra el total pagado contra el total presupuestado. Cada '
+      'categoría fija trae su estado — **Pagado**, **Pendiente** o '
+      '**Excedido** — y una barra que muestra qué tanto del monto ya '
+      'cubriste.',
     ),
     Parrafo(
       'El AppBar trae tres accesos directos y un botón + al centro abajo '

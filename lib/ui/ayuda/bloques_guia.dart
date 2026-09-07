@@ -179,7 +179,7 @@ class _EjemploVivo extends StatelessWidget {
   }
 }
 
-/// Miniatura del renglón de "Dónde está la atención" en Inicio. La
+/// Miniatura del renglón de "Gastos Variables" en Inicio. La
 /// pastilla de estado se redibuja aquí con `labelSmall` (12px) en vez de
 /// compartirse con `pantalla_inicio.dart` (que usa 11px): un widget común
 /// tendría cupo cero de tamaños sueltos en `test/estilos_ui_test.dart` y

@@ -25,7 +25,7 @@ const _idsEsperados = {
 // desaparece de lib/ui/, la guía se queda hablando de algo que ya no
 // existe (el único riesgo estructural de este enfoque).
 const _citasLiteralesDeLaApp = [
-  'Dónde está la atención',
+  'Gastos Variables',
   'Buscar gasto o comercio',
   'Cierre estimado',
   'Mover presupuesto',

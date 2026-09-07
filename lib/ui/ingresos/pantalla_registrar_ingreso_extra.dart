@@ -6,10 +6,10 @@ import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
-import '../../domain/modelos/categoria.dart';
+import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
 import '../../domain/modelos/ingreso_extra.dart';
 import '../../domain/modelos/perfil.dart';
-import '../../domain/presupuesto/reparto.dart';
+import '../../domain/presupuesto/meta_base.dart';
 import '../../domain/reglas/creacion_ingreso_extra.dart';
 import '../../domain/reglas/monto.dart';
 import '../comun/formato_dinero.dart';
@@ -60,6 +60,7 @@ class _PantallaRegistrarIngresoExtraState
   late DestinoExtra _destino = _existente?.destino ?? DestinoExtra.apartado;
   late DateTime _fecha = _existente?.fecha ?? _hoyDentroDelCiclo();
   Dinero? _metaBase;
+  IngresosDelCiclo? _ingresosBase;
   String? _error;
   bool _guardando = false;
 
@@ -76,21 +77,27 @@ class _PantallaRegistrarIngresoExtraState
   @override
   void initState() {
     super.initState();
-    _cargarMetaBase();
+    _cargarDatosPrevia();
   }
 
-  Future<void> _cargarMetaBase() async {
+  /// Carga la meta base (misma fuente única que Inicio y Cierre de ciclo,
+  /// [calcularMetaBase]) y los ingresos extra ya activos del ciclo,
+  /// **sin** el que se está editando — así la vista previa no cuenta dos
+  /// veces su propia contribución al recalcular antes/después.
+  Future<void> _cargarDatosPrevia() async {
     final categorias = await widget.categoriaRepositorio.listarActivas();
-    final reparto = calcularReparto(
-      ingresoDisponible: widget.perfil.ingresoBaseMensual,
-      fijas: categorias.whereType<CategoriaFija>().toList(),
-      variables: categorias.whereType<CategoriaVariable>().toList(),
+    final metaBase = calcularMetaBase(perfil: widget.perfil, categorias: categorias);
+    final extras = await widget.ingresoExtraRepositorio.listarPorCiclo(widget.ciclo.id);
+    final idExistente = _existente?.id;
+    final ingresosBase = calcularIngresosDelCiclo(
+      ingresoBase: widget.perfil.ingresoBaseMensual,
+      cicloId: widget.ciclo.id,
+      extras: idExistente == null ? extras : extras.where((e) => e.id != idExistente),
     );
     if (!mounted) return;
     setState(() {
-      _metaBase = reparto is Exito<ResultadoReparto>
-          ? reparto.valor.sinAsignar
-          : const Dinero.cero();
+      _metaBase = metaBase;
+      _ingresosBase = ingresosBase;
     });
   }
 
@@ -109,16 +116,39 @@ class _PantallaRegistrarIngresoExtraState
     super.dispose();
   }
 
+  /// Antes/después de meta y presupuesto para gastar, ambos recalculados
+  /// con [_metaBase] y [_ingresosBase] (que ya excluyen este mismo ingreso
+  /// si se está editando) más el monto que se está por guardar — nunca
+  /// solo `ingresoBaseMensual + monto`, que ignoraba una meta explícita
+  /// (`Perfil.metaApartado`) y cualquier otro extra ya activo del ciclo.
   String? get _vistaPrevia {
     final monto = Dinero.intentarDesdeTexto(_montoControlador.text);
     final metaBase = _metaBase;
-    if (monto == null || !monto.esPositivo || metaBase == null) return null;
+    final ingresosBase = _ingresosBase;
+    if (monto == null || !monto.esPositivo || metaBase == null || ingresosBase == null) {
+      return null;
+    }
+
+    final metaActual = calcularMetaDelCiclo(metaBase: metaBase, ingresos: ingresosBase);
+    final presupuestoActual = ingresosBase.total - metaActual;
+
+    final ingresosConEste = IngresosDelCiclo(
+      base: ingresosBase.base,
+      extraAApartado: ingresosBase.extraAApartado +
+          (_destino == DestinoExtra.apartado ? monto : const Dinero.cero()),
+      extraAGasto: ingresosBase.extraAGasto +
+          (_destino == DestinoExtra.gasto ? monto : const Dinero.cero()),
+    );
+    final metaNueva = calcularMetaDelCiclo(metaBase: metaBase, ingresos: ingresosConEste);
+    final presupuestoNuevo = ingresosConEste.total - metaNueva;
+
     return switch (_destino) {
       DestinoExtra.apartado =>
-        'Tu meta sube a ${(metaBase + monto).formateado()}, tu presupuesto no se mueve.',
+        'Tu meta pasa de ${metaActual.formateado()} a ${metaNueva.formateado()}. '
+            'Tu presupuesto para gastar no cambia (${presupuestoActual.formateado()}).',
       DestinoExtra.gasto =>
-        'Tu presupuesto sube a ${(widget.perfil.ingresoBaseMensual + monto).formateado()}, '
-            'tu meta no se mueve.',
+        'Tu presupuesto para gastar pasa de ${presupuestoActual.formateado()} a '
+            '${presupuestoNuevo.formateado()}. Tu meta no cambia (${metaActual.formateado()}).',
     };
   }
 
@@ -209,6 +239,7 @@ class _PantallaRegistrarIngresoExtraState
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
+                inputFormatters: formateadoresDeMonto,
                 decoration: const InputDecoration(labelText: 'Monto'),
                 onChanged: (_) => setState(() {}),
               ),

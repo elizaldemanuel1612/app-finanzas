@@ -71,6 +71,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
   late double _avanceCiclo;
   late Perfil _perfil = widget.perfil;
   _DatosInicio? _datos;
+  bool _variablesExpandido = true;
+  bool _fijasExpandido = true;
 
   @override
   void initState() {
@@ -132,6 +134,20 @@ class _PantallaInicioState extends State<PantallaInicio> {
       });
 
     final totalGastado = Dinero.suma(rollups.map((r) => r.totalCentavos));
+    final gastadoVariables = Dinero.suma(
+      variables.map((c) => rollupPorCategoria[c.id]?.totalCentavos ?? const Dinero.cero()),
+    );
+    final presupuestoVariables = Dinero.suma(
+      variables.map(
+        (c) => rollupPorCategoria[c.id]?.presupuestoCentavos ?? c.presupuestoMensualCentavos,
+      ),
+    );
+    final gastadoFijas = Dinero.suma(
+      fijas.map((c) => rollupPorCategoria[c.id]?.totalCentavos ?? const Dinero.cero()),
+    );
+    final presupuestoFijas = Dinero.suma(
+      fijas.map((c) => rollupPorCategoria[c.id]?.presupuestoCentavos ?? c.montoFijoCentavos),
+    );
     final ingresos = calcularIngresosDelCiclo(
       ingresoBase: _perfil.ingresoBaseMensual,
       cicloId: _ciclo.id,
@@ -155,6 +171,10 @@ class _PantallaInicioState extends State<PantallaInicio> {
       fijas: fijas,
       variables: variables,
       totalGastado: totalGastado,
+      gastadoVariables: gastadoVariables,
+      presupuestoVariables: presupuestoVariables,
+      gastadoFijas: gastadoFijas,
+      presupuestoFijas: presupuestoFijas,
       ingresos: ingresos,
       disponibleParaInvertir: disponibleParaInvertir,
       deltaPorCategoria: deltaPorCategoria,
@@ -400,12 +420,16 @@ class _PantallaInicioState extends State<PantallaInicio> {
         ),
         if (datos.variables.isNotEmpty) ...[
           const SizedBox(height: 24),
-          Text(
-            'Dónde está la atención',
-            style: Theme.of(context).textTheme.titleMedium,
+          _EncabezadoSeccion(
+            titulo: 'Gastos Variables',
+            resumen: '${datos.gastadoVariables.formateado()} de '
+                '${datos.presupuestoVariables.formateado()}',
+            expandido: _variablesExpandido,
+            onToggle: () => setState(() => _variablesExpandido = !_variablesExpandido),
           ),
-          const SizedBox(height: 10),
-          ...datos.variables.map((c) {
+          if (_variablesExpandido) ...[
+            const SizedBox(height: 10),
+            ...datos.variables.map((c) {
             final rollup = datos.rollupPorCategoria[c.id];
             final estado = calcularEstadoRitmo(
               porcentajeUsado: rollup?.porcentajeUsado,
@@ -502,33 +526,58 @@ class _PantallaInicioState extends State<PantallaInicio> {
                 ),
               ),
             );
-          }),
+            }),
+          ],
         ],
         if (datos.fijas.isNotEmpty) ...[
           const SizedBox(height: 24),
-          Text('Gastos fijos', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 10),
-          Card(
-            child: Column(
-              children: datos.fijas.map((c) {
-                final pagado =
-                    (datos.rollupPorCategoria[c.id]?.conteoMovimientos ?? 0) >
-                    0;
-                return ListTile(
-                  onTap: () => _irADetalle(c),
-                  leading: ExcludeSemantics(
-                    child: Text(c.emoji, style: const TextStyle(fontSize: 18)),
-                  ),
-                  title: Text(c.nombre),
-                  subtitle: Text(pagado ? 'Pagado' : 'Pendiente'),
-                  trailing: Text(
-                    c.montoFijoCentavos.formateado(),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                );
-              }).toList(),
-            ),
+          _EncabezadoSeccion(
+            titulo: 'Gastos fijos',
+            resumen: '${datos.gastadoFijas.formateado()} de '
+                '${datos.presupuestoFijas.formateado()}',
+            expandido: _fijasExpandido,
+            onToggle: () => setState(() => _fijasExpandido = !_fijasExpandido),
           ),
+          if (_fijasExpandido) ...[
+            const SizedBox(height: 10),
+            Card(
+              child: Column(
+                children: datos.fijas.map((c) {
+                  final rollup = datos.rollupPorCategoria[c.id];
+                  final gastado = rollup?.totalCentavos ?? const Dinero.cero();
+                  final presupuesto = rollup?.presupuestoCentavos ?? c.montoFijoCentavos;
+                  final estadoTexto = !gastado.esPositivo
+                      ? 'Pendiente'
+                      : (gastado > presupuesto ? 'Excedido' : 'Pagado');
+                  return ListTile(
+                    onTap: () => _irADetalle(c),
+                    leading: ExcludeSemantics(
+                      child: Text(c.emoji, style: const TextStyle(fontSize: 18)),
+                    ),
+                    title: Text(c.nombre),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 6, right: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(estadoTexto),
+                          const SizedBox(height: 6),
+                          _BarraCobertura(
+                            porcentajeUsado: rollup?.porcentajeUsado,
+                            descripcion: c.nombre,
+                          ),
+                        ],
+                      ),
+                    ),
+                    trailing: Text(
+                      c.montoFijoCentavos.formateado(),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
         ],
       ],
     );
@@ -541,6 +590,10 @@ class _DatosInicio {
   final List<CategoriaFija> fijas;
   final List<CategoriaVariable> variables;
   final Dinero totalGastado;
+  final Dinero gastadoVariables;
+  final Dinero presupuestoVariables;
+  final Dinero gastadoFijas;
+  final Dinero presupuestoFijas;
   final IngresosDelCiclo ingresos;
   final Dinero disponibleParaInvertir;
   final Map<String, Dinero> deltaPorCategoria;
@@ -553,6 +606,10 @@ class _DatosInicio {
     required this.fijas,
     required this.variables,
     required this.totalGastado,
+    required this.gastadoVariables,
+    required this.presupuestoVariables,
+    required this.gastadoFijas,
+    required this.presupuestoFijas,
     required this.ingresos,
     required this.disponibleParaInvertir,
     required this.deltaPorCategoria,
@@ -618,6 +675,103 @@ class _TarjetaMeta extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Encabezado de "Gastos Variables"/"Gastos fijos": el resumen (gastado de
+/// presupuestado de la sección completa) se queda visible sin importar si
+/// la lista está desplegada o contraída — tocar cualquier parte del
+/// encabezado alterna entre las dos.
+class _EncabezadoSeccion extends StatelessWidget {
+  final String titulo;
+  final String resumen;
+  final bool expandido;
+  final VoidCallback onToggle;
+
+  const _EncabezadoSeccion({
+    required this.titulo,
+    required this.resumen,
+    required this.expandido,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onToggle,
+      borderRadius: BorderRadius.circular(12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(titulo, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 2),
+                Text(
+                  resumen,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: ColoresApp.medio),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            expandido ? Icons.expand_less : Icons.expand_more,
+            color: ColoresApp.medio,
+            semanticLabel: expandido ? 'Contraer' : 'Expandir',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Barra de cobertura para gastos fijos: a diferencia de [BarraRitmo], no
+/// dibuja marca de avance del ciclo ni proyección de ritmo — una fija no
+/// se paga poco a poco a lo largo del ciclo, tiene un monto conocido que
+/// se cubre o no (estado_ritmo.dart), así que esto solo pinta qué
+/// proporción de ese monto ya se registró, con el mismo código de color de
+/// severidad que el resto de la app.
+class _BarraCobertura extends StatelessWidget {
+  final double? porcentajeUsado;
+  final String descripcion;
+
+  const _BarraCobertura({required this.porcentajeUsado, required this.descripcion});
+
+  @override
+  Widget build(BuildContext context) {
+    final fraccion = (porcentajeUsado ?? 0).clamp(0.0, 1.0);
+    final estado = calcularEstadoRitmo(porcentajeUsado: porcentajeUsado);
+    final porcentaje = ((porcentajeUsado ?? 0) * 100).round();
+
+    return Semantics(
+      label: 'Cobertura de $descripcion: $porcentaje% del monto fijo.',
+      excludeSemantics: true,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SizedBox(
+            height: 6,
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDEFF6),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+                Container(
+                  width: constraints.maxWidth * fraccion,
+                  decoration: BoxDecoration(
+                    color: colorEstadoRitmo(estado),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
