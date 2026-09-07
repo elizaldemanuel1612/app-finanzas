@@ -452,6 +452,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
+                inputFormatters: formateadoresDeMonto,
                 style: const TextStyle(
                   fontSize: 40,
                   fontWeight: FontWeight.w800,
@@ -567,6 +568,14 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
               ),
               const SizedBox(height: 20),
               TextField(
+                // Sin esta key, insertar el aviso "Sugerida por tus gastos
+                // anteriores" arriba (cuando `_sugerida` pasa a true) corre
+                // este campo dos posiciones dentro de la lista sin llaves
+                // del ListView — Flutter deja de reconocerlo como el mismo
+                // widget, le destruye el Element y el cursor/foco se pierde
+                // a media escritura. La key le da identidad estable sin
+                // importar en qué posición de la lista termine.
+                key: const ValueKey('campo_descripcion'),
                 controller: _descripcionControlador,
                 decoration: const InputDecoration(
                   labelText: 'Descripción (opcional)',

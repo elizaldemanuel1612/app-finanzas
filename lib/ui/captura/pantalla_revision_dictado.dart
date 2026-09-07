@@ -273,6 +273,7 @@ class _TarjetaItem extends StatelessWidget {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
+                    inputFormatters: formateadoresDeMonto,
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,

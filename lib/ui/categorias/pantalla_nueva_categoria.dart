@@ -8,6 +8,7 @@ import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/presupuesto/categorias.dart';
+import '../comun/formato_dinero.dart';
 import '../comun/popscope_descartar.dart';
 import '../comun/tema.dart';
 import 'eliminar_categoria.dart';
@@ -228,6 +229,7 @@ class _PantallaNuevaCategoriaState extends State<PantallaNuevaCategoria> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
+                inputFormatters: formateadoresDeMonto,
                 decoration: InputDecoration(
                   labelText: _esFija ? 'Cuánto' : 'Presupuesto al mes',
                 ),

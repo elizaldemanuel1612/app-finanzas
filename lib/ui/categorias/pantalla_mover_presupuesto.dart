@@ -5,6 +5,7 @@ import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/ajuste_presupuesto_ciclo_repositorio.dart';
 import '../../domain/presupuesto/rebalanceo.dart';
+import '../comun/formato_dinero.dart';
 import '../comun/popscope_descartar.dart';
 import '../comun/tema.dart';
 
@@ -226,6 +227,7 @@ class _TarjetaCandidata extends StatelessWidget {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              inputFormatters: formateadoresDeMonto,
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,

@@ -192,6 +192,7 @@ class _SelectorMetaState extends State<SelectorMeta> {
     return TextField(
       controller: _montoControlador,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: formateadoresDeMonto,
       decoration: const InputDecoration(labelText: 'Cuánto quieres apartar cada ciclo'),
       onChanged: (_) => _notificar(),
     );

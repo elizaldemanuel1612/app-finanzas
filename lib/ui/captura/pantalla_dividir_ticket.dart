@@ -216,6 +216,7 @@ class _PantallaDividirTicketState extends State<PantallaDividirTicket> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
+                  inputFormatters: formateadoresDeMonto,
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -339,6 +340,7 @@ class _TarjetaRenglon extends StatelessWidget {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
+                    inputFormatters: formateadoresDeMonto,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,

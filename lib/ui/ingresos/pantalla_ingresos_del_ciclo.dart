@@ -98,6 +98,7 @@ class _PantallaIngresosDelCicloState extends State<PantallaIngresosDelCiclo> {
           controller: controlador,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: formateadoresDeMonto,
           decoration: const InputDecoration(labelText: 'Cuánto entra cada ciclo'),
         ),
         actions: [
