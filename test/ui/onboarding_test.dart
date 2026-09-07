@@ -16,7 +16,7 @@ import 'repos_memoria.dart';
 // TextField del árbol (SelectorMeta trae el suyo en el paso de meta), de
 // ahí el finder por hintText en vez de find.byType(TextField).
 final _campoIngreso = find.byWidgetPredicate(
-  (w) => w is TextField && w.decoration?.hintText == 'Ej. 87000',
+  (w) => w is TextField && w.decoration?.hintText == 'Ej. \$20,000',
 );
 
 Widget _app({required VoidCallback alTerminar}) {
@@ -72,7 +72,7 @@ void main() {
 
     await _avanzarHastaGuia(tester);
 
-    expect(find.text('¿Te enseño a usarla?'), findsOneWidget);
+    expect(find.text('Lo que nadie lee... el instructivo'), findsOneWidget);
     expect(find.text('Omitir'), findsOneWidget);
     expect(find.text('Ver la guía'), findsOneWidget);
   });
@@ -119,7 +119,7 @@ void main() {
     await tester.tap(find.text('Siguiente'));
     await tester.pumpAndSettle();
 
-    expect(find.text('¿Cuánto entra al mes?'), findsOneWidget);
+    expect(find.text('Registra tu ingreso base al mes'), findsOneWidget);
     expect(find.textContaining('Escribe cuánto entra'), findsOneWidget);
   });
 

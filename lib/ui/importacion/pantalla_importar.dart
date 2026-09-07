@@ -1,10 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../core/ciclo.dart';
 import '../../core/result.dart';
@@ -13,6 +11,8 @@ import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/importacion/importar_movimientos.dart';
 import '../../domain/importacion/plantilla_csv.dart';
 import '../../domain/modelos/perfil.dart';
+import '../ayuda/modelo_guia.dart';
+import '../comun/nota_destacada.dart';
 import '../comun/popscope_descartar.dart';
 import '../comun/tema.dart';
 
@@ -46,11 +46,9 @@ class _PantallaImportarState extends State<PantallaImportar> {
   bool _importado = false;
 
   Future<void> _descargarPlantilla() async {
-    final temporal = await getTemporaryDirectory();
-    final archivo = File('${temporal.path}/plantilla_importacion.csv');
-    await archivo.writeAsString(generarPlantillaCsvDeEjemplo());
-    await SharePlus.instance.share(
-      ShareParams(files: [XFile(archivo.path)], subject: 'Plantilla de importación — App Finanzas'),
+    await FilePicker.saveFile(
+      fileName: 'plantilla_importacion.csv',
+      bytes: Uint8List.fromList(utf8.encode(generarPlantillaCsvDeEjemplo())),
     );
   }
 
@@ -137,6 +135,14 @@ class _PantallaImportarState extends State<PantallaImportar> {
               OutlinedButton(
                 onPressed: _descargarPlantilla,
                 child: const Text('Descargar plantilla de ejemplo'),
+              ),
+              const SizedBox(height: 12),
+              const NotaDestacada(
+                etiqueta: 'TIP',
+                texto: 'Si tienes alguna IA, como ChatGPT, Copilot, Gemini, etc., '
+                    'descarga la plantilla, pásale también tus gastos, y dile que '
+                    'ponga todo en el formato de la plantilla. ¡Listo!',
+                tono: TonoNota.tip,
               ),
               const SizedBox(height: 12),
               ElevatedButton(

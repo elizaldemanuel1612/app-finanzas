@@ -15,7 +15,7 @@ import '../ayuda/contenido_guia.dart';
 import '../ayuda/modelo_guia.dart';
 import '../ayuda/pantalla_guia.dart';
 import '../comun/barra_ritmo.dart';
-import '../comun/nota_destacada.dart';
+import '../comun/formato_dinero.dart';
 import '../comun/tema.dart';
 import '../importacion/pantalla_importar.dart';
 import '../meta/selector_meta.dart';
@@ -104,6 +104,13 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
   final Set<String> _seleccionadas = {..._seleccionInicial};
   final Set<String> _marcadasComoFijas =
       {for (final c in _categoriasSugeridas) if (c.fijaSugerida) c.id};
+  final Map<String, Dinero> _montosEditados = {};
+  final Map<String, TextEditingController> _montoControladores = {
+    for (final c in _categoriasSugeridas) c.id: TextEditingController(),
+  };
+  final Map<String, FocusNode> _montoFocos = {
+    for (final c in _categoriasSugeridas) c.id: FocusNode(),
+  };
 
   bool _guardando = false;
   Perfil? _perfilGuardado;
@@ -112,16 +119,23 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
   void dispose() {
     _controlador.dispose();
     _ingresoControlador.dispose();
+    for (final c in _montoControladores.values) {
+      c.dispose();
+    }
+    for (final f in _montoFocos.values) {
+      f.dispose();
+    }
     super.dispose();
   }
 
   Dinero? get _ingreso => Dinero.intentarDesdeTexto(_ingresoControlador.text);
 
   Future<void> _avanzar() async {
+    FocusScope.of(context).unfocus();
     if (_paso == 2) {
       final ingreso = _ingreso;
       if (ingreso == null || !ingreso.esPositivo) {
-        setState(() => _errorIngreso = 'Escribe cuánto entra en un mes normal, ej. 87000.');
+        setState(() => _errorIngreso = 'Escribe cuánto entra en un mes normal, ej. \$20,000.');
         return;
       }
       setState(() => _errorIngreso = null);
@@ -137,6 +151,7 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
   }
 
   Future<void> _retroceder() async {
+    FocusScope.of(context).unfocus();
     if (_paso == 0) return;
     setState(() => _paso -= 1);
     await _controlador.animateToPage(_paso, duration: const Duration(milliseconds: 250), curve: Curves.ease);
@@ -192,34 +207,32 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
     return disponible.esNegativo ? const Dinero.cero() : disponible;
   }
 
-  Dinero _totalFijasSeleccionadas() => Dinero.suma([
-        for (final c in _categoriasSugeridas)
-          if (_seleccionadas.contains(c.id) && _marcadasComoFijas.contains(c.id))
-            Dinero.pesos(c.montoSugeridoPesos),
-      ]);
-
   Map<String, Dinero> _montosCalculados() {
-    final variables = [
-      for (final c in _categoriasSugeridas)
-        if (_seleccionadas.contains(c.id) && !_marcadasComoFijas.contains(c.id)) c,
-    ];
     final disponible = _disponibleParaCategorias();
-    final totalFijas = _totalFijasSeleccionadas();
-    final disponibleParaVariables = disponible - totalFijas;
-    final repartido = repartirPorPesos(
-      disponibleParaVariables.esNegativo ? const Dinero.cero() : disponibleParaVariables,
-      variables.map((c) => c.peso).toList(),
-    );
-
     final montos = <String, Dinero>{};
+
     for (final c in _categoriasSugeridas) {
       if (!_seleccionadas.contains(c.id)) continue;
-      if (_marcadasComoFijas.contains(c.id)) {
-        montos[c.id] = Dinero.pesos(c.montoSugeridoPesos);
+      if (_marcadasComoFijas.contains(c.id) || _montosEditados.containsKey(c.id)) {
+        montos[c.id] = _montosEditados[c.id] ??
+            Dinero.pesos(c.montoSugeridoPesos); // solo aplica a fijas sin editar
       }
     }
-    for (var i = 0; i < variables.length; i++) {
-      montos[variables[i].id] = repartido[i];
+
+    final variablesAuto = [
+      for (final c in _categoriasSugeridas)
+        if (_seleccionadas.contains(c.id) &&
+            !_marcadasComoFijas.contains(c.id) &&
+            !_montosEditados.containsKey(c.id))
+          c,
+    ];
+    final disponibleParaAuto = disponible - Dinero.suma(montos.values);
+    final repartido = repartirPorPesos(
+      disponibleParaAuto.esNegativo ? const Dinero.cero() : disponibleParaAuto,
+      variablesAuto.map((c) => c.peso).toList(),
+    );
+    for (var i = 0; i < variablesAuto.length; i++) {
+      montos[variablesAuto[i].id] = repartido[i];
     }
     return montos;
   }
@@ -389,15 +402,16 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
 
   Widget _paginaIngreso() {
     return _Paso(
-      titulo: '¿Cuánto entra al mes?',
+      titulo: 'Registra tu ingreso base al mes',
       subtitulo: 'Pon lo de un mes normal — los ingresos extra se registran aparte, '
-          'cuando lleguen.',
+          'cuando lleguen. Puedes editarlo más adelante.',
       child: Column(
         children: [
           TextField(
             controller: _ingresoControlador,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(hintText: 'Ej. 87000'),
+            inputFormatters: formateadoresDeMonto,
+            decoration: const InputDecoration(hintText: 'Ej. \$20,000'),
             onChanged: (_) {
               if (_errorIngreso != null) setState(() => _errorIngreso = null);
             },
@@ -429,13 +443,20 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
   Widget _paginaCategorias() {
     final montos = _montosCalculados();
     final disponible = _disponibleParaCategorias();
-    final totalFijas = _totalFijasSeleccionadas();
     final total = Dinero.suma(montos.values);
-    final fijasSeComenElDisponible = totalFijas > disponible;
+    final sobrepasado = total > disponible;
+
+    for (final c in _categoriasSugeridas) {
+      if (!_seleccionadas.contains(c.id)) continue;
+      if (_montoFocos[c.id]!.hasFocus) continue;
+      final texto = ((montos[c.id] ?? const Dinero.cero()).centavos ~/ 100).toString();
+      if (_montoControladores[c.id]!.text != texto) _montoControladores[c.id]!.text = texto;
+    }
 
     return _Paso(
-      titulo: '¿En qué se te va?',
-      subtitulo: 'Elige las que apliquen — reparto lo disponible entre ellas.',
+      titulo: '¡Clasifiquemos tus gastos!',
+      subtitulo: 'Te doy una sugerencia, pero tú puedes editarla ahora o después, '
+          'incluso agregar o quitar categorías.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -465,7 +486,11 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
                 child: Row(
                   children: [
                     Expanded(child: Text('${c.emoji} ${c.nombre}')),
-                    TextButton(
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      ),
                       onPressed: () => setState(() {
                         if (_marcadasComoFijas.contains(c.id)) {
                           _marcadasComoFijas.remove(c.id);
@@ -473,14 +498,22 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
                           _marcadasComoFijas.add(c.id);
                         }
                       }),
-                      child: Text(_marcadasComoFijas.contains(c.id) ? 'Fijo' : 'Varía'),
+                      icon: const Icon(Icons.sync_alt, size: 16),
+                      label: Text(_marcadasComoFijas.contains(c.id) ? 'Fijo' : 'Varía'),
                     ),
+                    const SizedBox(width: 8),
                     SizedBox(
-                      width: 90,
-                      child: Text(
-                        (montos[c.id] ?? const Dinero.cero()).formateado(),
+                      width: 100,
+                      child: TextField(
+                        controller: _montoControladores[c.id],
+                        focusNode: _montoFocos[c.id],
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: formateadoresDeMonto,
                         textAlign: TextAlign.end,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                        decoration: const InputDecoration(isDense: true, prefixText: r'$'),
+                        onChanged: (texto) => setState(() {
+                          _montosEditados[c.id] = Dinero.intentarDesdeTexto(texto) ?? const Dinero.cero();
+                        }),
                       ),
                     ),
                   ],
@@ -496,7 +529,7 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
           ),
           Text('Disponible para categorías: ${disponible.formateado()}',
               style: Theme.of(context).textTheme.bodySmall),
-          if (fijasSeComenElDisponible) ...[
+          if (sobrepasado) ...[
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(12),
@@ -505,9 +538,8 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                'Tus categorías fijas (${totalFijas.formateado()}) ya se pasan de lo '
-                'disponible (${disponible.formateado()}). Puedes ajustar montos después, '
-                'en Categorías.',
+                'Tus categorías (${total.formateado()}) ya se pasan de lo disponible '
+                '(${disponible.formateado()}). Ajusta los montos arriba.',
                 style: const TextStyle(color: ColoresApp.ambarTexto),
               ),
             ),
@@ -538,6 +570,13 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
           ),
           const SizedBox(height: 24),
           const Text('¿Traes historial?', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          const Text(
+            'Si tienes registrados tus gastos de meses pasados, puedes importarlos '
+            'para tener un historial más completo, si no, no pasa nada.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: ColoresApp.medio),
+          ),
           const SizedBox(height: 8),
           OutlinedButton(onPressed: _irAImportar, child: const Text('Importar mi historial')),
         ],
@@ -549,8 +588,8 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
     final muestraTemas = temasEnOrden.take(3).toList();
     final restantes = temasEnOrden.length - muestraTemas.length;
     return _Paso(
-      titulo: '¿Te enseño a usarla?',
-      subtitulo: 'Es un manual corto por temas. Léelo entero o solo lo que te sirva.',
+      titulo: 'Lo que nadie lee... el instructivo',
+      subtitulo: 'Siempre estará disponible en Ajustes → "Cómo funciona la app".',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -573,11 +612,6 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          const NotaDestacada(
-            etiqueta: 'SIEMPRE A LA MANO',
-            texto: 'Si la omites, la guía vive en Ajustes → "Cómo funciona la app".',
           ),
         ],
       ),
