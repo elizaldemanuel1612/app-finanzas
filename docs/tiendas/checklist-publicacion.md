@@ -24,26 +24,29 @@ un requisito técnico para esto** — Apple solo lo exige en revisión de
 App Store/TestFlight, así que el resto del Bloque 6 (iOS) sigue sin
 necesitarlo mientras no se publique.
 
-Orden de los pasos la primera vez que haya Mac a la mano (el paso 1 no
-necesita Mac, se puede hacer antes desde cualquier navegador):
+Orden de los pasos (los primeros 4 no necesitan Mac, se hicieron ya
+desde Windows/navegador el 2026-09-07 — quedan aquí marcados para que
+la sesión con Mac empiece directo en el paso 5):
 
-1. **Registrar la app iOS en Firebase**: Firebase Console → engrane →
+1. ~~**Registrar la app iOS en Firebase**: Firebase Console → engrane →
    Configuración del proyecto → tus apps → Agregar app → iOS → Bundle
-   ID `com.manuelelizalde.appfinanzas` (ya unificado en el proyecto
-   desde el 2026-09-07, ver `CLAUDE.md`) → dejar App Store ID vacío →
-   descargar `GoogleService-Info.plist`.
-2. Poner ese archivo en `ios/Runner/GoogleService-Info.plist` y
-   agregarlo al target Runner **desde Xcode** (arrastrarlo al
-   navegador de proyecto con "Copy items if needed" y el target
-   Runner marcado) — sin este paso Xcode lo ve en disco pero no lo
-   empaqueta.
-3. Completar el bloque `iOS` de `lib/firebase_options.dart` (hoy lanza
-   `UnsupportedError` a propósito, ver el archivo) con los valores
-   reales del plist descargado.
-4. Agregar el esquema de URL de Google Sign-In a
+   ID `com.manuelelizalde.appfinanzas` → App Store ID vacío →
+   descargar `GoogleService-Info.plist`.~~ **Hecho el 2026-09-07.**
+2. ~~Poner ese archivo en `ios/Runner/GoogleService-Info.plist`.~~
+   **Hecho el 2026-09-07** — el archivo ya está en el repo. **Sigue
+   pendiente:** agregarlo al target Runner **desde Xcode** (arrastrarlo
+   al navegador de proyecto con "Copy items if needed" y el target
+   Runner marcado) — sin ese paso Xcode lo ve en disco pero no lo
+   empaqueta, y eso sí necesita Mac.
+3. ~~Completar el bloque `iOS` de `lib/firebase_options.dart` con los
+   valores reales del plist descargado.~~ **Hecho el 2026-09-07** — ya
+   no lanza `UnsupportedError`, regresa `ios` con `apiKey`, `appId`,
+   `messagingSenderId`, `projectId`, `storageBucket`, `iosBundleId` e
+   `iosClientId` reales.
+4. ~~Agregar el esquema de URL de Google Sign-In a
    `ios/Runner/Info.plist` (`CFBundleURLTypes` con el
-   `REVERSED_CLIENT_ID` del plist) — sin esto el login de Google abre
-   Safari y no regresa a la app.
+   `REVERSED_CLIENT_ID` del plist).~~ **Hecho el 2026-09-07** — sin
+   esto el login de Google abriría Safari y no regresaría a la app.
 5. Dentro de `ios/`: `flutter pub get` y `pod install` (CocoaPods,
    solo corre en macOS).
 6. Abrir `ios/Runner.xcworkspace` (no el `.xcodeproj`) en Xcode →
@@ -309,9 +312,9 @@ este orden, para no ir y venir:
   documentado en `CLAUDE.md`) — distinta de la importación de CSV "siempre
   disponible" que sí se implementó (`lib/ui/importacion/`), que reusa
   `movimiento_migrado.dart` pero no exige totales declarados que cuadren.
-- Todo el Bloque 6 (iOS): el árbol está preparado para recibir Firebase
-  iOS y Apple Sign-In, pero nada de eso se implementó en esta sesión — no
-  hay forma de verificarlo sin Mac de cualquier manera.
+- El resto del Bloque 6 (iOS) más allá de lo hecho el 2026-09-07 (ver
+  "Próxima sesión con Mac" arriba): CocoaPods, firma con Xcode, Apple
+  Sign-In. Nada de eso se puede verificar sin Mac de cualquier manera.
 
 ## Verificación end-to-end antes de publicar
 
