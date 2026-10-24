@@ -1,8 +1,9 @@
-// Generado a mano a partir de android/app/google-services.json y
-// ios/Runner/GoogleService-Info.plist — el equivalente de lo que
-// produciría `flutterfire configure`, sin necesitar el CLI de Firebase
-// autenticado (ver memoria del proyecto:
-// firebase-cli-sin-login-usar-consola-web).
+// Generado a mano a partir de android/app/google-services.json — el
+// equivalente de lo que produciría `flutterfire configure`, sin necesitar
+// el CLI de Firebase autenticado (ver memoria del proyecto:
+// firebase-cli-sin-login-usar-consola-web). El bloque iOS sale de
+// ios/Runner/GoogleService-Info.plist (app registrada en Firebase con el
+// bundle ID unificado com.manuelelizalde.appfinanzas).
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
@@ -35,16 +36,14 @@ class DefaultFirebaseOptions {
     storageBucket: 'app-finanzas-27e41.firebasestorage.app',
   );
 
-  // De ios/Runner/GoogleService-Info.plist (app iOS registrada en Firebase
-  // el 2026-09-07, bundle id com.manuelelizalde.appfinanzas).
   static const ios = FirebaseOptions(
     apiKey: 'AIzaSyCjVGekh_XYPIEOmcEVelwRrb6MOq9UZw8',
     appId: '1:549374317068:ios:1cd15f6a3ef15a90055429',
     messagingSenderId: '549374317068',
     projectId: 'app-finanzas-27e41',
     storageBucket: 'app-finanzas-27e41.firebasestorage.app',
-    iosBundleId: 'com.manuelelizalde.appfinanzas',
     iosClientId:
         '549374317068-sf9bfi3tq20d17ejmu7vaskom05oa4mu.apps.googleusercontent.com',
+    iosBundleId: 'com.manuelelizalde.appfinanzas',
   );
 }

@@ -24,9 +24,17 @@ un requisito técnico para esto** — Apple solo lo exige en revisión de
 App Store/TestFlight, así que el resto del Bloque 6 (iOS) sigue sin
 necesitarlo mientras no se publique.
 
-Orden de los pasos (los primeros 4 no necesitan Mac, se hicieron ya
-desde Windows/navegador el 2026-09-07 — quedan aquí marcados para que
-la sesión con Mac empiece directo en el paso 5):
+**Estado al 2026-10-22 (primera sesión con Mac):** pasos 1–6 hechos
+(Firebase iOS registrado, plist en el target, `firebase_options.dart`,
+esquema de URL, Team = Personal Team). El paso 5 ya no aplica: Flutter
+usa Swift Package Manager, no CocoaPods. La app compila y arranca en el
+simulador de iPhone. Pendiente: login de Google en el simulador y los
+pasos 7–8 con el iPhone físico (no había cable a la mano). En el
+simulador el emoji 💰 de `pantalla_login.dart` se pinta como "?" —
+revisar si también pasa en el iPhone real.
+
+Orden de los pasos la primera vez que haya Mac a la mano (el paso 1 no
+necesita Mac, se puede hacer antes desde cualquier navegador):
 
 1. ~~**Registrar la app iOS en Firebase**: Firebase Console → engrane →
    Configuración del proyecto → tus apps → Agregar app → iOS → Bundle
