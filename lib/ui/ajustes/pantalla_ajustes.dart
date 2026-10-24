@@ -88,11 +88,24 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       final archivo = File('${temporal.path}/plantilla_importacion.csv');
       await archivo.writeAsString(generarPlantillaCsvDeEjemplo());
       await SharePlus.instance.share(
-        ShareParams(files: [XFile(archivo.path)], subject: 'Plantilla de importación — App Finanzas'),
+        ShareParams(
+          files: [XFile(archivo.path)],
+          subject: 'Plantilla de importación — App Finanzas',
+          sharePositionOrigin: _origenCompartir(),
+        ),
       );
     } finally {
       if (mounted) setState(() => _procesando = false);
     }
+  }
+
+  /// En iPad la hoja de compartir es un popover y necesita un ancla en
+  /// pantalla; sin ella `SharePlus` lanza y no se abre nada. En iPhone y
+  /// Android se ignora.
+  Rect? _origenCompartir() {
+    final caja = context.findRenderObject() as RenderBox?;
+    if (caja == null || !caja.hasSize) return null;
+    return caja.localToGlobal(Offset.zero) & caja.size;
   }
 
   void _irAComoFunciona() {
@@ -121,7 +134,11 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       await archivo.writeAsString(csv);
 
       await SharePlus.instance.share(
-        ShareParams(files: [XFile(archivo.path)], subject: 'Mis gastos — App Finanzas'),
+        ShareParams(
+          files: [XFile(archivo.path)],
+          subject: 'Mis gastos — App Finanzas',
+          sharePositionOrigin: _origenCompartir(),
+        ),
       );
     } finally {
       if (mounted) setState(() => _procesando = false);

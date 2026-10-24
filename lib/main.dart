@@ -64,6 +64,15 @@ class AppFinanzas extends StatelessWidget {
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       supportedLocales: const [Locale('es', 'MX')],
       locale: const Locale('es', 'MX'),
+      // El teclado numérico de iOS no trae tecla para cerrarse (el de
+      // Android sí) y tapa "Listo" en las pantallas de captura: tocar fuera
+      // de un campo lo cierra, como en las apps nativas. Los toques sobre
+      // botones y chips los ganan ellos, así que no se pierden.
+      builder: (context, child) => GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: child,
+      ),
       home: const _CompuertaAuth(),
     );
   }

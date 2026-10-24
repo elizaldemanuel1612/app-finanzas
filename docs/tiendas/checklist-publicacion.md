@@ -46,6 +46,17 @@ procesar el audio en servidores de Apple; ahora coincide con
 `docs/legal/privacidad.md`. Pendiente en iPhone físico: cámara real,
 dictado con voz real y emojis.
 
+**Segunda revisión para iPhone real (2026-10-24):** `flutter build ios
+--release --no-codesign` compila (25.4 MB). Dos diferencias de iOS
+corregidas: (1) el teclado decimal de iOS no trae tecla para cerrarse y
+tapaba "Listo" en las capturas — `main.dart` ahora cierra el teclado al
+tocar fuera de un campo (`MaterialApp.builder`); (2) `TARGETED_DEVICE_FAMILY
+= "1,2"` deja instalar en iPad, donde `SharePlus` sin
+`sharePositionOrigin` lanza — `pantalla_ajustes.dart` ahora pasa el ancla
+al exportar y al compartir la plantilla. Verificado en simulador: captura
+completa con el teclado en pantalla (escribir monto, cerrar teclado,
+Listo) y exportar CSV.
+
 Orden de los pasos la primera vez que haya Mac a la mano (el paso 1 no
 necesita Mac, se puede hacer antes desde cualquier navegador):
 
