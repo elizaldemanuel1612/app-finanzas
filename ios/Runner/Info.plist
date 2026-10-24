@@ -53,7 +53,7 @@
 		<key>NSMicrophoneUsageDescription</key>
 		<string>Se usa el micrófono para registrar gastos por voz.</string>
 		<key>NSSpeechRecognitionUsageDescription</key>
-		<string>Se usa el reconocimiento de voz para transcribir tus gastos dictados, en el dispositivo.</string>
+		<string>Se usa el reconocimiento de voz del sistema para transcribir los gastos que dictas. La app no guarda el audio.</string>
 		<key>NSCameraUsageDescription</key>
 		<string>Se usa la cámara para fotografiar tickets de compra.</string>
 		<key>NSPhotoLibraryUsageDescription</key>

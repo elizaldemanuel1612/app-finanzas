@@ -31,7 +31,20 @@ usa Swift Package Manager, no CocoaPods. La app compila y arranca en el
 simulador de iPhone. Pendiente: login de Google en el simulador y los
 pasos 7–8 con el iPhone físico (no había cable a la mano). En el
 simulador el emoji 💰 de `pantalla_login.dart` se pinta como "?" —
-revisar si también pasa en el iPhone real.
+revisar si también pasa en el iPhone real. Causa confirmada en el log
+del simulador: al runtime iOS 26.3 le falta `AppleColorEmoji.ttc`
+(CoreText cae a LastResort), así que es del simulador, no de la app.
+
+**Prueba manual en simulador (2026-10-24):** login de Google, inicio,
+Gastos, Categorías, Ajustes, exportar CSV (hoja de compartir), importar
+(selector de Archivos), guía, ciclos anteriores, diálogo "¿Descartar lo
+capturado?", permisos de voz/micrófono/cámara y dictado escuchando — todo
+bien. "Tomar foto" muestra "Camera not available" (el simulador no tiene
+cámara). Se corrigió `NSSpeechRecognitionUsageDescription`: decía "en el
+dispositivo", pero `hoja_dictado.dart` no pide `onDevice` y iOS puede
+procesar el audio en servidores de Apple; ahora coincide con
+`docs/legal/privacidad.md`. Pendiente en iPhone físico: cámara real,
+dictado con voz real y emojis.
 
 Orden de los pasos la primera vez que haya Mac a la mano (el paso 1 no
 necesita Mac, se puede hacer antes desde cualquier navegador):
