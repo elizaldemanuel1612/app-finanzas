@@ -57,6 +57,34 @@ al exportar y al compartir la plantilla. Verificado en simulador: captura
 completa con el teclado en pantalla (escribir monto, cerrar teclado,
 Listo) y exportar CSV.
 
+**Widget y atajo de Siri (2026-10-24, spec §5.6) — hecho en iOS:**
+widget "Cuánto queda hoy" (chico, mediano, pantalla bloqueada
+rectangular/en línea), botones redondos "Registrar gasto" y "Dictar
+gasto" para la pantalla bloqueada, control "Dictar gasto" del Centro de
+Control (iOS 18+) y App Shortcut "Registra un gasto en App Finanzas".
+Verificado en el simulador: el widget muestra el dato real y se
+actualiza al registrar ($828.15 → $818.15 tras un gasto de $190);
+"Gasto" y "Dictar" abren la captura / el dictado en caliente y en frío;
+el atajo aparece en la app Atajos y abre el dictado; el control abre el
+dictado; no se apilan capturas. **No probado:** los widgets de pantalla
+bloqueada (sí compilan) y Siri por voz real.
+
+- [ ] **App Group con Apple ID gratuito.** El widget lee el dato de
+      `group.com.manuelelizalde.appfinanzas` (`Runner.entitlements` y
+      `WidgetsFinanzas.entitlements`). Si al firmar para el iPhone Xcode
+      dice que el "Personal Team" no soporta App Groups, quitar
+      `CODE_SIGN_ENTITLEMENTS` de los dos targets (o vaciar el arreglo de
+      los dos `.entitlements`): todo lo demás sigue funcionando y el widget
+      muestra solo los botones con "Abre la app" en vez del monto. Con la
+      cuenta de pago se vuelve a poner.
+- [ ] El widget es una extensión con su propio bundle ID
+      (`com.manuelelizalde.appfinanzas.WidgetsFinanzas`): con firma
+      gratuita cuenta como otro App ID del límite semanal de Apple.
+- [ ] **Android:** falta la contraparte (Glance + App Actions "Ok Google,
+      registra un gasto") — `lib/plataforma/accesos_rapidos.dart` ya es un
+      no-op fuera de iOS, así que solo hay que agregar el lado nativo y
+      quitar esa guarda.
+
 Orden de los pasos la primera vez que haya Mac a la mano (el paso 1 no
 necesita Mac, se puede hacer antes desde cualquier navegador):
 

@@ -32,7 +32,19 @@
 					<string>com.googleusercontent.apps.549374317068-sf9bfi3tq20d17ejmu7vaskom05oa4mu</string>
 				</array>
 			</dict>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Viewer</string>
+				<key>CFBundleURLName</key>
+				<string>com.manuelelizalde.appfinanzas.accesos</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>appfinanzas</string>
+				</array>
+			</dict>
 		</array>
+		<key>FlutterDeepLinkingEnabled</key>
+		<false/>
 		<key>GIDClientID</key>
 		<string>549374317068-sf9bfi3tq20d17ejmu7vaskom05oa4mu.apps.googleusercontent.com</string>
 		<key>CFBundleVersion</key>

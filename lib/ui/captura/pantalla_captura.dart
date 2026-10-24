@@ -57,6 +57,12 @@ class PantallaCaptura extends StatefulWidget {
   /// iniciara sesión en el dispositivo).
   final Directory documentos;
 
+  /// Abre el dictado en cuanto aparece la pantalla — es lo que piden el
+  /// botón "Dictar" del widget y el atajo de Siri (spec-app-finanzas-v2.md
+  /// §5.6). El dictado llena el formulario y el usuario confirma con
+  /// "Listo", igual que si hubiera tocado el micrófono.
+  final bool iniciarDictado;
+
   const PantallaCaptura({
     super.key,
     required this.perfil,
@@ -66,6 +72,7 @@ class PantallaCaptura extends StatefulWidget {
     required this.cicloRepositorio,
     required this.documentos,
     this.paraEditar,
+    this.iniciarDictado = false,
   });
 
   @override
@@ -118,6 +125,11 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
       });
     } else {
       _descripcionControlador.addListener(_sugerirCategoriaPorDescripcion);
+    }
+    if (widget.iniciarDictado) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _dictar();
+      });
     }
   }
 
@@ -448,7 +460,8 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
               const SizedBox(height: 8),
               TextField(
                 controller: _montoControlador,
-                autofocus: true,
+                // Con el dictado abriéndose, el teclado solo estorbaría.
+                autofocus: !widget.iniciarDictado,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),

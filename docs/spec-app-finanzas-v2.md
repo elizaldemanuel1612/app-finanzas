@@ -156,6 +156,16 @@ Widget en pantalla de inicio para capturar en 1 tap, y atajo por voz del asisten
 
 Es el **único código que se escribe dos veces** (WidgetKit + App Intents en iOS, Glance + App Actions en Android). Por eso se mantienen deliberadamente simples: muestran un solo dato y abren un solo flujo.
 
+**El dato: cuánto queda hoy.** Lo que queda del presupuesto de las categorías **variables** del ciclo, repartido parejo entre los días que faltan contando hoy:
+
+`quedaHoy = max(0, presupuestoVariables − gastadoVariables) ÷ (díasParaTerminar + 1)`
+
+redondeado hacia abajo al centavo, para no prometer más de lo que hay. Las fijas no entran: ya tienen su monto apartado y no se "gastan por día". `presupuestoVariables` es el mismo que muestra Inicio en "Gastos Variables" (con los ajustes del ciclo aplicados). Lo calcula `domain/presupuesto/disponible_por_dia.dart`; la app lo publica al widget cada vez que Inicio se recalcula, y el widget nunca calcula nada por su cuenta.
+
+**Los flujos.** El widget abre la captura (botón "Gasto") o la captura con el dictado ya escuchando (botón "Dictar"). El atajo de voz abre siempre el dictado. Siri no permite montos ni texto libre dentro de la frase que lo activa, así que es en dos pasos: "Oye Siri, registra un gasto en App Finanzas" → la app abre escuchando → "40 de cine en salidas con tarjeta" → el mismo `parsearDictado` de siempre llena la captura y el usuario confirma con "Listo".
+
+**iOS.** El widget lee el dato de un App Group (`group.com.manuelelizalde.appfinanzas`). Si el App Group no está disponible (por ejemplo, con firma de Apple ID gratuito), el widget muestra solo los botones y la app no falla.
+
 ---
 
 ## 6. Categorización con IA: controlada y con costo acotado

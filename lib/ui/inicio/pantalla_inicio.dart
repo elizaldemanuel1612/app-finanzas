@@ -16,10 +16,12 @@ import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
+import '../../domain/presupuesto/disponible_por_dia.dart';
 import '../../domain/presupuesto/meta_base.dart';
 import '../../domain/rollups/calcular_rollups.dart';
 import '../../domain/rollups/estado_ritmo.dart';
 import '../../domain/rollups/rollup.dart';
+import '../../plataforma/accesos_rapidos.dart';
 import '../ajustes/pantalla_ajustes.dart';
 import '../captura/pantalla_captura.dart';
 import '../categorias/pantalla_categorias.dart';
@@ -73,6 +75,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
   _DatosInicio? _datos;
   bool _variablesExpandido = true;
   bool _fijasExpandido = true;
+  bool _capturaAbierta = false;
 
   @override
   void initState() {
@@ -84,12 +87,38 @@ class _PantallaInicioState extends State<PantallaInicio> {
       ahora: DateTime.now(),
     );
     _cargar();
+    AccesosRapidos.escuchar(_abrirAccesoRapido);
+  }
+
+  @override
+  void dispose() {
+    AccesosRapidos.dejarDeEscuchar();
+    super.dispose();
+  }
+
+  /// El widget de inicio o Siri pidieron abrir la captura (§5.6). Se abre
+  /// encima de lo que haya, sin cerrar pantallas. Si ya hay una captura
+  /// abierta no se apila otra: el usuario ya está ahí (y el micrófono está
+  /// a un toque).
+  void _abrirAccesoRapido(AccesoRapido acceso) {
+    if (!mounted || _capturaAbierta) return;
+    _irACaptura(iniciarDictado: acceso == AccesoRapido.dictar);
   }
 
   Future<void> _cargar() async {
     final datos = await _cargarDatos();
     if (!mounted) return;
     setState(() => _datos = datos);
+    final hoy = DateTime.now();
+    AccesosRapidos.publicarDisponibleHoy(
+      calcularDisponiblePorDia(
+        presupuestoVariables: datos.presupuestoVariables,
+        gastadoVariables: datos.gastadoVariables,
+        ciclo: _ciclo,
+        hoy: hoy,
+      ),
+      hoy,
+    );
   }
 
   Future<_DatosInicio> _cargarDatos() async {
@@ -183,10 +212,11 @@ class _PantallaInicioState extends State<PantallaInicio> {
     );
   }
 
-  Future<void> _irACaptura() async {
+  Future<void> _irACaptura({bool iniciarDictado = false}) async {
     // Object? en vez de Movimiento: el dictado por voz puede registrar
     // varios movimientos de golpe y regresa un sentinel (true), no un
     // único Movimiento — cualquier resultado no nulo dispara el refresco.
+    _capturaAbierta = true;
     final registrado = await Navigator.of(context).push<Object?>(
       MaterialPageRoute(
         builder: (_) => PantallaCaptura(
@@ -196,9 +226,11 @@ class _PantallaInicioState extends State<PantallaInicio> {
           reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
           cicloRepositorio: widget.cicloRepositorio,
           documentos: widget.almacenLocal.directorio,
+          iniciarDictado: iniciarDictado,
         ),
       ),
     );
+    _capturaAbierta = false;
     if (registrado != null) await _cargar();
   }
 
