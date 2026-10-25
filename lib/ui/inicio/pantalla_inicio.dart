@@ -23,6 +23,7 @@ import '../../domain/rollups/estado_ritmo.dart';
 import '../../domain/rollups/rollup.dart';
 import '../../plataforma/accesos_rapidos.dart';
 import '../ajustes/pantalla_ajustes.dart';
+import '../analisis/pantalla_analisis.dart';
 import '../captura/pantalla_captura.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../categorias/pantalla_detalle_categoria.dart';
@@ -73,6 +74,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
   late double _avanceCiclo;
   late Perfil _perfil = widget.perfil;
   _DatosInicio? _datos;
+  Dinero? _disponibleHoy;
   bool _variablesExpandido = true;
   bool _fijasExpandido = true;
   bool _capturaAbierta = false;
@@ -115,17 +117,18 @@ class _PantallaInicioState extends State<PantallaInicio> {
   Future<void> _cargar() async {
     final datos = await _cargarDatos();
     if (!mounted) return;
-    setState(() => _datos = datos);
     final hoy = DateTime.now();
-    AccesosRapidos.publicarDisponibleHoy(
-      calcularDisponiblePorDia(
-        presupuestoVariables: datos.presupuestoVariables,
-        gastadoVariables: datos.gastadoVariables,
-        ciclo: _ciclo,
-        hoy: hoy,
-      ),
-      hoy,
+    final disponibleHoy = calcularDisponiblePorDia(
+      presupuestoVariables: datos.presupuestoVariables,
+      gastadoVariables: datos.gastadoVariables,
+      ciclo: _ciclo,
+      hoy: hoy,
     );
+    setState(() {
+      _datos = datos;
+      _disponibleHoy = disponibleHoy;
+    });
+    AccesosRapidos.publicarDisponibleHoy(disponibleHoy, hoy);
   }
 
   Future<_DatosInicio> _cargarDatos() async {
@@ -257,6 +260,28 @@ class _PantallaInicioState extends State<PantallaInicio> {
           ),
         )
         .then((_) => _cargar());
+  }
+
+  Future<void> _irAAnalisis() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaAnalisis(
+          perfil: _perfil,
+          ciclo: _ciclo,
+          categoriaRepositorio: widget.categoriaRepositorio,
+          movimientoRepositorio: widget.movimientoRepositorio,
+          ajustePresupuestoCicloRepositorio: widget.ajustePresupuestoCicloRepositorio,
+          ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+          alVerCategoria: (id) {
+            final categoria = _datos?.categorias.where((c) => c.id == id).firstOrNull;
+            if (categoria != null) _irADetalle(categoria);
+          },
+          alVerGastos: _irAGastos,
+          alVerMeta: _irAMeta,
+        ),
+      ),
+    );
+    await _cargar();
   }
 
   Future<void> _irACategorias() async {
@@ -406,7 +431,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
               const _BotonBarra(icono: Icons.home_rounded, etiqueta: 'Inicio', activo: true),
               _BotonBarra(icono: Icons.receipt_long_outlined, etiqueta: 'Gastos', onTap: _irAGastos),
               const SizedBox(width: 72),
-              _BotonBarra(icono: Icons.grid_view_rounded, etiqueta: 'Categorías', onTap: _irACategorias),
+              _BotonBarra(icono: Icons.insights_rounded, etiqueta: 'Análisis', onTap: _irAAnalisis),
               _BotonBarra(icono: Icons.settings_outlined, etiqueta: 'Ajustes', onTap: _irAAjustes),
             ],
           ),
@@ -461,6 +486,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
           disponibleParaInvertir: datos.disponibleParaInvertir,
           onTapIngreso: _irAIngresos,
         ),
+        if (_disponibleHoy != null && datos.presupuestoVariables.esPositivo)
+          _TarjetaHoyPuedes(disponible: _disponibleHoy!, onTap: _irAAnalisis),
         _TarjetaMeta(
           meta: datos.metaDelCiclo,
           metricas: datos.metricasMeta,
@@ -883,6 +910,63 @@ class _BotonBarra extends StatelessWidget {
                   fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Hoy puedes gastar": lo que queda de las variables repartido parejo
+/// entre los días que faltan (spec §5.6, mismo dato que el widget). En las
+/// apps mejor calificadas es de lo que más se usa: responde sin hacer
+/// cuentas (docs/investigacion-apps-finanzas.md).
+class _TarjetaHoyPuedes extends StatelessWidget {
+  final Dinero disponible;
+  final VoidCallback onTap;
+
+  const _TarjetaHoyPuedes({required this.disponible, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final agotado = !disponible.esPositivo;
+    return Card(
+      margin: const EdgeInsets.only(top: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(color: ColoresApp.azulSuave, shape: BoxShape.circle),
+                child: const Icon(Icons.today_rounded, color: ColoresApp.azul),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Hoy puedes gastar', style: textos.bodySmall),
+                    Text(
+                      agotado ? 'Ya usaste tus variables' : disponible.formateado(),
+                      style: textos.titleMedium,
+                    ),
+                    Text(
+                      agotado
+                          ? 'Nada grave: en Análisis ves de dónde ajustar.'
+                          : 'en tus gastos variables, para llegar parejo al cierre',
+                      style: textos.labelSmall,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: ColoresApp.medio),
             ],
           ),
         ),

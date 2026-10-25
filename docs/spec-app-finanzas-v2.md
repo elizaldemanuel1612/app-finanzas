@@ -181,6 +181,34 @@ redondeado hacia abajo al centavo, para no prometer más de lo que hay. Las fija
 
 **iOS.** El widget lee el dato de un App Group (`group.com.manuelelizalde.appfinanzas`). Si el App Group no está disponible (por ejemplo, con firma de Apple ID gratuito), el widget muestra solo los botones y la app no falla.
 
+### 5.7 [NUEVO] Pestaña Análisis
+Una pestaña propia (barra inferior: Inicio · Gastos · ＋ · Análisis · Ajustes) que convierte lo registrado en respuestas: ¿en qué se va?, ¿voy bien?, ¿qué cambió?, ¿qué hago? Por qué: en las apps mejor calificadas (Copilot, Monarch, YNAB, Spendee) lo que más elogian los usuarios, después de la captura rápida, son los reportes claros, la comparación contra el mes anterior y los avisos accionables (ver `docs/investigacion-apps-finanzas.md`).
+
+Todo se calcula en `domain/analisis/` (Dart puro, sin red) sobre los movimientos activos; la UI solo dibuja.
+
+**Bloques, en este orden:**
+1. **Resumen del ciclo:** gastado, "van N de M días", promedio por día de las variables y "si sigues a este ritmo, tus variables cierran en $X" (proyección lineal **solo de variables**, regla #9; siempre con su frase, regla #23).
+2. **Recomendaciones** (máximo 5, las más importantes primero), cada una con una salida concreta (regla #22) y en el tono de addendum-v3 §4.4: nunca reprender.
+   - *Te pasaste* — variable con gasto > presupuesto. Si otra variable va holgada, se sugiere moverle presupuesto (el rebalanceo de siempre, desde el detalle).
+   - *Ya usaste todo* — variable que llegó justo a su presupuesto (o le quedan centavos) con días por delante.
+   - *Va rápido* — variable que a su ritmo cerraría arriba de su presupuesto (desde el día 3). Dice cuánto arriba y el máximo por día para llegar justo.
+   - *Más que el ciclo pasado* — variable que, a los mismos días transcurridos, lleva ≥ 25 % más que el ciclo anterior (y ≥ $300 de diferencia, con ≥ $200 de base).
+   - *Gastos pequeños* — 6 o más gastos de $150 o menos que suman ≥ 10 % de las variables del ciclo.
+   - *Tu día de más gasto* — un día de la semana con promedio ≥ 1.8 veces el de los demás, con al menos 14 días de datos.
+   - *Te está sobrando* — variable de ≥ $500 que, pasada la mitad del ciclo, lleva menos de la mitad de lo que tocaría a su ritmo.
+   - *Tu meta* — apartado proyectado (ingreso − fijas − variables proyectadas) contra la meta del ciclo: a favor, en juego (con cuánto menos al día llega) o, si los gastos pasarían lo que entra, cuánto faltaría.
+   - *Vas abajo del ciclo pasado* — variables totales ≤ 85 % de lo que llevabas el ciclo anterior a los mismos días.
+3. **¿En qué se va?** — dona por categoría (fijas y variables) con lista: monto y % del gasto.
+4. **Ritmo del ciclo** — gasto acumulado de variables por día contra la línea pareja de su presupuesto.
+5. **Contra el ciclo pasado** — por categoría, lo de este ciclo contra lo del anterior **a los mismos días transcurridos** (addendum-v3 §2.4: comparación honesta, nunca contra el ciclo anterior completo).
+6. **Últimos ciclos** — total gastado de hasta 6 ciclos, el actual marcado como "en curso".
+7. **¿Qué día gastas más?** — promedio por día de la semana de las variables (últimos 90 días).
+8. **Dónde más gastas** — las 5 descripciones con más gasto en **variables** del ciclo (texto normalizado; sin descripción no entra; las fijas ya se conocen).
+9. **Tarjeta y efectivo** — reparto del gasto del ciclo por medio de pago.
+
+Montos siempre en `Dinero`; los porcentajes y promedios se redondean en la frontera, como el MPC.
+
+
 ---
 
 ## 6. Categorización con IA: controlada y con costo acotado

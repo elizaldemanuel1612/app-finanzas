@@ -331,6 +331,12 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                   onTap: _irAMetaAhorro,
                 ),
                 _Renglon(
+                  icono: Icons.grid_view_rounded,
+                  titulo: 'Categorías',
+                  subtitulo: 'Crear, editar o archivar tus categorías',
+                  onTap: _irACategorias,
+                ),
+                _Renglon(
                   icono: Icons.event_repeat,
                   titulo: 'Día de corte',
                   subtitulo: _subtituloCorte,

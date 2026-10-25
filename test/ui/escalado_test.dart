@@ -8,6 +8,7 @@ import 'package:app_finanzas/domain/modelos/categoria.dart';
 import 'package:app_finanzas/domain/modelos/estado_movimiento.dart';
 import 'package:app_finanzas/domain/modelos/movimiento.dart';
 import 'package:app_finanzas/domain/modelos/perfil.dart';
+import 'package:app_finanzas/ui/analisis/pantalla_analisis.dart';
 import 'package:app_finanzas/ui/gastos/pantalla_gastos.dart';
 import 'package:app_finanzas/ui/inicio/pantalla_inicio.dart';
 import 'package:flutter/material.dart';
@@ -134,6 +135,34 @@ void main() {
         ),
       );
 
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('PantallaAnalisis no desborda a ${escala}x', (tester) async {
+      final categorias = [_renta, _super, _transporte];
+      final movimientos = _movimientosDeHoy();
+
+      await _pumpEscalado(
+        tester,
+        escala: escala,
+        home: PantallaAnalisis(
+          perfil: _perfil,
+          ciclo: _perfil.calculadoraCiclo.calcularPara(DateTime.now()),
+          categoriaRepositorio: CategoriaRepositorioMemoria(categorias),
+          movimientoRepositorio: MovimientoRepositorioMemoria(movimientos),
+          ajustePresupuestoCicloRepositorio: AjustePresupuestoCicloRepositorioMemoria(),
+          ingresoExtraRepositorio: IngresoExtraRepositorioMemoria(const []),
+          alVerCategoria: (_) {},
+          alVerGastos: () {},
+          alVerMeta: () {},
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Llevas gastado'), findsOneWidget);
+      // Recorre la pantalla completa para que cada bloque se construya.
+      await tester.scrollUntilVisible(find.text('Tarjeta y efectivo'), 300);
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
   }
