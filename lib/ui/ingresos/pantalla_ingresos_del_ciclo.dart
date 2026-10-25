@@ -9,6 +9,7 @@ import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
 import '../../domain/modelos/ingreso_extra.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/meta_base.dart';
+import '../../domain/presupuesto/reajuste_ingreso.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/formato_fecha.dart';
 import '../comun/tema.dart';
@@ -117,11 +118,67 @@ class _PantallaIngresosDelCicloState extends State<PantallaIngresosDelCiclo> {
       ),
     );
     if (nuevo == null || !nuevo.esPositivo || !mounted) return;
+    final anterior = _perfil.ingresoBaseMensual;
+    if (nuevo == anterior) return;
 
-    final actualizado = _perfil.copyWith(ingresoBaseMensual: nuevo);
+    var actualizado = _perfil.copyWith(ingresoBaseMensual: nuevo);
     await widget.perfilRepositorio.guardar(actualizado);
     if (!mounted) return;
     setState(() => _perfil = actualizado);
+
+    // Los presupuestos son montos, no porcentajes: si el ingreso cambió,
+    // se ofrece reescalarlos en la misma proporción (addendum-v3 §2.5.1).
+    // Nunca se hace sin preguntar.
+    final categorias = await widget.categoriaRepositorio.listarTodas();
+    final totalAntes = totalPresupuestado(categorias);
+    if (!totalAntes.esPositivo || !mounted) {
+      await _cargar();
+      return;
+    }
+    final reajuste = reajustarAlNuevoIngreso(
+      categorias: categorias,
+      meta: actualizado.metaApartado,
+      ingresoAnterior: anterior,
+      ingresoNuevo: nuevo,
+    );
+    final totalDespues = totalPresupuestado(reajuste.categorias);
+    final ajustar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Ajusto tus categorías?'),
+        content: Text(
+          'Tu ingreso pasó de ${anterior.formateado()} a ${nuevo.formateado()}. '
+          'Tus categorías suman ${totalAntes.formateado()}; en la misma '
+          'proporción quedarían en ${totalDespues.formateado()}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Dejar como están'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Ajustar'),
+          ),
+        ],
+      ),
+    );
+    if (ajustar == true) {
+      for (final c in reajuste.categorias) {
+        await widget.categoriaRepositorio.guardar(c);
+      }
+      final meta = reajuste.meta;
+      if (meta != null && meta != actualizado.metaApartado) {
+        actualizado = actualizado.copyWith(metaApartado: meta);
+        await widget.perfilRepositorio.guardar(actualizado);
+      }
+      if (!mounted) return;
+      setState(() => _perfil = actualizado);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Listo: tus categorías quedaron en proporción a tu nuevo ingreso.')),
+      );
+    }
+    await _cargar();
   }
 
   Future<void> _registrarOtro() async {

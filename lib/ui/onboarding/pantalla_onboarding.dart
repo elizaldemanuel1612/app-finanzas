@@ -23,14 +23,17 @@ import '../meta/selector_meta.dart';
 enum _TipoCiclo { corte, mesNatural, otroDia }
 
 /// Una de las 8 categorías sugeridas del prototipo interactivo
-/// (`app-finanzas-onboarding-INTERACTIVO.html`, arreglo `CATS`).
+/// (`app-finanzas-onboarding-INTERACTIVO.html`, arreglo `CATS`). Ninguna
+/// trae un monto absoluto de fábrica: todas se sugieren repartiendo por
+/// [peso] lo disponible, así que siempre son proporcionales al ingreso
+/// capturado (addendum-v3-ajuste-y-ux.md §2.5.1). [fijaSugerida] solo
+/// decide si arranca marcada como "Fijo".
 final class _CategoriaSugerida {
   final String id;
   final String emoji;
   final String nombre;
   final int peso;
   final bool fijaSugerida;
-  final int montoSugeridoPesos;
 
   const _CategoriaSugerida({
     required this.id,
@@ -38,19 +41,18 @@ final class _CategoriaSugerida {
     required this.nombre,
     required this.peso,
     this.fijaSugerida = false,
-    this.montoSugeridoPesos = 0,
   });
 }
 
 const _categoriasSugeridas = [
-  _CategoriaSugerida(id: 'vivienda', emoji: '🏠', nombre: 'Vivienda', peso: 30, fijaSugerida: true, montoSugeridoPesos: 15700),
+  _CategoriaSugerida(id: 'vivienda', emoji: '🏠', nombre: 'Vivienda', peso: 30, fijaSugerida: true),
   _CategoriaSugerida(id: 'super', emoji: '🛒', nombre: 'Súper', peso: 25),
   _CategoriaSugerida(id: 'salidas', emoji: '🍿', nombre: 'Salidas', peso: 20),
   _CategoriaSugerida(id: 'auto', emoji: '🚗', nombre: 'Auto', peso: 15),
   _CategoriaSugerida(id: 'salud', emoji: '💊', nombre: 'Salud', peso: 10),
   _CategoriaSugerida(id: 'hijos', emoji: '👶', nombre: 'Hijos', peso: 14),
-  _CategoriaSugerida(id: 'gimnasio', emoji: '🏋️', nombre: 'Gimnasio', peso: 4, fijaSugerida: true, montoSugeridoPesos: 700),
-  _CategoriaSugerida(id: 'suscripciones', emoji: '🎵', nombre: 'Suscripciones', peso: 3, fijaSugerida: true, montoSugeridoPesos: 500),
+  _CategoriaSugerida(id: 'gimnasio', emoji: '🏋️', nombre: 'Gimnasio', peso: 4, fijaSugerida: true),
+  _CategoriaSugerida(id: 'suscripciones', emoji: '🎵', nombre: 'Suscripciones', peso: 3, fijaSugerida: true),
 ];
 
 const _seleccionInicial = {'vivienda', 'super', 'salidas', 'auto', 'salud'};
@@ -91,7 +93,8 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
 
   // Paso 1 — ¿Cuándo empieza tu mes?
   _TipoCiclo _tipoCiclo = _TipoCiclo.corte;
-  int _diaCorte = 12;
+  // Día 1 como punto de partida neutro: no sugerir el corte de nadie.
+  int _diaCorte = 1;
 
   // Paso 2 — ¿Cuánto entra al mes?
   final _ingresoControlador = TextEditingController();
@@ -211,20 +214,18 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
     final disponible = _disponibleParaCategorias();
     final montos = <String, Dinero>{};
 
+    // Lo que el usuario escribió a mano se respeta tal cual (regla #10:
+    // nadie le mueve un monto que ya decidió); todo lo demás — fijo o
+    // variable — sale del reparto por peso, proporcional al ingreso.
     for (final c in _categoriasSugeridas) {
       if (!_seleccionadas.contains(c.id)) continue;
-      if (_marcadasComoFijas.contains(c.id) || _montosEditados.containsKey(c.id)) {
-        montos[c.id] = _montosEditados[c.id] ??
-            Dinero.pesos(c.montoSugeridoPesos); // solo aplica a fijas sin editar
-      }
+      final editado = _montosEditados[c.id];
+      if (editado != null) montos[c.id] = editado;
     }
 
     final variablesAuto = [
       for (final c in _categoriasSugeridas)
-        if (_seleccionadas.contains(c.id) &&
-            !_marcadasComoFijas.contains(c.id) &&
-            !_montosEditados.containsKey(c.id))
-          c,
+        if (_seleccionadas.contains(c.id) && !_montosEditados.containsKey(c.id)) c,
     ];
     final disponibleParaAuto = disponible - Dinero.suma(montos.values);
     final repartido = repartirPorPesos(
@@ -242,7 +243,15 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
     final montos = _montosCalculados();
     for (final c in _categoriasSugeridas) {
       final monto = montos[c.id];
-      if (monto == null || !monto.esPositivo) continue;
+      if (monto == null || !monto.esPositivo) {
+        // Si regresó y la desmarcó, la que ya se había guardado se archiva
+        // en vez de quedar activa con el monto de la primera vuelta.
+        final previa = await widget.categoriaRepositorio.buscarPorId(c.id);
+        if (previa != null && previa.activa) {
+          await widget.categoriaRepositorio.guardar(conActiva(previa, false));
+        }
+        continue;
+      }
       final esFija = _marcadasComoFijas.contains(c.id);
       final resultado = esFija
           ? crearCategoriaFija(
@@ -403,8 +412,8 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
   Widget _paginaIngreso() {
     return _Paso(
       titulo: 'Registra tu ingreso base al mes',
-      subtitulo: 'Pon lo de un mes normal — los ingresos extra se registran aparte, '
-          'cuando lleguen. Puedes editarlo más adelante.',
+      subtitulo: 'Lo de un mes normal, sin extras.',
+      nota: 'Después podrás cambiarlo y registrar ingresos extra.',
       child: Column(
         children: [
           TextField(
@@ -429,7 +438,8 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
     final ingreso = _ingreso ?? const Dinero.cero();
     return _Paso(
       titulo: '¿Cuánto quieres apartar?',
-      subtitulo: 'Lo puedes cambiar cuando quieras — esto solo te da un punto de partida.',
+      subtitulo: 'Es solo un punto de partida.',
+      nota: 'Podrás cambiar tu meta cuando quieras.',
       child: SelectorMeta(
         ingresoBase: ingreso,
         fijas: const [],
@@ -455,8 +465,8 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
 
     return _Paso(
       titulo: '¡Clasifiquemos tus gastos!',
-      subtitulo: 'Te doy una sugerencia, pero tú puedes editarla ahora o después, '
-          'incluso agregar o quitar categorías.',
+      subtitulo: 'Te doy una sugerencia según tu ingreso; edítala si quieres.',
+      nota: 'Después podrás agregar, editar o quitar categorías.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -503,7 +513,7 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
                     ),
                     const SizedBox(width: 8),
                     SizedBox(
-                      width: 100,
+                      width: 116,
                       child: TextField(
                         controller: _montoControladores[c.id],
                         focusNode: _montoFocos[c.id],
@@ -537,10 +547,23 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
                 color: ColoresApp.ambarSuave,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(
-                'Tus categorías (${total.formateado()}) ya se pasan de lo disponible '
-                '(${disponible.formateado()}). Ajusta los montos arriba.',
-                style: const TextStyle(color: ColoresApp.ambarTexto),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Tus categorías (${total.formateado()}) ya se pasan de lo disponible '
+                    '(${disponible.formateado()}). Ajusta los montos arriba.',
+                    style: const TextStyle(color: ColoresApp.ambarTexto),
+                  ),
+                  // Si cambió el ingreso después de escribir montos a mano,
+                  // esto los regresa al reparto proporcional (§2.5.1).
+                  if (_montosEditados.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: () => setState(_montosEditados.clear),
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text('Usar la sugerencia'),
+                    ),
+                ],
               ),
             ),
           ],
@@ -572,8 +595,8 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
           const Text('¿Traes historial?', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
           const Text(
-            'Si tienes registrados tus gastos de meses pasados, puedes importarlos '
-            'para tener un historial más completo, si no, no pasa nada.',
+            'Si tienes tus gastos de meses pasados en un archivo, impórtalos. '
+            'Si no, no pasa nada: también puedes hacerlo después desde Ajustes.',
             textAlign: TextAlign.center,
             style: TextStyle(color: ColoresApp.medio),
           ),
@@ -735,9 +758,13 @@ class _RenglonTemaMuestra extends StatelessWidget {
 class _Paso extends StatelessWidget {
   final String? titulo;
   final String? subtitulo;
+
+  /// Recordatorio breve de que el dato se puede cambiar después, para que
+  /// el onboarding no se sienta definitivo.
+  final String? nota;
   final Widget child;
 
-  const _Paso({this.titulo, this.subtitulo, required this.child});
+  const _Paso({this.titulo, this.subtitulo, this.nota, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -755,6 +782,40 @@ class _Paso extends StatelessWidget {
             Text(subtitulo!, textAlign: TextAlign.center, style: const TextStyle(color: ColoresApp.medio)),
           const SizedBox(height: 28),
           child,
+          if (nota != null) ...[
+            const SizedBox(height: 16),
+            _NotaDespues(nota!),
+          ],
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotaDespues extends StatelessWidget {
+  final String texto;
+
+  const _NotaDespues(this.texto);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: ColoresApp.violetaSuave,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.edit_outlined, size: 18, color: ColoresApp.violeta),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              texto,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: ColoresApp.tinta),
+            ),
+          ),
         ],
       ),
     );

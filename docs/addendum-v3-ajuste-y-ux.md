@@ -56,6 +56,19 @@ Holgura_c = Presupuesto_c − Pronóstico_c    (solo si > 0)
 
 Se ofrecen las 3 mayores. El usuario decide, candidata por candidata, cuánto mover de cada una; nunca se rebalancea solo ni con un reparto automático. El movimiento es **temporal**: es un ajuste vigente solo para el ciclo en curso, nunca cambia el presupuesto base de ninguna categoría (`CategoriaVariable.presupuestoMensualCentavos` permanece intacto para todos los ciclos futuros). Se guarda como un delta acumulable — un mismo ciclo puede tener varios rebalanceos, y cada uno se suma a los anteriores en vez de reemplazarlos.
 
+### 2.5.1 Reajuste al cambiar el ingreso base
+Los presupuestos de las categorías se guardan como montos, no como porcentajes. Si el usuario cambia su ingreso base (porque se equivocó al capturarlo o porque de verdad cambió), los montos no se mueven solos y pueden quedar muy por encima o muy por debajo del ingreso nuevo — p. ej. ingreso $350,000 corregido a $35,000 con categorías que suman $315,000.
+
+Por eso, al guardar un ingreso base distinto, la app **pregunta** si reajusta las categorías activas en la misma proporción:
+
+```
+Nuevo_c = Presupuesto_c × IngresoNuevo ÷ IngresoAnterior
+```
+
+redondeado hacia abajo al peso entero, con mínimo de $1 (ningún presupuesto queda en cero). Aplica igual a fijas (monto fijo) y variables (presupuesto mensual), y a la meta de apartado solo si es por monto — la meta por porcentaje ya se ajusta sola. Las categorías archivadas no se tocan. El usuario puede contestar "Dejar como están": nunca se reajusta sin preguntar.
+
+En el onboarding, las sugerencias de todas las categorías (fijas y variables) salen de repartir por peso lo disponible después de la meta, así que siempre son proporcionales al ingreso capturado; ninguna sugerencia trae un monto absoluto de fábrica.
+
 ### 2.6 Guardarraíles
 - **Nunca sugerir por debajo de un mínimo digno.** Categorías marcadas como necesarias (Súper, Salud, Vivienda) tienen piso configurable. La app no propone dejar de comer.
 - **Un plan por categoría por ciclo.** Recalcular el plan cada día lo vuelve ruido.
