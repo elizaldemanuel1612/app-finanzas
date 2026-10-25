@@ -145,10 +145,10 @@ class _HojaDictadoState extends State<_HojaDictado> {
                 onTap: _escuchando ? _detener : _empezarAEscuchar,
                 child: CircleAvatar(
                   radius: 36,
-                  backgroundColor: _escuchando ? ColoresApp.violeta : ColoresApp.violetaSuave,
+                  backgroundColor: _escuchando ? ColoresApp.azul : ColoresApp.azulSuave,
                   child: Icon(
                     _escuchando ? Icons.mic : Icons.mic_none,
-                    color: _escuchando ? Colors.white : ColoresApp.violeta,
+                    color: _escuchando ? Colors.white : ColoresApp.azul,
                     size: 32,
                   ),
                 ),

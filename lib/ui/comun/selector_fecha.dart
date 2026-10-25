@@ -69,20 +69,17 @@ class SelectorFecha extends StatelessWidget {
               ChoiceChip(
                 label: const Text('Hoy'),
                 selected: _mismoDia(seleccionada, hoy),
-                selectedColor: ColoresApp.violetaSuave,
                 onSelected: (_) => onCambio(hoy),
               ),
             if (_dentroDelRango(ayer))
               ChoiceChip(
                 label: const Text('Ayer'),
                 selected: _mismoDia(seleccionada, ayer),
-                selectedColor: ColoresApp.violetaSuave,
                 onSelected: (_) => onCambio(ayer),
               ),
             ChoiceChip(
               label: Text(esOtroDia ? fechaCorta(seleccionada) : '📅 Otro día'),
               selected: esOtroDia,
-              selectedColor: ColoresApp.violetaSuave,
               onSelected: (_) => _elegirOtroDia(context),
             ),
           ],

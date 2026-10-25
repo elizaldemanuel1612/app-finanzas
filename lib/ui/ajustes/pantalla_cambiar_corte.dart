@@ -211,10 +211,10 @@ class _TarjetaOpcion extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Material(
-        color: elegida ? ColoresApp.violetaSuave : ColoresApp.tarjeta,
+        color: elegida ? ColoresApp.azulSuave : ColoresApp.tarjeta,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: elegida ? ColoresApp.violeta : ColoresApp.linea),
+          side: BorderSide(color: elegida ? ColoresApp.azul : ColoresApp.linea),
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
@@ -226,7 +226,7 @@ class _TarjetaOpcion extends StatelessWidget {
               children: [
                 Icon(
                   elegida ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                  color: ColoresApp.violeta,
+                  color: ColoresApp.azul,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -247,7 +247,7 @@ class _TarjetaOpcion extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(
                           'Recomendado: el más cercano a un mes',
-                          style: textos.labelSmall?.copyWith(color: ColoresApp.violeta),
+                          style: textos.labelSmall?.copyWith(color: ColoresApp.azul),
                         ),
                       ],
                     ],
@@ -273,13 +273,13 @@ class _Aviso extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: ColoresApp.violetaSuave,
+        color: ColoresApp.azulSuave,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icono, size: 18, color: ColoresApp.violeta),
+          Icon(icono, size: 18, color: ColoresApp.azul),
           const SizedBox(width: 8),
           Expanded(child: Text(texto, style: Theme.of(context).textTheme.bodySmall)),
         ],

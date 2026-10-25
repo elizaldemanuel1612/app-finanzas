@@ -463,13 +463,20 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                   decimal: true,
                 ),
                 inputFormatters: formateadoresDeMonto,
-                style: const TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: _estiloMonto,
                 decoration: InputDecoration(
-                  prefixText: r'$ ',
+                  // prefixIcon (no prefixText): se ve siempre, también
+                  // sin foco, así el campo vacío nunca parece un hueco.
+                  prefixIcon: const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: Text(r'$', style: _estiloMonto),
+                  ),
+                  prefixIconConstraints: const BoxConstraints(),
+                  hintText: '0',
+                  hintStyle: const TextStyle(color: ColoresApp.linea),
                   border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                   filled: false,
                   suffixIcon: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -477,7 +484,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                       IconButton(
                         icon: const Icon(
                           Icons.photo_camera_outlined,
-                          color: ColoresApp.violeta,
+                          color: ColoresApp.azul,
                         ),
                         tooltip: 'Foto de ticket',
                         onPressed: _cargandoFoto ? null : _mostrarOpcionesFoto,
@@ -485,7 +492,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                       IconButton(
                         icon: const Icon(
                           Icons.mic_none,
-                          color: ColoresApp.violeta,
+                          color: ColoresApp.azul,
                         ),
                         tooltip: 'Dictar por voz',
                         onPressed: _dictar,
@@ -537,7 +544,6 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                       return ChoiceChip(
                         label: Text('${c.emoji} ${c.nombre}'),
                         selected: elegida,
-                        selectedColor: ColoresApp.violetaSuave,
                         onSelected: (_) => setState(() {
                           _seleccionada = c;
                           _categoriaTocadaManualmente = true;
@@ -553,7 +559,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                 const Text(
                   'Sugerida por tus gastos anteriores',
                   style: TextStyle(
-                    color: ColoresApp.violeta,
+                    color: ColoresApp.azul,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -667,7 +673,7 @@ class _TarjetaFotoTicket extends StatelessWidget {
                     child: const Text(
                       'Dividir en varias categorías',
                       style: TextStyle(
-                        color: ColoresApp.violeta,
+                        color: ColoresApp.azul,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
@@ -687,3 +693,6 @@ class _TarjetaFotoTicket extends StatelessWidget {
     );
   }
 }
+
+/// Mismo estilo para la cifra capturada y su signo de pesos.
+const _estiloMonto = TextStyle(fontSize: 40, fontWeight: FontWeight.w800);

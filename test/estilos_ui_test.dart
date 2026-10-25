@@ -31,7 +31,7 @@ const _maximoPorArchivo = {
   'lib/ui/ciclo/pantalla_cierre_ciclo.dart': 3,
   'lib/ui/comun/grafica_evolucion.dart': 4,
   'lib/ui/comun/pantalla_login.dart': 1,
-  'lib/ui/comun/tema.dart': 8,
+  'lib/ui/comun/tema.dart': 9, // +1: título de AppBar (rediseño premium)
   'lib/ui/gastos/pantalla_gastos.dart': 2,
   'lib/ui/inicio/pantalla_inicio.dart': 4,
   'lib/ui/meta/selector_meta.dart': 2,

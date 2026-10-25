@@ -19,8 +19,12 @@ abstract final class ColoresApp {
   static const medio = Color(PaletaHex.medio);
   static const linea = Color(PaletaHex.linea);
 
-  static const violeta = Color(PaletaHex.violeta);
-  static const violetaSuave = Color(PaletaHex.violetaSuave);
+  static const azul = Color(PaletaHex.azul);
+  static const azulMarino = Color(PaletaHex.azulMarino);
+  static const azulSuave = Color(PaletaHex.azulSuave);
+  static const oro = Color(PaletaHex.oro);
+  static const oroSuave = Color(PaletaHex.oroSuave);
+  static const oroTexto = Color(PaletaHex.oroTexto);
   static const verde = Color(PaletaHex.verde);
   static const verdeSuave = Color(PaletaHex.verdeSuave);
   static const verdeTexto = Color(PaletaHex.verdeTexto);
@@ -71,16 +75,27 @@ const _textTheme = TextTheme(
 
 ThemeData construirTema() {
   final colorScheme = ColorScheme.fromSeed(
-    seedColor: ColoresApp.violeta,
+    seedColor: ColoresApp.azul,
     brightness: Brightness.light,
   ).copyWith(
-    primary: ColoresApp.violeta,
+    primary: ColoresApp.azul,
+    onPrimary: Colors.white,
+    secondary: ColoresApp.oro,
+    onSecondary: ColoresApp.azul,
     surface: ColoresApp.tarjeta,
+    onSurface: ColoresApp.tinta,
+    surfaceTint: Colors.transparent,
+    outline: ColoresApp.linea,
+    outlineVariant: ColoresApp.linea,
+    secondaryContainer: ColoresApp.azulSuave,
+    onSecondaryContainer: ColoresApp.azul,
     // La variante de texto, no la brillante: ColorScheme.error se pinta
     // como texto/ícono (mensajes de error de TextField, etc.), donde el
     // umbral WCAG es 4.5:1, no el 3:1 de un elemento gráfico.
     error: ColoresApp.coralTexto,
   );
+
+  final esquinas14 = RoundedRectangleBorder(borderRadius: BorderRadius.circular(14));
 
   return ThemeData(
     useMaterial3: true,
@@ -88,33 +103,131 @@ ThemeData construirTema() {
     textTheme: _textTheme,
     scaffoldBackgroundColor: ColoresApp.fondo,
     colorScheme: colorScheme,
+    dividerTheme: const DividerThemeData(color: ColoresApp.linea, thickness: 1),
+    // Tarjetas limpias: blanco sobre marfil con un filo gris niebla, sin
+    // sombra pesada — el "premium" sale del aire y la jerarquía, no del
+    // relieve.
     cardTheme: CardThemeData(
       color: ColoresApp.tarjeta,
       elevation: 0,
       margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: ColoresApp.linea),
+      ),
     ),
     appBarTheme: const AppBarTheme(
       backgroundColor: ColoresApp.fondo,
       foregroundColor: ColoresApp.tinta,
       elevation: 0,
+      scrolledUnderElevation: 0,
       centerTitle: false,
+      titleTextStyle: TextStyle(
+        fontFamily: 'Outfit',
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: ColoresApp.tinta,
+      ),
     ),
+    // CTA principal en azul noche; el oro se reserva para el botón de
+    // registrar (FAB) y acentos.
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: ColoresApp.violeta,
+        backgroundColor: ColoresApp.azul,
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        disabledBackgroundColor: ColoresApp.linea,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        minimumSize: const Size(0, 52),
+        shape: esquinas14,
         textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
       ),
     ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: ColoresApp.azul,
+        side: const BorderSide(color: ColoresApp.azul),
+        shape: esquinas14,
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: ColoresApp.azul),
+    ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: ColoresApp.oro,
+      foregroundColor: ColoresApp.azul,
+      elevation: 2,
+      shape: CircleBorder(),
+    ),
+    // Selección clara: lo activo en azul noche con texto blanco.
+    chipTheme: ChipThemeData(
+      backgroundColor: ColoresApp.tarjeta,
+      selectedColor: ColoresApp.azul,
+      checkmarkColor: Colors.white,
+      secondarySelectedColor: ColoresApp.azul,
+      labelStyle: const TextStyle(color: ColoresApp.tinta),
+      secondaryLabelStyle: const TextStyle(color: Colors.white),
+      side: const BorderSide(color: ColoresApp.linea),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+    ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (estados) => estados.contains(WidgetState.selected) ? ColoresApp.azul : ColoresApp.tarjeta,
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (estados) => estados.contains(WidgetState.selected) ? Colors.white : ColoresApp.tinta,
+        ),
+        iconColor: WidgetStateProperty.resolveWith(
+          (estados) => estados.contains(WidgetState.selected) ? Colors.white : ColoresApp.tinta,
+        ),
+        side: const WidgetStatePropertyAll(BorderSide(color: ColoresApp.linea)),
+        shape: WidgetStatePropertyAll(esquinas14),
+      ),
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: const WidgetStatePropertyAll(Colors.white),
+      trackColor: WidgetStateProperty.resolveWith(
+        (estados) => estados.contains(WidgetState.selected) ? ColoresApp.verde : ColoresApp.linea,
+      ),
+      trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+    ),
+    sliderTheme: const SliderThemeData(
+      activeTrackColor: ColoresApp.azul,
+      inactiveTrackColor: ColoresApp.linea,
+      thumbColor: ColoresApp.azul,
+      overlayColor: Color(0x1F0B1F3B),
+    ),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(color: ColoresApp.azul),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: ColoresApp.azul,
+      behavior: SnackBarBehavior.floating,
+      shape: esquinas14,
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: ColoresApp.tarjeta,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: ColoresApp.tarjeta,
+      surfaceTintColor: Colors.transparent,
+    ),
+    listTileTheme: const ListTileThemeData(iconColor: ColoresApp.tinta),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: ColoresApp.fondo,
+      fillColor: ColoresApp.tarjeta,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: ColoresApp.linea),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: ColoresApp.linea),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: ColoresApp.azul, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),

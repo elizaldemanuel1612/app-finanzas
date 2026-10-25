@@ -312,7 +312,7 @@ class _AnilloAlcance extends StatelessWidget {
   Widget build(BuildContext context) {
     final alcance = metricas.alcance;
     final (titular, color) = switch (calcularNivelAlcance(alcance)) {
-      null => ('Cierre de ciclo', ColoresApp.violeta),
+      null => ('Cierre de ciclo', ColoresApp.azul),
       NivelAlcance.logrado => ('Tu mejor ciclo', ColoresApp.verde),
       NivelAlcance.cerca => ('Casi lo logras', ColoresApp.ambar),
       NivelAlcance.corto => ('Este ciclo costó más', ColoresApp.coral),
@@ -395,7 +395,7 @@ class _AvisoExtra extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: ColoresApp.violetaSuave,
+        color: ColoresApp.azulSuave,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(texto, style: const TextStyle(color: ColoresApp.tinta, fontSize: 12.5)),

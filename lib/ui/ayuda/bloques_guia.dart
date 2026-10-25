@@ -79,13 +79,13 @@ class BloqueGuiaWidget extends StatelessWidget {
                       height: 22,
                       alignment: Alignment.center,
                       decoration: const BoxDecoration(
-                        color: ColoresApp.violetaSuave,
+                        color: ColoresApp.azulSuave,
                         shape: BoxShape.circle,
                       ),
                       child: Text(
                         '${i + 1}',
                         style: theme.labelSmall?.copyWith(
-                          color: ColoresApp.violeta,
+                          color: ColoresApp.azul,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -254,13 +254,13 @@ class _ChipsDeFechaEjemplo extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: activa ? ColoresApp.violeta : ColoresApp.violetaSuave,
+          color: activa ? ColoresApp.azul : ColoresApp.azulSuave,
           borderRadius: BorderRadius.circular(99),
         ),
         child: Text(
           texto,
           style: theme.labelSmall?.copyWith(
-            color: activa ? Colors.white : ColoresApp.violeta,
+            color: activa ? Colors.white : ColoresApp.azul,
             fontWeight: FontWeight.w700,
           ),
         ),

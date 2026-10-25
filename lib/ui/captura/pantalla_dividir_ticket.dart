@@ -347,6 +347,8 @@ class _TarjetaRenglon extends StatelessWidget {
                     decoration: const InputDecoration(
                       prefixText: r'$ ',
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
                     ),
                     onChanged: (_) => onCambio(),
                   ),
@@ -378,7 +380,6 @@ class _TarjetaRenglon extends StatelessWidget {
                 return ChoiceChip(
                   label: Text('${c.emoji} ${c.nombre}'),
                   selected: elegida,
-                  selectedColor: ColoresApp.violetaSuave,
                   onSelected: (_) {
                     renglon.categoriaId = c.id;
                     onCambio();

@@ -221,7 +221,7 @@ class _SelectorMetaState extends State<SelectorMeta> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ColoresApp.violetaSuave,
+        color: ColoresApp.azulSuave,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(

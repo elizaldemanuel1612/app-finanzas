@@ -24,13 +24,13 @@ class NotaDestacada extends StatelessWidget {
   });
 
   Color get _colorBorde => switch (tono) {
-    TonoNota.info => ColoresApp.violeta,
+    TonoNota.info => ColoresApp.azul,
     TonoNota.ojo => ColoresApp.ambar,
     TonoNota.tip => ColoresApp.verde,
   };
 
   Color get _colorEtiqueta => switch (tono) {
-    TonoNota.info => ColoresApp.violeta,
+    TonoNota.info => ColoresApp.azul,
     TonoNota.ojo => ColoresApp.ambarTexto,
     TonoNota.tip => ColoresApp.verdeTexto,
   };

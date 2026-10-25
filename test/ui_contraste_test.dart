@@ -27,7 +27,7 @@ void main() {
   });
 
   group('paleta de texto — WCAG AA 4.5:1', () {
-    test('medio sobre fondo pasa (corregido de #6B6F8D a #5F6484)', () {
+    test('medio sobre fondo marfil pasa', () {
       expect(razonDeContraste(PaletaHex.medio, PaletaHex.fondo), greaterThanOrEqualTo(_minimoTexto));
     });
 
@@ -35,17 +35,17 @@ void main() {
       expect(razonDeContraste(PaletaHex.tinta, PaletaHex.fondo), greaterThanOrEqualTo(_minimoTexto));
     });
 
-    test('verdeTexto sobre blanco pasa (verde brillante no pasaba: 2.62:1)', () {
+    test('verdeTexto sobre blanco pasa (verde brillante no pasa: 3.30:1)', () {
       expect(razonDeContraste(PaletaHex.verde, PaletaHex.tarjeta), lessThan(_minimoTexto));
       expect(razonDeContraste(PaletaHex.verdeTexto, PaletaHex.tarjeta), greaterThanOrEqualTo(_minimoTexto));
     });
 
-    test('ambarTexto sobre blanco pasa (ambar brillante no pasaba: 2.04:1)', () {
+    test('ambarTexto sobre blanco pasa (ambar brillante no pasa: 2.15:1)', () {
       expect(razonDeContraste(PaletaHex.ambar, PaletaHex.tarjeta), lessThan(_minimoTexto));
       expect(razonDeContraste(PaletaHex.ambarTexto, PaletaHex.tarjeta), greaterThanOrEqualTo(_minimoTexto));
     });
 
-    test('coralTexto sobre blanco pasa (coral brillante no pasaba: 3.16:1)', () {
+    test('coralTexto sobre blanco pasa (coral brillante no pasa: 3.76:1)', () {
       expect(razonDeContraste(PaletaHex.coral, PaletaHex.tarjeta), lessThan(_minimoTexto));
       expect(razonDeContraste(PaletaHex.coralTexto, PaletaHex.tarjeta), greaterThanOrEqualTo(_minimoTexto));
     });
@@ -85,9 +85,30 @@ void main() {
     });
 
     test('valores actuales de los brillantes sobre blanco, fijados como regresión', () {
-      expect(razonDeContraste(PaletaHex.verde, PaletaHex.tarjeta), closeTo(2.62, 0.02));
-      expect(razonDeContraste(PaletaHex.ambar, PaletaHex.tarjeta), closeTo(2.04, 0.02));
-      expect(razonDeContraste(PaletaHex.coral, PaletaHex.tarjeta), closeTo(3.16, 0.02));
+      // Paleta premium (2026-10-25): el verde ya pasa el umbral gráfico
+      // 3:1 (antes 2.62:1), lo que cierra la deuda del ícono blanco sobre
+      // verde en el Dismissible.
+      expect(razonDeContraste(PaletaHex.verde, PaletaHex.tarjeta), closeTo(3.30, 0.02));
+      expect(razonDeContraste(PaletaHex.ambar, PaletaHex.tarjeta), closeTo(2.15, 0.02));
+      expect(razonDeContraste(PaletaHex.coral, PaletaHex.tarjeta), closeTo(3.76, 0.02));
+    });
+
+    test('verde también pasa ya el umbral gráfico 3:1', () {
+      expect(razonDeContraste(PaletaHex.verde, PaletaHex.tarjeta), greaterThanOrEqualTo(_minimoGrafico));
+    });
+  });
+
+  group('acentos de la dirección premium', () {
+    test('el oro nunca es texto sobre blanco; su variante oroTexto sí pasa', () {
+      expect(razonDeContraste(PaletaHex.oro, PaletaHex.tarjeta), lessThan(_minimoTexto));
+      expect(razonDeContraste(PaletaHex.oroTexto, PaletaHex.tarjeta), greaterThanOrEqualTo(_minimoTexto));
+      expect(razonDeContraste(PaletaHex.oroTexto, PaletaHex.oroSuave), greaterThanOrEqualTo(_minimoTexto));
+    });
+
+    test('azul noche sobre oro (botón de registrar) y blanco sobre azul pasan', () {
+      expect(razonDeContraste(PaletaHex.azul, PaletaHex.oro), greaterThanOrEqualTo(_minimoTexto));
+      expect(razonDeContraste(0xFFFFFF, PaletaHex.azul), greaterThanOrEqualTo(_minimoTexto));
+      expect(razonDeContraste(PaletaHex.azul, PaletaHex.azulSuave), greaterThanOrEqualTo(_minimoTexto));
     });
   });
 }

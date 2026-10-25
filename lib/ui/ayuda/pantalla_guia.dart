@@ -53,7 +53,7 @@ class _RenglonTema extends StatelessWidget {
         width: 40,
         height: 40,
         alignment: Alignment.center,
-        decoration: const BoxDecoration(color: ColoresApp.violetaSuave, shape: BoxShape.circle),
+        decoration: const BoxDecoration(color: ColoresApp.azulSuave, shape: BoxShape.circle),
         child: ExcludeSemantics(child: Text(tema.emoji, style: theme.titleMedium)),
       ),
       title: Text(tema.titulo, style: theme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),

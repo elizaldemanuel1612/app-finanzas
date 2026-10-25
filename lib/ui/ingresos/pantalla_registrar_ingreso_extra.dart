@@ -275,7 +275,7 @@ class _PantallaRegistrarIngresoExtraState
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: ColoresApp.violetaSuave,
+                    color: ColoresApp.azulSuave,
                     borderRadius: BorderRadius.circular(13),
                   ),
                   child: Text(

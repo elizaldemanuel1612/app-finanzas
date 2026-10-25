@@ -213,8 +213,8 @@ class _Barra extends StatelessWidget {
         borderRadius: _bordeBarra,
       ),
       EstadoPunto.enCurso => BoxDecoration(
-        color: ColoresApp.violeta.withValues(alpha: 0.15),
-        border: Border.all(color: ColoresApp.violeta, width: 2),
+        color: ColoresApp.azul.withValues(alpha: 0.15),
+        border: Border.all(color: ColoresApp.azul, width: 2),
         borderRadius: _bordeBarra,
       ),
       EstadoPunto.cerrado => BoxDecoration(
@@ -244,7 +244,7 @@ class _MontoAhorrado extends StatelessWidget {
     if (apartado == null) return const SizedBox.shrink();
 
     final color = punto.estado == EstadoPunto.enCurso
-        ? ColoresApp.violeta
+        ? ColoresApp.azul
         : _colorPorNivel(calcularNivelAlcance(punto.metricas!.alcance));
 
     return Column(

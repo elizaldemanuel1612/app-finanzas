@@ -280,6 +280,8 @@ class _TarjetaItem extends StatelessWidget {
                     decoration: const InputDecoration(
                       prefixText: r'$ ',
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
                     ),
                   ),
                 ),
@@ -331,7 +333,6 @@ class _TarjetaItem extends StatelessWidget {
                 return ChoiceChip(
                   label: Text('${c.emoji} ${c.nombre}'),
                   selected: elegida,
-                  selectedColor: ColoresApp.violetaSuave,
                   onSelected: (_) {
                     item.categoriaId = c.id;
                     onCambio();

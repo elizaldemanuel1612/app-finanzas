@@ -89,8 +89,8 @@ class _PantallaCategoriasState extends State<PantallaCategorias> {
           );
           if (creada == true) await _cargar();
         },
-        backgroundColor: ColoresApp.violeta,
-        child: const Icon(Icons.add, color: Colors.white),
+        tooltip: 'Nueva categoría',
+        child: const Icon(Icons.add),
       ),
       body: _categorias == null ? const Center(child: CircularProgressIndicator()) : _buildContenido(),
     );
@@ -189,7 +189,6 @@ class _PantallaCategoriasState extends State<PantallaCategorias> {
           subtitle: Text(montoTexto),
           trailing: Switch(
             value: c.activa,
-            activeThumbColor: ColoresApp.violeta,
             onChanged: (_) => _alternarActiva(c),
           ),
         ),

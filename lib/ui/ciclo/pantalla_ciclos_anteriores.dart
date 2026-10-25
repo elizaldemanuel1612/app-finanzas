@@ -238,7 +238,7 @@ class _TarjetaFrase extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: ColoresApp.violetaSuave,
+      color: ColoresApp.azulSuave,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -246,7 +246,7 @@ class _TarjetaFrase extends StatelessWidget {
           children: [
             const Text(
               'Lo que te dice la gráfica',
-              style: TextStyle(fontWeight: FontWeight.w800, color: ColoresApp.violeta, fontSize: 13),
+              style: TextStyle(fontWeight: FontWeight.w800, color: ColoresApp.azul, fontSize: 13),
             ),
             const SizedBox(height: 6),
             Text(frase, style: const TextStyle(color: ColoresApp.tinta, fontSize: 13)),

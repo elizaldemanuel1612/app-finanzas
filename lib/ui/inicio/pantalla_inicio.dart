@@ -371,29 +371,46 @@ class _PantallaInicioState extends State<PantallaInicio> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Ciclo ${_ciclo.etiqueta}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.receipt_long_outlined),
-            tooltip: 'Gastos',
-            onPressed: _irAGastos,
-          ),
-          IconButton(
-            icon: const Icon(Icons.category_outlined),
-            tooltip: 'Categorías',
-            onPressed: _irACategorias,
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Ajustes',
-            onPressed: _irAAjustes,
-          ),
-        ],
+        toolbarHeight: 64,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Tu ciclo', style: Theme.of(context).textTheme.labelSmall),
+            Text('Ciclo ${_ciclo.etiqueta}'),
+          ],
+        ),
       ),
+      // Barra inferior con el registro al centro, en oro: la acción que
+      // más se repite queda siempre a la mano del pulgar.
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         onPressed: _irACaptura,
-        backgroundColor: ColoresApp.violeta,
-        child: const Icon(Icons.add, color: Colors.white),
+        tooltip: 'Registrar gasto',
+        child: const Icon(Icons.add, size: 30),
+      ),
+      bottomNavigationBar: BottomAppBar(
+        color: ColoresApp.tarjeta,
+        surfaceTintColor: Colors.transparent,
+        elevation: 8,
+        shadowColor: const Color(0x220B1F3B),
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8,
+        height: 68,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        // La barra tiene alto fijo: las etiquetas crecen con el texto del
+        // sistema pero acotadas, como las cifras héroe.
+        child: MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1.3,
+          child: Row(
+            children: [
+              const _BotonBarra(icono: Icons.home_rounded, etiqueta: 'Inicio', activo: true),
+              _BotonBarra(icono: Icons.receipt_long_outlined, etiqueta: 'Gastos', onTap: _irAGastos),
+              const SizedBox(width: 72),
+              _BotonBarra(icono: Icons.grid_view_rounded, etiqueta: 'Categorías', onTap: _irACategorias),
+              _BotonBarra(icono: Icons.settings_outlined, etiqueta: 'Ajustes', onTap: _irAAjustes),
+            ],
+          ),
+        ),
       ),
       body: _datos == null
           ? const Center(child: CircularProgressIndicator())
@@ -677,7 +694,7 @@ class _TarjetaMeta extends StatelessWidget {
     final alcance = metricas.alcance;
     final nivel = calcularNivelAlcance(alcance);
     final (colorTexto, colorFondo) = switch (nivel) {
-      null => (ColoresApp.violeta, ColoresApp.violetaSuave),
+      null => (ColoresApp.azul, ColoresApp.azulSuave),
       NivelAlcance.logrado => (ColoresApp.verdeTexto, ColoresApp.verdeSuave),
       NivelAlcance.cerca => (ColoresApp.ambarTexto, ColoresApp.ambarSuave),
       NivelAlcance.corto => (ColoresApp.coralTexto, ColoresApp.coralSuave),
@@ -692,6 +709,14 @@ class _TarjetaMeta extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
+              // Acento dorado: la meta es el "momento premium" de Inicio.
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(color: ColoresApp.oroSuave, shape: BoxShape.circle),
+                child: const Icon(Icons.track_changes_rounded, color: ColoresApp.oroTexto),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -816,6 +841,51 @@ class _BarraCobertura extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Un botón de la barra inferior de Inicio. [activo] marca la pantalla en
+/// la que ya estás (sin acción).
+class _BotonBarra extends StatelessWidget {
+  final IconData icono;
+  final String etiqueta;
+  final bool activo;
+  final VoidCallback? onTap;
+
+  const _BotonBarra({
+    required this.icono,
+    required this.etiqueta,
+    this.activo = false,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = activo ? ColoresApp.azul : ColoresApp.medio;
+    return Expanded(
+      child: Semantics(
+        button: !activo,
+        selected: activo,
+        child: InkResponse(
+          onTap: onTap,
+          radius: 32,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icono, color: color),
+              const SizedBox(height: 2),
+              Text(
+                etiqueta,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: color,
+                  fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

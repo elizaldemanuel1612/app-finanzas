@@ -229,7 +229,7 @@ EvolucionCiclos calcularEvolucionCiclos({
   );
 }
 
-/// Frase interpretativa de la tarjeta violeta (regla no negociable #23:
+/// Frase interpretativa de la tarjeta destacada (regla no negociable #23:
 /// ningún pronóstico se muestra sin una frase que lo explique; regla #24:
 /// cero jerga técnica). `null` si no hay al menos dos ciclos cerrados con
 /// los que comparar — con uno solo no hay "mejoraste" ni "empeoraste" que

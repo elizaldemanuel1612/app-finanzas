@@ -93,7 +93,7 @@ const _temaRegistrarGasto = TemaGuia(
       'Escribes el monto, eliges cuándo pasó con los chips **Hoy**, '
       '**Ayer** o **📅 Otro día**, y eliges la categoría.',
     ),
-    Ejemplo(EjemploGuia.chipsDeFecha, pie: 'El chip activo se marca en violeta.'),
+    Ejemplo(EjemploGuia.chipsDeFecha, pie: 'El chip activo se marca en azul.'),
     Subtitulo('La categoría se sugiere sola'),
     Parrafo(
       'Debajo del selector de categoría puede aparecer una etiqueta '

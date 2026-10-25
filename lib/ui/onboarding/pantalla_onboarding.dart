@@ -16,6 +16,7 @@ import '../ayuda/modelo_guia.dart';
 import '../ayuda/pantalla_guia.dart';
 import '../comun/barra_ritmo.dart';
 import '../comun/formato_dinero.dart';
+import '../comun/marca.dart';
 import '../comun/tema.dart';
 import '../importacion/pantalla_importar.dart';
 import '../meta/selector_meta.dart';
@@ -318,7 +319,7 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
                       height: 8,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(99),
-                        color: i == _paso ? ColoresApp.violeta : ColoresApp.linea,
+                        color: i == _paso ? ColoresApp.azul : ColoresApp.linea,
                       ),
                     ),
                 ],
@@ -660,35 +661,30 @@ class _PaginaBienvenida extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(color: ColoresApp.tinta, borderRadius: BorderRadius.circular(18)),
-            child: Column(
-              children: [
-                Container(
-                  width: 96,
-                  height: 96,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.10),
-                  ),
-                  child: ExcludeSemantics(child: Text('💰', style: textTheme.displaySmall)),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: FondoMontanas(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 72),
+                child: Column(
+                  children: [
+                    const EmblemaApp(tamano: 104),
+                    const SizedBox(height: 20),
+                    Text(
+                      '¡Te ayudaré a lograr tu meta de ahorro!',
+                      textAlign: TextAlign.center,
+                      style: textTheme.headlineMedium?.copyWith(color: Colors.white),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tú registras en segundos. Yo te aviso a tiempo, para que llegues '
+                      'a fin de ciclo con lo que querías apartar.',
+                      textAlign: TextAlign.center,
+                      style: textTheme.bodySmall?.copyWith(color: const Color(0xFFC9D1E3)),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  '¡Te ayudaré a lograr tu meta de ahorro!',
-                  textAlign: TextAlign.center,
-                  style: textTheme.headlineMedium?.copyWith(color: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Tú registras en segundos. Yo te aviso a tiempo, para que llegues '
-                  'a fin de ciclo con lo que querías apartar.',
-                  textAlign: TextAlign.center,
-                  style: textTheme.bodySmall?.copyWith(color: const Color(0xFFB4BACF)),
-                ),
-              ],
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -750,7 +746,7 @@ class _RenglonTemaMuestra extends StatelessWidget {
         width: 40,
         height: 40,
         alignment: Alignment.center,
-        decoration: const BoxDecoration(color: ColoresApp.violetaSuave, shape: BoxShape.circle),
+        decoration: const BoxDecoration(color: ColoresApp.azulSuave, shape: BoxShape.circle),
         child: ExcludeSemantics(child: Text(tema.emoji, style: theme.titleMedium)),
       ),
       title: Text(tema.titulo, style: theme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
@@ -807,12 +803,12 @@ class _NotaDespues extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: ColoresApp.violetaSuave,
+        color: ColoresApp.azulSuave,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(Icons.edit_outlined, size: 18, color: ColoresApp.violeta),
+          const Icon(Icons.edit_outlined, size: 18, color: ColoresApp.azul),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

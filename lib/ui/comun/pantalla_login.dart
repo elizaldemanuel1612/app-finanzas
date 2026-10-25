@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../data/firebase/servicio_auth.dart';
+import 'marca.dart';
 import 'tema.dart';
 
 /// paquete-construccion-final.md §3: Google en ambas plataformas, para que
@@ -47,42 +49,56 @@ class _PantallaLoginState extends State<PantallaLogin> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Center(
+    final textos = Theme.of(context).textTheme;
+    // Fondo oscuro: íconos de la barra de estado en blanco.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+      backgroundColor: ColoresApp.azul,
+      body: FondoMontanas(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('💰', style: TextStyle(fontSize: 48)),
-                const SizedBox(height: 16),
+                const Spacer(flex: 2),
+                const Center(child: EmblemaApp(tamano: 128)),
+                const SizedBox(height: 28),
                 Text(
                   'App de finanzas',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: ColoresApp.tinta,
-                      ),
+                  style: textos.headlineMedium?.copyWith(color: Colors.white),
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                const SizedBox(height: 12),
+                Text(
                   'Tu cuenta protege tus datos y los sincroniza entre '
                   'tus dispositivos.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: ColoresApp.medio),
+                  style: textos.bodyMedium?.copyWith(color: const Color(0xFFC9D1E3)),
                 ),
-                const SizedBox(height: 32),
+                const Spacer(flex: 3),
                 if (_error != null) ...[
-                  Text(
-                    _error!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: ColoresApp.coralTexto),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: ColoresApp.coralSuave,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: ColoresApp.coralTexto),
+                    ),
                   ),
                   const SizedBox(height: 12),
                 ],
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: ColoresApp.azul,
+                    disabledBackgroundColor: Colors.white70,
+                  ),
                   onPressed: _entrando ? null : _entrarConGoogle,
                   child: Text(_entrando ? 'Entrando…' : 'Continuar con Google'),
                 ),
@@ -90,6 +106,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

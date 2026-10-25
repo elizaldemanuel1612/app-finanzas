@@ -235,7 +235,7 @@ List<InlineSpan> _spans(String texto, void Function(String) onLink) {
       final url = m.group(4)!;
       spans.add(TextSpan(
         text: etiqueta,
-        style: const TextStyle(color: ColoresApp.violeta, decoration: TextDecoration.underline),
+        style: const TextStyle(color: ColoresApp.azul, decoration: TextDecoration.underline),
         recognizer: TapGestureRecognizer()..onTap = () => onLink(url),
       ));
     }

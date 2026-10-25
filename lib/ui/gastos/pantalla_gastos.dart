@@ -162,7 +162,6 @@ class _PantallaGastosState extends State<PantallaGastos> {
                       return FilterChip(
                         label: Text('${c.emoji} ${c.nombre}'),
                         selected: elegida,
-                        selectedColor: ColoresApp.violetaSuave,
                         onSelected: (sel) => actualizar(() {
                           _filtroCategorias = sel
                               ? {..._filtroCategorias, c.id}
@@ -281,7 +280,7 @@ class _PantallaGastosState extends State<PantallaGastos> {
                   '${Dinero.suma(filtrados.map((m) => m.monto)).formateado()}',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: ColoresApp.violeta,
+                    color: ColoresApp.azul,
                   ),
                 ),
               ),

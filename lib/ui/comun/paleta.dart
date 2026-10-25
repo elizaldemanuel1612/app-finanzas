@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-/// Hex crudos de la paleta (app-finanzas-ingresos-ajustes-v11.html §CSS),
+/// Hex crudos de la paleta (dirección visual premium, 2026-10-25),
 /// separados de `tema.dart` a propósito: este archivo **no importa
 /// Flutter** (`dart:math` es Dart puro, no Flutter), así que
 /// `test/ui_contraste_test.dart` puede probarlo con `dart test` sin
@@ -14,29 +14,37 @@ import 'dart:math' as math;
 /// tal cual para barras, gráficas y fondos con ícono blanco encima, donde
 /// el umbral es 3:1, no 4.5:1 (paquete-construccion-final.md §11).
 abstract final class PaletaHex {
-  static const fondo = 0xFFF2F4FA;
+  // Dirección visual premium (2026-10-25): azul noche como color principal,
+  // oro como acento solo en momentos clave, fondo marfil cálido.
+  static const fondo = 0xFFFCFAF7; // Marfil
   static const tarjeta = 0xFFFFFFFF;
-  static const tinta = 0xFF1A1B3A;
+  static const tinta = 0xFF0B1F3B; // Azul Noche: texto y CTA principal
 
-  /// Oscurecido de `#6B6F8D` (4.46:1 sobre `fondo`, insuficiente para AA)
-  /// a `#5F6484` (5.24:1) — Fase 6, Bloque 4.1.
+  /// Texto secundario: 5.53:1 sobre `fondo` (AA).
   static const medio = 0xFF5F6484;
-  static const linea = 0xFFE7E9F2;
+  static const linea = 0xFFE6E8EE; // Gris Niebla
 
-  static const violeta = 0xFF5B4BE8;
-  static const violetaSuave = 0xFFEAE7FD;
+  static const azul = 0xFF0B1F3B; // Azul Noche: botones, selección
+  static const azulMarino = 0xFF143A66; // superficies oscuras secundarias
+  static const azulSuave = 0xFFE9EEF6; // fondo de chips/selección
 
-  static const verde = 0xFF12B76A;
-  static const verdeSuave = 0xFFDCF6EA;
-  static const verdeTexto = 0xFF0A7A46;
+  /// Oro Centenario: solo gráfico (2.1:1 sobre blanco). Texto azul noche
+  /// encima pasa (7.84:1); para texto dorado usar `oroTexto`.
+  static const oro = 0xFFD4AF37;
+  static const oroSuave = 0xFFF8F0D8;
+  static const oroTexto = 0xFF7A5C0A;
 
-  static const ambar = 0xFFF5A524;
-  static const ambarSuave = 0xFFFDF0D8;
-  static const ambarTexto = 0xFF8A5A00;
+  static const verde = 0xFF16A34A;
+  static const verdeSuave = 0xFFDCFCE7;
+  static const verdeTexto = 0xFF15803D;
 
-  static const coral = 0xFFF4623A;
-  static const coralSuave = 0xFFFDE5DC;
-  static const coralTexto = 0xFFB03A18;
+  static const ambar = 0xFFF59E0B;
+  static const ambarSuave = 0xFFFEF3C7;
+  static const ambarTexto = 0xFF92400E;
+
+  static const coral = 0xFFEF4444;
+  static const coralSuave = 0xFFFEE2E2;
+  static const coralTexto = 0xFFB91C1C;
 }
 
 /// Fórmula de contraste WCAG 2.x (luminancia relativa + razón), aritmética

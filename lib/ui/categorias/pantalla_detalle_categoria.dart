@@ -405,7 +405,7 @@ class _TarjetaPronostico extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: ColoresApp.violetaSuave,
+      color: ColoresApp.azulSuave,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -418,7 +418,7 @@ class _TarjetaPronostico extends StatelessWidget {
                   'Cierre estimado',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: ColoresApp.violeta,
+                    color: ColoresApp.azul,
                   ),
                 ),
                 _EtiquetaConfianza(confianza: pronostico.confianza),
