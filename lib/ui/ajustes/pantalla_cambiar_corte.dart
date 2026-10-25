@@ -42,7 +42,7 @@ class _PantallaCambiarCorteState extends State<PantallaCambiarCorte> {
     final opciones = propuesta.opciones;
     final opcion = propuesta.esMismoDia
         ? null
-        : opciones[_opcionElegida ?? opciones.indexWhere((o) => o.recomendada)];
+        : opciones[_opcionElegida ?? _opcionPorDefecto(propuesta)];
     setState(() => _guardando = true);
     final nuevo = aplicarCambioDeCorte(perfil: widget.perfil, propuesta: propuesta, opcion: opcion);
     await widget.perfilRepositorio.guardar(nuevo);
@@ -54,6 +54,17 @@ class _PantallaCambiarCorteState extends State<PantallaCambiarCorte> {
             '${fechaCorta(opcion.vigenteDesde)} tu corte es el día ${propuesta.diaNuevo}.';
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
     Navigator.of(context).pop(true);
+  }
+
+  /// Si ya hay un cambio programado al mismo día, se marca la opción que
+  /// el usuario eligió entonces; si no, la recomendada.
+  int _opcionPorDefecto(PropuestaCambioDeCorte propuesta) {
+    final pendiente = cambioPendiente(widget.perfil, _hoy);
+    if (pendiente != null && pendiente.diaCorteNuevo == propuesta.diaNuevo) {
+      final i = propuesta.opciones.indexWhere((o) => o.vigenteDesde == pendiente.vigenteDesde);
+      if (i >= 0) return i;
+    }
+    return propuesta.opciones.indexWhere((o) => o.recomendada);
   }
 
   @override
@@ -153,7 +164,7 @@ class _PantallaCambiarCorteState extends State<PantallaCambiarCorte> {
       ];
 
   List<Widget> _opciones(PropuestaCambioDeCorte propuesta, TextTheme textos, DateTime inicio) {
-    final elegida = _opcionElegida ?? propuesta.opciones.indexWhere((o) => o.recomendada);
+    final elegida = _opcionElegida ?? _opcionPorDefecto(propuesta);
     return [
       Text('¿Cómo hacemos el cambio?', style: textos.titleMedium),
       const SizedBox(height: 4),
