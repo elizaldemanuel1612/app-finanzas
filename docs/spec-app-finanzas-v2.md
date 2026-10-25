@@ -84,6 +84,21 @@ Al terminar un ciclo se congela un snapshot inmutable (presupuesto vs. real por 
 ### 2.3 [NUEVO] Soporte para mes natural Y ciclo de tarjeta
 Tu Excel ya alterna entre ambas bases. La app mantiene ambos ejes: `periodoNatural` (AAAA-MM) y `cicloId`, precalculados en cada movimiento. Cambiar de vista es instantáneo, sin recalcular nada.
 
+### 2.4 [NUEVO] Cambiar el día de corte
+El usuario puede cambiar su día de corte después del onboarding (cambió de tarjeta, o prefiere otro día). El cambio **nunca reescribe el historial**: los ciclos cerrados no cambian (regla #6) y cada movimiento conserva el `cicloId` con que se creó (regla #5).
+
+**Historial de cortes.** El perfil guarda cada cambio (`cambiosDeCorte`: día anterior, día nuevo, inicio de la transición y fecha desde la que rige el nuevo). La calculadora de ciclos usa ese historial, así que un gasto con fecha pasada —capturado tarde o importado— cae en el ciclo que le tocaba con el corte vigente en esa fecha.
+
+**Ciclo de transición.** El ciclo en curso se convierte en el ciclo de transición: empieza donde ya empezaba (mismo `id`, así que todo lo ya registrado sigue ahí) y termina el día anterior al primer corte con el día nuevo. La app propone dos fechas y **el usuario elige**:
+- el primer corte nuevo posible → la transición queda más corta, o
+- el corte del mes siguiente → la transición queda más larga.
+
+Se recomienda la duración más cercana a 30 días. Las dos opciones cumplen: el primer ciclo nuevo empieza después de hoy (la transición siempre incluye hoy) y en un mes posterior al inicio de la transición (los `id` AAAA-MM nunca se repiten).
+
+**Presupuestos e ingreso.** No se prorratean: la pantalla dice cuántos días dura la transición y que los presupuestos son por ciclo, para que el usuario lo tome en cuenta. La marca de ritmo usa las fechas reales del ciclo, así que el ritmo esperado sigue siendo correcto aunque el ciclo sea más corto o más largo.
+
+**Cambio pendiente.** Mientras el nuevo corte no entra en vigor, un segundo cambio reemplaza al primero; si el usuario regresa a su día original, el cambio se cancela y el ciclo en curso recupera sus fechas normales.
+
 ---
 
 ## 3. Rendimiento: agregados precalculados

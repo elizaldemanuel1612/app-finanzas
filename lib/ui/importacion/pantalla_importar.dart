@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
-import '../../core/ciclo.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
@@ -77,7 +76,7 @@ class _PantallaImportarState extends State<PantallaImportar> {
 
     final procesado = previsualizarImportacion(
       contenidoCsv: contenido,
-      calculadoraCiclo: CalculadoraCiclo(widget.perfil.diaCorte),
+      calculadoraCiclo: widget.perfil.calculadoraCiclo,
       categoriasExistentes: await widget.categoriaRepositorio.listarTodas(),
     );
 

@@ -89,14 +89,85 @@ final class Ciclo {
       'Ciclo($id, $fechaInicio – $fechaFin, ${estado.name})';
 }
 
-/// Calcula a qué [Ciclo] pertenece una fecha, dado el día de corte de
-/// tarjeta del usuario (1–31, guardado en su perfil).
-final class CalculadoraCiclo {
-  final int diaCorte;
+/// Un cambio de día de corte (spec-app-finanzas-v2.md §2.4). El ciclo que
+/// estaba en curso al hacer el cambio se vuelve el ciclo de transición:
+/// conserva su inicio — y su `id`, así que lo ya registrado sigue ahí — y
+/// termina el día anterior a [vigenteDesde], el primer ciclo con
+/// [diaCorteNuevo]. Lo anterior a [inicioTransicion] sigue calculándose con
+/// [diaCorteAnterior]: el historial nunca se reescribe (reglas #5 y #6).
+final class CambioDeCorte {
+  final int diaCorteAnterior;
+  final int diaCorteNuevo;
+  final DateTime inicioTransicion;
+  final DateTime vigenteDesde;
 
-  const CalculadoraCiclo(this.diaCorte) : assert(diaCorte >= 1 && diaCorte <= 31);
+  CambioDeCorte({
+    required this.diaCorteAnterior,
+    required this.diaCorteNuevo,
+    required DateTime inicioTransicion,
+    required DateTime vigenteDesde,
+  })  : inicioTransicion = _soloFecha(inicioTransicion),
+        vigenteDesde = _soloFecha(vigenteDesde);
+
+  Map<String, dynamic> toJson() => {
+        'diaCorteAnterior': diaCorteAnterior,
+        'diaCorteNuevo': diaCorteNuevo,
+        'inicioTransicion': _textoFecha(inicioTransicion),
+        'vigenteDesde': _textoFecha(vigenteDesde),
+      };
+
+  factory CambioDeCorte.fromJson(Map<String, dynamic> json) => CambioDeCorte(
+        diaCorteAnterior: json['diaCorteAnterior'] as int,
+        diaCorteNuevo: json['diaCorteNuevo'] as int,
+        inicioTransicion: DateTime.parse(json['inicioTransicion'] as String),
+        vigenteDesde: DateTime.parse(json['vigenteDesde'] as String),
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      other is CambioDeCorte &&
+      other.diaCorteAnterior == diaCorteAnterior &&
+      other.diaCorteNuevo == diaCorteNuevo &&
+      other.inicioTransicion == inicioTransicion &&
+      other.vigenteDesde == vigenteDesde;
+
+  @override
+  int get hashCode => Object.hash(diaCorteAnterior, diaCorteNuevo, inicioTransicion, vigenteDesde);
+
+  @override
+  String toString() =>
+      'CambioDeCorte($diaCorteAnterior → $diaCorteNuevo, transición desde '
+      '${_textoFecha(inicioTransicion)}, rige desde ${_textoFecha(vigenteDesde)})';
+}
+
+/// Calcula a qué [Ciclo] pertenece una fecha, dado el día de corte de
+/// tarjeta del usuario (1–31, guardado en su perfil) y, si lo cambió, su
+/// historial de [cambios] en orden cronológico (spec-app-finanzas-v2.md
+/// §2.4). Sin cambios, [diaCorte] rige para todas las fechas.
+final class CalculadoraCiclo {
+  /// Día de corte vigente hoy (el último del historial, si hay cambios).
+  final int diaCorte;
+  final List<CambioDeCorte> cambios;
+
+  const CalculadoraCiclo(this.diaCorte, {this.cambios = const []})
+      : assert(diaCorte >= 1 && diaCorte <= 31);
 
   Ciclo calcularPara(DateTime fecha) {
+    final dia = _soloFecha(fecha);
+    for (var i = cambios.length - 1; i >= 0; i--) {
+      final cambio = cambios[i];
+      if (!dia.isBefore(cambio.vigenteDesde)) {
+        return _cicloNormal(dia, cambio.diaCorteNuevo);
+      }
+      if (!dia.isBefore(cambio.inicioTransicion)) {
+        final v = cambio.vigenteDesde;
+        return _ciclo(cambio.inicioTransicion, DateTime(v.year, v.month, v.day - 1));
+      }
+    }
+    return _cicloNormal(dia, cambios.isEmpty ? diaCorte : cambios.first.diaCorteAnterior);
+  }
+
+  static Ciclo _cicloNormal(DateTime fecha, int diaCorte) {
     final diaDelMesActual = _diaClampeado(fecha.year, fecha.month, diaCorte);
     final inicioEsteMes = DateTime(fecha.year, fecha.month, diaDelMesActual);
 
@@ -117,6 +188,10 @@ final class CalculadoraCiclo {
     final fechaFin =
         DateTime(mesSigAno, mesSig, diaFin).subtract(const Duration(days: 1));
 
+    return _ciclo(fechaInicio, fechaFin);
+  }
+
+  static Ciclo _ciclo(DateTime fechaInicio, DateTime fechaFin) {
     final id = '${fechaInicio.year.toString().padLeft(4, '0')}-'
         '${fechaInicio.month.toString().padLeft(2, '0')}';
 
@@ -129,11 +204,21 @@ final class CalculadoraCiclo {
     );
   }
 
+  /// Día de corte real en un mes dado: 31 en un mes de 30 días es el 30.
+  static int diaEfectivo(int anio, int mes, int diaDeseado) =>
+      _diaClampeado(anio, mes, diaDeseado);
+
   static int _diaClampeado(int anio, int mes, int diaDeseado) {
     final diasEnElMes = DateTime(anio, mes + 1, 0).day;
     return diaDeseado > diasEnElMes ? diasEnElMes : diaDeseado;
   }
 }
+
+DateTime _soloFecha(DateTime f) => DateTime(f.year, f.month, f.day);
+
+String _textoFecha(DateTime f) =>
+    '${f.year.toString().padLeft(4, '0')}-${f.month.toString().padLeft(2, '0')}-'
+    '${f.day.toString().padLeft(2, '0')}';
 
 /// Mes natural (AAAA-MM) de una fecha. Cada movimiento guarda este eje
 /// además de su [Ciclo.id], para poder cambiar de vista sin recalcular

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
@@ -142,7 +141,7 @@ class _PantallaDividirTicketState extends State<PantallaDividirTicket> {
       }
     }
 
-    final calculadoraCiclo = CalculadoraCiclo(widget.perfil.diaCorte);
+    final calculadoraCiclo = widget.perfil.calculadoraCiclo;
     final puedeCapturar = await asegurarCicloAbierto(
       context,
       cicloId: calculadoraCiclo.calcularPara(_fecha).id,

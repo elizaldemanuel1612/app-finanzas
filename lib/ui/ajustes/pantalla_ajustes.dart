@@ -6,16 +6,19 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../data/firebase/servicio_auth.dart';
 import '../../data/repositorios/local/almacen_local.dart';
+import '../../domain/ciclo_de_vida/cambio_de_corte.dart';
 import '../../domain/exportacion/exportar_csv.dart';
 import '../../domain/importacion/plantilla_csv.dart';
 import '../../domain/modelos/perfil.dart';
 import '../ayuda/pantalla_guia.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../comun/documento_legal.dart';
+import '../comun/formato_fecha.dart';
 import '../comun/seccion_lista.dart';
 import '../comun/tema.dart';
 import '../importacion/pantalla_importar.dart';
 import '../meta/pantalla_meta_ahorro.dart';
+import 'pantalla_cambiar_corte.dart';
 
 /// §8 del paquete: "Ajustes" es donde viven la exportación de datos, los
 /// avisos legales y la eliminación de cuenta que ambas tiendas exigen para
@@ -67,6 +70,32 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     final perfilActualizado = await widget.almacenLocal.perfil.obtener();
     if (!mounted || perfilActualizado == null) return;
     setState(() => _perfil = perfilActualizado);
+  }
+
+  Future<void> _irACambiarCorte() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaCambiarCorte(
+          perfil: _perfil,
+          perfilRepositorio: widget.almacenLocal.perfil,
+        ),
+      ),
+    );
+    final perfilActualizado = await widget.almacenLocal.perfil.obtener();
+    if (!mounted || perfilActualizado == null) return;
+    setState(() => _perfil = perfilActualizado);
+  }
+
+  String get _subtituloCorte {
+    final hoy = DateTime.now();
+    final pendiente = cambioPendiente(_perfil, hoy);
+    if (pendiente != null) {
+      return 'Día ${pendiente.diaCorteNuevo} desde el ${fechaCorta(pendiente.vigenteDesde)} '
+          '· hoy en ciclo de transición';
+    }
+    final ciclo = _perfil.calculadoraCiclo.calcularPara(hoy);
+    return 'Día ${_perfil.diaCorte} · ciclo del ${fechaCorta(ciclo.fechaInicio)} '
+        'al ${fechaCorta(ciclo.fechaFin)}';
   }
 
   Future<void> _irAImportar() async {
@@ -300,6 +329,12 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                       ? 'Hoy: lo que sobre de tus presupuestos'
                       : 'Editar cuánto quieres apartar cada ciclo',
                   onTap: _irAMetaAhorro,
+                ),
+                _Renglon(
+                  icono: Icons.event_repeat,
+                  titulo: 'Día de corte',
+                  subtitulo: _subtituloCorte,
+                  onTap: _irACambiarCorte,
                 ),
               ],
             ),

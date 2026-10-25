@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/almacenamiento/almacen_fotos.dart';
@@ -198,9 +197,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     if (paraEditar == null) {
       return (primera: hoy.subtract(const Duration(days: 365)), ultima: hoy);
     }
-    final ciclo = CalculadoraCiclo(
-      widget.perfil.diaCorte,
-    ).calcularPara(paraEditar.fecha);
+    final ciclo = widget.perfil.calculadoraCiclo.calcularPara(paraEditar.fecha);
     final ultima = ciclo.fechaFin.isAfter(hoy) ? hoy : ciclo.fechaFin;
     return (primera: ciclo.fechaInicio, ultima: ultima);
   }
@@ -219,7 +216,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     }
 
     final paraEditar = widget.paraEditar;
-    final calculadoraCiclo = CalculadoraCiclo(widget.perfil.diaCorte);
+    final calculadoraCiclo = widget.perfil.calculadoraCiclo;
 
     if (paraEditar == null) {
       final puedeCapturar = await asegurarCicloAbierto(

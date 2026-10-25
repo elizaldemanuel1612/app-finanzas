@@ -339,9 +339,12 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
                     TextButton(onPressed: _guardando ? null : _omitirGuia, child: const Text('Omitir'))
                   else if (_paso > 0)
                     TextButton(onPressed: _guardando ? null : _retroceder, child: const Text('Atrás')),
-                  const Spacer(),
-                  Flexible(
+                  if (_paso > 0) const SizedBox(width: 12),
+                  // Ocupa todo el ancho que queda: antes compartía el espacio
+                  // a la mitad con un Spacer y se veía angosto y corrido.
+                  Expanded(
                     child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                       onPressed: _guardando ? null : (_paso == 6 ? _verGuia : _avanzar),
                       child: Text(_textoBoton(), overflow: TextOverflow.ellipsis),
                     ),
@@ -371,6 +374,7 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
     return _Paso(
       titulo: '¿Cuándo empieza tu mes?',
       subtitulo: 'Así sabemos de qué día a qué día va cada ciclo.',
+      nota: 'Si cambias de tarjeta, podrás cambiarlo en Ajustes.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

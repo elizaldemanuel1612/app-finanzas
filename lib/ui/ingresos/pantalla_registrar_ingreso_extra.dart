@@ -189,7 +189,7 @@ class _PantallaRegistrarIngresoExtraState
       resultado = crearIngresoExtra(
         id: _uuid.v4(),
         fecha: _fecha,
-        calculadoraCiclo: CalculadoraCiclo(widget.perfil.diaCorte),
+        calculadoraCiclo: widget.perfil.calculadoraCiclo,
         monto: monto,
         etiqueta: etiqueta,
         destino: _destino,

@@ -80,14 +80,21 @@ class _PantallaInicioState extends State<PantallaInicio> {
   @override
   void initState() {
     super.initState();
-    _ciclo = CalculadoraCiclo(_perfil.diaCorte).calcularPara(DateTime.now());
+    _recalcularCiclo();
+    _cargar();
+    AccesosRapidos.escuchar(_abrirAccesoRapido);
+  }
+
+  /// Con el historial de cortes del perfil (spec §2.4): si el usuario
+  /// cambió su día de corte, el ciclo en curso puede ser de transición.
+  void _recalcularCiclo() {
+    final ahora = DateTime.now();
+    _ciclo = _perfil.calculadoraCiclo.calcularPara(ahora);
     _avanceCiclo = avanceDelCiclo(
       fechaInicio: _ciclo.fechaInicio,
       fechaFin: _ciclo.fechaFin,
-      ahora: DateTime.now(),
+      ahora: ahora,
     );
-    _cargar();
-    AccesosRapidos.escuchar(_abrirAccesoRapido);
   }
 
   @override
@@ -314,7 +321,12 @@ class _PantallaInicioState extends State<PantallaInicio> {
     );
     final perfilActualizado = await widget.perfilRepositorio.obtener();
     if (!mounted) return;
-    if (perfilActualizado != null) setState(() => _perfil = perfilActualizado);
+    if (perfilActualizado != null) {
+      setState(() {
+        _perfil = perfilActualizado;
+        _recalcularCiclo();
+      });
+    }
     await _cargar();
   }
 

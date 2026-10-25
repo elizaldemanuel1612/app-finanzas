@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
@@ -394,7 +393,7 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
     final resultado = crearMovimiento(
       clientId: _uuid.v4(),
       fecha: DateTime.now(),
-      calculadoraCiclo: CalculadoraCiclo(perfil.diaCorte),
+      calculadoraCiclo: perfil.calculadoraCiclo,
       monto: m.monto,
       categoriaId: m.categoriaId,
       medio: m.medio,

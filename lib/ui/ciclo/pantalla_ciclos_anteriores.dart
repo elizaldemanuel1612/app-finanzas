@@ -64,7 +64,7 @@ class _PantallaCiclosAnterioresState extends State<PantallaCiclosAnteriores> {
       ciclosGuardados: ciclosGuardados,
       todosLosMovimientos: movimientos,
       todosLosIngresosExtra: ingresosExtra,
-      calculadoraCiclo: CalculadoraCiclo(widget.perfil.diaCorte),
+      calculadoraCiclo: widget.perfil.calculadoraCiclo,
       cicloActualId: widget.cicloActual.id,
     );
 
