@@ -9,6 +9,7 @@ import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
+import '../../domain/clasificacion/normalizacion_texto.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/estado_movimiento.dart';
 import '../../domain/modelos/movimiento.dart';
@@ -69,7 +70,7 @@ class _PantallaGastosState extends State<PantallaGastos> {
     _refrescar();
     _busquedaControlador.addListener(() {
       setState(
-        () => _busqueda = _busquedaControlador.text.trim().toLowerCase(),
+        () => _busqueda = normalizarTexto(_busquedaControlador.text),
       );
     });
   }
@@ -214,8 +215,12 @@ class _PantallaGastosState extends State<PantallaGastos> {
       if (_filtroMedios.isNotEmpty && !_filtroMedios.contains(m.medio)) return false;
       if (_busqueda.isNotEmpty) {
         final categoria = categoriasPorId[m.categoriaId];
-        final texto = '${m.descripcion} ${categoria?.nombre ?? ''}'
-            .toLowerCase();
+        // Sin acentos ("cafe" encuentra "Café") y también por monto
+        // ("450" encuentra $450.00 y $1,450.00).
+        final texto = normalizarTexto(
+          '${m.descripcion} ${categoria?.nombre ?? ''} '
+          '${m.monto.centavos ~/ 100} ${m.monto.formateado()}',
+        );
         if (!texto.contains(_busqueda)) return false;
       }
       return true;
@@ -253,7 +258,7 @@ class _PantallaGastosState extends State<PantallaGastos> {
                   controller: _busquedaControlador,
                   decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.search),
-                    hintText: 'Buscar gasto o comercio',
+                    hintText: 'Buscar comercio o monto',
                   ),
                 ),
               ),

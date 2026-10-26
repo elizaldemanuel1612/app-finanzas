@@ -67,6 +67,13 @@ final class AccesosRapidos: NSObject, FlutterPlugin, FlutterSceneLifeCycleDelega
         WidgetCenter.shared.reloadAllTimelines()
       }
       result(nil)
+    case "limpiarWidget":
+      if let compartidas = UserDefaults(suiteName: Self.appGroup) {
+        compartidas.removeObject(forKey: "quedaHoyTexto")
+        compartidas.removeObject(forKey: "fecha")
+        WidgetCenter.shared.reloadAllTimelines()
+      }
+      result(nil)
     default:
       result(FlutterMethodNotImplemented)
     }

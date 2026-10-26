@@ -174,4 +174,11 @@ void main() {
       expect(periodoNatural(DateTime(2026, 1, 1)), '2026-01');
     });
   });
+
+  test('diasDelCiclo cuenta inicio y fin, también con meses cortos', () {
+    final oct = CalculadoraCiclo(1).calcularPara(DateTime(2026, 10, 10));
+    expect(oct.diasDelCiclo, 31);
+    final feb = CalculadoraCiclo(1).calcularPara(DateTime(2027, 2, 10));
+    expect(feb.diasDelCiclo, 28);
+  });
 }

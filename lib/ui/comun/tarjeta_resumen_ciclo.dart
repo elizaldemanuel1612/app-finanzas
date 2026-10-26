@@ -36,6 +36,9 @@ class TarjetaResumenCiclo extends StatelessWidget {
     final negativo = disponibleParaInvertir.esNegativo;
     return Card(
       child: Column(
+        // Estirado: si no, la parte de arriba se encoge a su texto y queda
+        // centrada (corrida a la derecha y con poca área para tocar).
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InkWell(
             onTap: onTapIngreso,

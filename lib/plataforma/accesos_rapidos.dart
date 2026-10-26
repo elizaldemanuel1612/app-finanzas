@@ -72,6 +72,19 @@ class AccesosRapidos {
     }
   }
 
+  /// Borra lo que el widget muestra (al cerrar sesión o eliminar la
+  /// cuenta): el widget vuelve a "Abre la app".
+  static Future<void> limpiarWidget() async {
+    if (!_disponible) return;
+    try {
+      await _canal.invokeMethod<void>('limpiarWidget');
+    } on PlatformException {
+      // Nada que limpiar.
+    } on MissingPluginException {
+      // Ídem.
+    }
+  }
+
   static AccesoRapido? _desdeTexto(String? texto) => switch (texto) {
         'gasto' => AccesoRapido.gasto,
         'dictar' => AccesoRapido.dictar,

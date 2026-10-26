@@ -11,12 +11,13 @@ private let appGroup = "group.com.manuelelizalde.appfinanzas"
 private let urlGasto = URL(string: "appfinanzas://gasto")!
 private let urlDictar = URL(string: "appfinanzas://dictar")!
 
-// lib/ui/comun/paleta.dart
-private let violeta = Color(red: 0x5B / 255, green: 0x4B / 255, blue: 0xE8 / 255)
-private let violetaSuave = Color(red: 0xEA / 255, green: 0xE7 / 255, blue: 0xFD / 255)
-private let tinta = Color(red: 0x1A / 255, green: 0x1B / 255, blue: 0x3A / 255)
+// lib/ui/comun/paleta.dart (dirección visual premium)
+private let azul = Color(red: 0x0B / 255, green: 0x1F / 255, blue: 0x3B / 255)
+private let azulSuave = Color(red: 0xE9 / 255, green: 0xEE / 255, blue: 0xF6 / 255)
+private let oro = Color(red: 0xD4 / 255, green: 0xAF / 255, blue: 0x37 / 255)
+private let tinta = azul
 private let medio = Color(red: 0x5F / 255, green: 0x64 / 255, blue: 0x84 / 255)
-private let fondo = Color(red: 0xF2 / 255, green: 0xF4 / 255, blue: 0xFA / 255)
+private let fondo = Color(red: 0xFC / 255, green: 0xFA / 255, blue: 0xF7 / 255)
 
 // MARK: - Datos
 
@@ -92,10 +93,11 @@ struct VistaQuedaHoy: View {
       Spacer()
       HStack(spacing: 6) {
         Image(systemName: "plus.circle.fill")
+          .foregroundStyle(oro)
         Text("Registrar")
+          .foregroundStyle(azul)
       }
       .font(.subheadline.weight(.semibold))
-      .foregroundStyle(violeta)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     .widgetURL(urlGasto)
@@ -105,7 +107,7 @@ struct VistaQuedaHoy: View {
     HStack(spacing: 12) {
       dato.frame(maxWidth: .infinity, alignment: .leading)
       VStack(spacing: 8) {
-        BotonWidget(titulo: "Gasto", icono: "plus", url: urlGasto)
+        BotonWidget(titulo: "Gasto", icono: "plus", url: urlGasto, destacado: true)
         BotonWidget(titulo: "Dictar", icono: "mic.fill", url: urlDictar)
       }
       .frame(width: 112)
@@ -134,6 +136,8 @@ struct BotonWidget: View {
   let titulo: String
   let icono: String
   let url: URL
+  /// En oro: la acción principal (registrar). El resto en azul noche.
+  var destacado = false
 
   var body: some View {
     Link(destination: url) {
@@ -142,9 +146,9 @@ struct BotonWidget: View {
         Text(titulo)
       }
       .font(.subheadline.weight(.semibold))
-      .foregroundStyle(violeta)
+      .foregroundStyle(destacado ? azul : .white)
       .frame(maxWidth: .infinity, minHeight: 40)
-      .background(violetaSuave, in: RoundedRectangle(cornerRadius: 12))
+      .background(destacado ? oro : azul, in: RoundedRectangle(cornerRadius: 12))
     }
   }
 }
@@ -228,3 +232,18 @@ struct WidgetsFinanzas: WidgetBundle {
     }
   }
 }
+
+#if DEBUG
+  #Preview("Mediano", as: .systemMedium) {
+    WidgetQuedaHoy()
+  } timeline: {
+    EntradaFinanzas(date: .now, quedaHoy: "$828.15")
+    EntradaFinanzas(date: .now, quedaHoy: nil)
+  }
+
+  #Preview("Chico", as: .systemSmall) {
+    WidgetQuedaHoy()
+  } timeline: {
+    EntradaFinanzas(date: .now, quedaHoy: "$828.15")
+  }
+#endif

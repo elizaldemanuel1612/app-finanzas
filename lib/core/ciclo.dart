@@ -37,6 +37,14 @@ final class Ciclo {
     return !dia.isBefore(fechaInicio) && !dia.isAfter(fechaFin);
   }
 
+  /// Duración del ciclo en días, contando inicio y fin (UTC para que el
+  /// horario de verano no le reste un día).
+  int get diasDelCiclo =>
+      DateTime.utc(fechaFin.year, fechaFin.month, fechaFin.day)
+          .difference(DateTime.utc(fechaInicio.year, fechaInicio.month, fechaInicio.day))
+          .inDays +
+      1;
+
   /// Días que faltan para que termine el ciclo, comparando por fecha (no
   /// por instante — normaliza [hoy] y [fechaFin] a medianoche antes de
   /// restar). `0` = hoy es el último día. Nunca negativo.

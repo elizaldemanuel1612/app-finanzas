@@ -16,6 +16,7 @@ import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
+import '../../domain/presupuesto/apartado_estimado.dart';
 import '../../domain/presupuesto/disponible_por_dia.dart';
 import '../../domain/presupuesto/meta_base.dart';
 import '../../domain/rollups/calcular_rollups.dart';
@@ -196,12 +197,16 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
     final metaBase = calcularMetaBase(perfil: _perfil, categorias: categorias);
     final metaDelCiclo = calcularMetaDelCiclo(metaBase: metaBase, ingresos: ingresos);
-    final metricasMeta = calcularMetricasApartado(
-      ingresoTotal: ingresos.total,
-      totalGastado: totalGastado,
-      meta: metaDelCiclo,
-      extraAApartado: ingresos.extraAApartado,
-      extraAGasto: ingresos.extraAGasto,
+    // Ciclo en curso: estimado, no `ingreso − gastado` (spec §5.6.1).
+    final hoyDia = DateTime.now();
+    final apartadoEstimado = calcularApartadoEstimado(
+      ingreso: ingresos.total,
+      presupuestoFijas: presupuestoFijas,
+      gastadoFijas: gastadoFijas,
+      presupuestoVariables: presupuestoVariables,
+      gastadoVariables: gastadoVariables,
+      diaDelCiclo: _ciclo.diasDelCiclo - _ciclo.diasParaTerminar(hoyDia),
+      diasDelCiclo: _ciclo.diasDelCiclo,
     );
 
     return _DatosInicio(
@@ -218,7 +223,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
       disponibleParaInvertir: disponibleParaInvertir,
       deltaPorCategoria: deltaPorCategoria,
       metaDelCiclo: metaDelCiclo,
-      metricasMeta: metricasMeta,
+      apartadoEstimado: apartadoEstimado,
     );
   }
 
@@ -471,7 +476,11 @@ class _PantallaInicioState extends State<PantallaInicio> {
       );
     }
 
-    return ListView(
+    // Deslizar hacia abajo recarga (p. ej. tras registrar desde el widget
+    // o desde Siri con la app ya abierta).
+    return RefreshIndicator(
+      onRefresh: _cargar,
+      child: ListView(
       padding: const EdgeInsets.all(16),
       children: [
         TarjetaResumenCiclo(
@@ -490,7 +499,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
           _TarjetaHoyPuedes(disponible: _disponibleHoy!, onTap: _irAAnalisis),
         _TarjetaMeta(
           meta: datos.metaDelCiclo,
-          metricas: datos.metricasMeta,
+          apartadoEstimado: datos.apartadoEstimado,
           onTap: _irAMeta,
         ),
         Card(
@@ -668,6 +677,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
           ],
         ],
       ],
+      ),
     );
   }
 }
@@ -686,7 +696,7 @@ class _DatosInicio {
   final Dinero disponibleParaInvertir;
   final Map<String, Dinero> deltaPorCategoria;
   final Dinero metaDelCiclo;
-  final MetricasApartado metricasMeta;
+  final Dinero apartadoEstimado;
 
   const _DatosInicio({
     required this.categorias,
@@ -702,7 +712,7 @@ class _DatosInicio {
     required this.disponibleParaInvertir,
     required this.deltaPorCategoria,
     required this.metaDelCiclo,
-    required this.metricasMeta,
+    required this.apartadoEstimado,
   });
 }
 
@@ -711,14 +721,14 @@ class _DatosInicio {
 /// de apartado del ciclo y qué tanto se lleva — toca a [PantallaMetaAhorro].
 class _TarjetaMeta extends StatelessWidget {
   final Dinero meta;
-  final MetricasApartado metricas;
+  final Dinero apartadoEstimado;
   final VoidCallback onTap;
 
-  const _TarjetaMeta({required this.meta, required this.metricas, required this.onTap});
+  const _TarjetaMeta({required this.meta, required this.apartadoEstimado, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final alcance = metricas.alcance;
+    final double? alcance = meta.esPositivo ? apartadoEstimado.centavos / meta.centavos : null;
     final nivel = calcularNivelAlcance(alcance);
     final (colorTexto, colorFondo) = switch (nivel) {
       null => (ColoresApp.azul, ColoresApp.azulSuave),
@@ -751,7 +761,9 @@ class _TarjetaMeta extends StatelessWidget {
                     const Text('Meta de este ciclo', style: TextStyle(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
                     Text(
-                      'Llevas ${metricas.apartado.formateado()} de ${meta.formateado()}',
+                      apartadoEstimado.esNegativo
+                          ? 'Si sigues así, no alcanza para apartar'
+                          : 'Si sigues así, apartas ${apartadoEstimado.formateado()} de ${meta.formateado()}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -762,7 +774,7 @@ class _TarjetaMeta extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: colorFondo, borderRadius: BorderRadius.circular(99)),
                 child: Text(
-                  alcance == null ? '—' : '${(alcance * 100).round()}%',
+                  alcance == null ? '—' : '${(alcance.clamp(0, 9.99) * 100).round()}%',
                   style: TextStyle(color: colorTexto, fontWeight: FontWeight.w800),
                 ),
               ),

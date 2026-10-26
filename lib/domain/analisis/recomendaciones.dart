@@ -1,5 +1,6 @@
 import '../../core/money.dart';
 import '../modelos/categoria.dart';
+import '../presupuesto/apartado_estimado.dart';
 import 'reporte_analisis.dart';
 
 /// Qué tan urgente es una recomendación; ordena la lista (lo urgente
@@ -144,8 +145,15 @@ List<Recomendacion> calcularRecomendaciones({
   // Tu meta.
   final meta = metaCiclo;
   if (meta != null && meta.esPositivo && r.diasRestantes > 0 && dias >= 3) {
-    final fijas = r.gastadoFijas > r.presupuestoFijas ? r.gastadoFijas : r.presupuestoFijas;
-    final apartado = ingresoCiclo - fijas - r.proyeccionVariables;
+    final apartado = calcularApartadoEstimado(
+      ingreso: ingresoCiclo,
+      presupuestoFijas: r.presupuestoFijas,
+      gastadoFijas: r.gastadoFijas,
+      presupuestoVariables: r.presupuestoVariables,
+      gastadoVariables: r.gastadoVariables,
+      diaDelCiclo: r.diaDelCiclo,
+      diasDelCiclo: r.diasDelCiclo,
+    );
     final Recomendacion rec;
     if (apartado >= meta) {
       rec = Recomendacion(

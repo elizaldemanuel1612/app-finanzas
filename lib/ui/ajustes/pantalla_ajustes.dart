@@ -10,6 +10,7 @@ import '../../domain/ciclo_de_vida/cambio_de_corte.dart';
 import '../../domain/exportacion/exportar_csv.dart';
 import '../../domain/importacion/plantilla_csv.dart';
 import '../../domain/modelos/perfil.dart';
+import '../../plataforma/accesos_rapidos.dart';
 import '../ayuda/pantalla_guia.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../comun/documento_legal.dart';
@@ -195,6 +196,8 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       ),
     );
     if (confirmar != true) return;
+    // El widget no debe seguir mostrando cifras de esta cuenta.
+    await AccesosRapidos.limpiarWidget();
     await widget.servicioAuth.cerrarSesion();
     // La compuerta de sesión (main.dart) reacciona sola y cambia la ruta
     // raíz a PantallaLogin, pero esta pantalla llegó apilada encima con
@@ -259,6 +262,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       await widget.servicioAuth.eliminarCuenta();
       await widget.almacenLocal.borrarTodo();
       await _borrarExportacionesTemporales();
+      await AccesosRapidos.limpiarWidget();
       await widget.servicioAuth.cerrarSesion();
       // Mismo motivo que en _cerrarSesion: sin este pop, la pantalla se
       // queda tapando el login aunque la cuenta ya no exista.

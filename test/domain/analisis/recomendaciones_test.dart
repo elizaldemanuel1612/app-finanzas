@@ -182,7 +182,7 @@ void main() {
   });
 
   test('tu meta: a favor, en juego y sin meta', () {
-    final r = _reporte(gastadoFijas: 4000, presupuestoFijas: 5000, proyeccionVariables: 10000);
+    final r = _reporte(gastadoFijas: 4000, presupuestoFijas: 5000, gastadoVariables: 5000);
     final aFavor = _recs(r, ingreso: 20000, meta: 5000).single;
     expect(aFavor.titulo, 'Vas para cumplir tu meta');
     expect(aFavor.detalle, contains(r'apartarías $5,000.00 de $5,000.00'));
@@ -199,7 +199,7 @@ void main() {
     expect(noAlcanza.detalle, contains(r'pasarían lo que entra por $1,000.00'));
 
     // Fijas ya por encima de su presupuesto: cuenta lo gastado.
-    final pasadas = _reporte(gastadoFijas: 6000, presupuestoFijas: 5000, proyeccionVariables: 0);
+    final pasadas = _reporte(gastadoFijas: 6000, presupuestoFijas: 5000);
     expect(_recs(pasadas, ingreso: 10000, meta: 1000).single.detalle, contains(r'$4,000.00'));
 
     expect(_recs(r, ingreso: 20000), isEmpty);
