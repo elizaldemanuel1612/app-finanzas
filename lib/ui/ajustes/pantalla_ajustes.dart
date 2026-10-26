@@ -120,7 +120,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(archivo.path)],
-          subject: 'Plantilla de importación — FinVita',
+          subject: 'Plantilla de importación — MAVfin',
           sharePositionOrigin: _origenCompartir(),
         ),
       );
@@ -166,7 +166,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(archivo.path)],
-          subject: 'Mis gastos — FinVita',
+          subject: 'Mis gastos — MAVfin',
           sharePositionOrigin: _origenCompartir(),
         ),
       );
@@ -401,7 +401,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(
-                          'FinVita es una herramienta de registro y '
+                          'MAVfin es una herramienta de registro y '
                           'pronóstico de tus propios gastos. No es asesoría '
                           'financiera, no invierte tu dinero, no se conecta a '
                           'bancos ni tarjetas, y no maneja dinero real en '
@@ -435,7 +435,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
             const SizedBox(height: 32),
             const Center(
               child: Text(
-                'FinVita · versión 1.0.0 (1)',
+                'MAVfin · versión 1.0.0 (1)',
                 style: TextStyle(color: ColoresApp.medio, fontSize: 12),
               ),
             ),

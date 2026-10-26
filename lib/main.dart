@@ -13,6 +13,7 @@ import 'data/firebase/servicio_auth.dart';
 import 'data/repositorios/local/almacen_local.dart';
 import 'domain/modelos/perfil.dart';
 import 'firebase_options.dart';
+import 'ui/comun/marca.dart';
 import 'ui/comun/pantalla_login.dart';
 import 'ui/comun/tema.dart';
 import 'ui/inicio/pantalla_inicio.dart';
@@ -57,7 +58,7 @@ class AppFinanzas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'FinVita',
+      title: nombreApp,
       theme: construirTema(),
       // Fijo, no el del sistema — mismo criterio que la moneda (es_MX):
       // las cifras y el calendario no deben cambiar de formato entre equipos.

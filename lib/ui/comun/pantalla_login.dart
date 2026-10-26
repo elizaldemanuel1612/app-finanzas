@@ -66,11 +66,13 @@ class _PantallaLoginState extends State<PantallaLogin> {
                 const Center(child: EmblemaApp(tamano: 128)),
                 const SizedBox(height: 28),
                 Text(
-                  'FinVita',
+                  nombreApp,
                   textAlign: TextAlign.center,
                   style: textos.headlineMedium?.copyWith(color: Colors.white),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
+                const LemaApp(),
+                const SizedBox(height: 16),
                 Text(
                   'Tu cuenta protege tus datos y los sincroniza entre '
                   'tus dispositivos.',

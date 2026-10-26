@@ -669,6 +669,10 @@ class _PaginaBienvenida extends StatelessWidget {
                 child: Column(
                   children: [
                     const EmblemaApp(tamano: 104),
+                    const SizedBox(height: 12),
+                    Text(nombreApp, style: textTheme.titleMedium?.copyWith(color: Colors.white)),
+                    const SizedBox(height: 4),
+                    const LemaApp(),
                     const SizedBox(height: 20),
                     Text(
                       '¡Te ayudaré a lograr tu meta de ahorro!',

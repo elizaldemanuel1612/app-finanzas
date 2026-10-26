@@ -1,19 +1,19 @@
-# Términos y condiciones — FinVita
+# Términos y condiciones — MAVfin
 
 _Última actualización: 2026-08-07._
 
-Al usar FinVita, aceptas estos términos.
+Al usar MAVfin, aceptas estos términos.
 
 ## 1. Qué es la app
 
-FinVita es una herramienta personal para registrar gastos, organizar
+MAVfin es una herramienta personal para registrar gastos, organizar
 categorías de presupuesto y ver pronósticos de cierre de ciclo basados en
 tu propio historial. Es de uso individual: no está pensada para gestionar
 dinero de terceros ni de una organización.
 
 ## 2. Esta app no da asesoría financiera
 
-Las cifras, pronósticos y sugerencias que muestra FinVita son
+Las cifras, pronósticos y sugerencias que muestra MAVfin son
 **estimaciones calculadas a partir de lo que tú capturas**, no
 recomendaciones profesionales de inversión, crédito, ahorro ni de ningún
 otro tipo. No sustituyen el consejo de un asesor financiero, contable o
@@ -21,7 +21,7 @@ fiscal calificado. Las decisiones financieras que tomes son tuyas.
 
 ## 3. La app no maneja dinero ni se conecta a bancos
 
-FinVita no está vinculada a ninguna cuenta bancaria, tarjeta ni
+MAVfin no está vinculada a ninguna cuenta bancaria, tarjeta ni
 institución financiera, y no mueve, transfiere ni retiene fondos en ningún
 momento. Todo lo que registra es un reflejo de lo que tú, manualmente,
 decides capturar.
@@ -41,21 +41,21 @@ y tus datos locales en cualquier momento desde Ajustes.
 
 ## 6. Exactitud de los cálculos
 
-FinVita hace un esfuerzo razonable para que sus cálculos (totales,
+MAVfin hace un esfuerzo razonable para que sus cálculos (totales,
 pronósticos, planes de ajuste) sean correctos, pero no garantiza que estén
 libres de errores. Verifica cifras importantes por tu cuenta antes de
 tomar decisiones basadas en ellas.
 
 ## 7. Sin garantías
 
-FinVita se ofrece "tal cual", sin garantías de ningún tipo, expresas
+MAVfin se ofrece "tal cual", sin garantías de ningún tipo, expresas
 o implícitas, incluida — sin limitarse a — la idoneidad para un propósito
 particular. El uso de la app es bajo tu propio riesgo.
 
 ## 8. Limitación de responsabilidad
 
 En la máxima medida permitida por la ley aplicable, quienes desarrollan
-FinVita no serán responsables por daños indirectos, incidentales o
+MAVfin no serán responsables por daños indirectos, incidentales o
 consecuentes derivados del uso o la imposibilidad de uso de la app,
 incluida la pérdida de datos.
 

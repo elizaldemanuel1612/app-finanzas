@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'tema.dart';
 
 /// Elementos de marca de la dirección visual premium (2026-10-25): el
-/// emblema (el logo de FinVita, `assets/marca/logo.png`) y el fondo azul
+/// emblema (el logo de MAVfin, `assets/marca/logo.png`) y el fondo azul
 /// noche con montañas, dibujado, para las pantallas de entrada (login y
 /// bienvenida).
 
-/// El logo de FinVita (aro dorado con montaña, bandera, flecha y barras).
+/// El logo de MAVfin (aro dorado con montaña, bandera, flecha y barras).
 class EmblemaApp extends StatelessWidget {
   final double tamano;
 
@@ -17,12 +17,38 @@ class EmblemaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ExcludeSemantics(
       child: DecoratedBox(
+        // Relleno azul noche: sin él, el brillo dorado se ve a través del
+        // logo (que es transparente) y tiñe el interior del aro.
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
+          color: ColoresApp.azul,
           boxShadow: [BoxShadow(color: Color(0x40D4AF37), blurRadius: 28)],
         ),
         child: Image.asset('assets/marca/logo.png', width: tamano, height: tamano),
       ),
+    );
+  }
+}
+
+/// Nombre visible de la app y su lema. Solo texto que ve el usuario: los
+/// identificadores internos (bundle ID, paquete, App Group) no cambian.
+const nombreApp = 'MAVfin';
+const lemaApp = 'Tus finanzas, tu progreso';
+
+/// El lema en dorado y con letras espaciadas, como en la dirección visual.
+class LemaApp extends StatelessWidget {
+  const LemaApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      lemaApp.toUpperCase(),
+      textAlign: TextAlign.center,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: ColoresApp.oro,
+            letterSpacing: 2.4,
+            fontWeight: FontWeight.w600,
+          ),
     );
   }
 }

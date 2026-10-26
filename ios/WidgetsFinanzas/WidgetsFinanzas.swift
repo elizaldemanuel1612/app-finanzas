@@ -2,7 +2,7 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-// Widgets de FinVita (spec-app-finanzas-v2.md §5.6): un solo dato
+// Widgets de MAVfin (spec-app-finanzas-v2.md §5.6): un solo dato
 // (cuánto queda hoy) y un solo flujo (registrar un gasto). El widget nunca
 // calcula nada: muestra lo que la app dejó en el App Group
 // (ios/Runner/AccesosRapidos.swift) y abre la app con un URL.
@@ -116,7 +116,7 @@ struct VistaQuedaHoy: View {
 
   private var rectangular: some View {
     VStack(alignment: .leading, spacing: 1) {
-      Text(entrada.quedaHoy == nil ? "FinVita" : "Hoy puedes gastar")
+      Text(entrada.quedaHoy == nil ? "MAVfin" : "Hoy puedes gastar")
         .font(.caption2)
       Text(entrada.quedaHoy ?? "Registrar gasto")
         .font(.headline)
@@ -217,7 +217,7 @@ struct ControlDictarGasto: ControlWidget {
       }
     }
     .displayName("Dictar gasto")
-    .description("Abre FinVita escuchando para que dictes el gasto.")
+    .description("Abre MAVfin escuchando para que dictes el gasto.")
   }
 }
 

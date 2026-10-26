@@ -1,7 +1,7 @@
 import AppIntents
 
 /// Atajo de voz (spec-app-finanzas-v2.md §5.6): "Oye Siri, registra un
-/// gasto en FinVita" abre la captura con el dictado ya escuchando
+/// gasto en MAVfin" abre la captura con el dictado ya escuchando
 /// (`Compartido/DictarGastoIntent.swift`). Siri no deja meter el monto en
 /// la frase que activa el atajo, así que el gasto se dicta en un segundo
 /// paso con el mismo `parsearDictado` de la app.
