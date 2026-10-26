@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../domain/sincronizacion/fusion.dart';
 import '../almacenamiento/archivo_texto.dart';
 import '../repositorios/local/almacen_local.dart';
+import 'respaldo_remoto.dart';
 
 /// Qué tiene cada lado antes de activar el respaldo, para decidir si hay
 /// que preguntarle al usuario cómo combinar (spec-app-finanzas-v2.md §4.2.1).
@@ -18,26 +17,23 @@ final class EstadoInicialNube {
   bool get hayQueElegir => hayDatosEnNube && hayDatosLocales;
 }
 
-/// Respaldo y sincronización con Firestore en `cuentas/{uid}` (§4.2.1).
-/// Los datos siguen viviendo en el dispositivo (§4.1): esto solo copia y
-/// combina. La lógica de qué gana vive en `domain/sincronizacion/fusion.dart`.
+/// Respaldo y sincronización con la copia del usuario (§4.2.1, hoy su
+/// Google Drive vía [RespaldoRemoto]). Los datos siguen viviendo en el
+/// dispositivo (§4.1): esto solo copia y combina. La lógica de qué gana
+/// vive en `domain/sincronizacion/fusion.dart`.
+///
+/// Las acciones que el usuario dispara con un botón ([estadoInicial],
+/// [activar], [sincronizarAhora], [borrarCopiaEnNube]) piden el acceso
+/// **antes de cualquier otra espera**: en la web la ventana de permiso de
+/// Google solo se abre si sale directo del toque.
 final class ServicioNube {
-  final String uid;
   final AlmacenLocal almacen;
-  final FirebaseFirestore _db;
+  final RespaldoRemoto remoto;
 
-  ServicioNube({required this.uid, required this.almacen, FirebaseFirestore? db})
-      : _db = db ?? FirebaseFirestore.instance;
-
-  static const _maxPorLote = 400;
+  ServicioNube({required this.almacen, required this.remoto});
 
   /// Una sola sincronización a la vez por proceso.
   static Future<void>? _enCurso;
-
-  DocumentReference<Map<String, dynamic>> get _cuenta => _db.collection('cuentas').doc(uid);
-
-  CollectionReference<Map<String, dynamic>> _coleccion(String archivo) =>
-      _cuenta.collection(archivo.replaceAll('.json', ''));
 
   // ───────────── estado local del respaldo (no se sincroniza) ─────────────
 
@@ -61,7 +57,8 @@ final class ServicioNube {
   // ───────────── consultas ─────────────
 
   Future<EstadoInicialNube> estadoInicial() async {
-    final enNube = await hayRespaldoEnNube();
+    await _exigirAcceso();
+    final enNube = await _hayPerfilRespaldado();
     final perfil = await almacen.perfil.obtener();
     final movimientos = await almacen.movimientos.listarTodos();
     return EstadoInicialNube(
@@ -70,23 +67,33 @@ final class ServicioNube {
     );
   }
 
-  /// Hay un perfil respaldado para esta cuenta.
+  /// Hay un perfil respaldado para esta cuenta. Sin un permiso ya concedido
+  /// responde `false` sin preguntar (arranque de la app).
   Future<bool> hayRespaldoEnNube() async {
-    final perfil = await _coleccion('perfil.json').doc('perfil').get(const GetOptions(source: Source.server));
-    return perfil.exists;
+    if (!await remoto.tieneAcceso(interactivo: false)) return false;
+    return _hayPerfilRespaldado();
+  }
+
+  Future<bool> _hayPerfilRespaldado() async {
+    final copia = await remoto.descargar();
+    return copia?['perfil.json']?.isNotEmpty ?? false;
   }
 
   // ───────────── acciones ─────────────
 
   /// Activa el respaldo con el [modo] elegido y sincroniza.
-  Future<void> activar(ModoFusion modo) => _sincronizar(modo, activar: true);
+  Future<void> activar(ModoFusion modo) async {
+    await _exigirAcceso();
+    await _sincronizar(modo, activar: true);
+  }
 
   /// Sincronización de rutina (al abrir, volver o salir de la app). No hace
-  /// nada si el respaldo no está activo. Nunca lanza: sin red, espera a la
-  /// siguiente.
+  /// nada si el respaldo no está activo o si haría falta pedir permiso.
+  /// Nunca lanza: sin red, espera a la siguiente.
   Future<bool> sincronizarSiActiva() async {
-    if (!await estaActiva()) return false;
     try {
+      if (!await estaActiva()) return false;
+      if (!await remoto.tieneAcceso(interactivo: false)) return false;
       await _sincronizar(ModoFusion.combinar, activar: false);
       return true;
     } catch (_) {
@@ -94,10 +101,14 @@ final class ServicioNube {
     }
   }
 
-  /// "Sincronizar ahora": como la de rutina, pero el error sí llega a la UI.
-  Future<void> sincronizarAhora() => _sincronizar(ModoFusion.combinar, activar: false);
+  /// "Sincronizar ahora": como la de rutina, pero puede pedir permiso y el
+  /// error sí llega a la UI.
+  Future<void> sincronizarAhora() async {
+    await _exigirAcceso();
+    await _sincronizar(ModoFusion.combinar, activar: false);
+  }
 
-  /// Deja de sincronizar. La copia en la nube se conserva.
+  /// Deja de sincronizar. La copia se conserva.
   Future<void> desactivar() async {
     final estado = await _leerEstado();
     estado['activa'] = false;
@@ -105,20 +116,17 @@ final class ServicioNube {
     await _guardarEstado(estado);
   }
 
-  /// Borra la copia en la nube (Ajustes o "Eliminar cuenta") y desactiva.
+  /// Borra la copia (Ajustes o "Eliminar cuenta") y desactiva.
   Future<void> borrarCopiaEnNube() async {
-    for (final archivo in AlmacenLocal.nombresDeArchivo) {
-      final docs = await _coleccion(archivo).get(const GetOptions(source: Source.server));
-      for (var i = 0; i < docs.docs.length; i += _maxPorLote) {
-        final lote = _db.batch();
-        for (final d in docs.docs.skip(i).take(_maxPorLote)) {
-          lote.delete(d.reference);
-        }
-        await lote.commit();
-      }
-    }
-    await _cuenta.delete();
+    await _exigirAcceso();
+    await remoto.borrar();
     await _guardarEstado({'activa': false});
+  }
+
+  Future<void> _exigirAcceso() async {
+    if (!await remoto.tieneAcceso(interactivo: true)) {
+      throw StateError('Sin permiso para el respaldo.');
+    }
   }
 
   Future<void> _sincronizar(ModoFusion modo, {required bool activar}) async {
@@ -131,12 +139,14 @@ final class ServicioNube {
       final estado = await _leerEstado();
       final bases = (estado['base'] as Map<String, dynamic>?) ?? {};
       final nuevasBases = <String, List<String>>{};
+      final copia = await remoto.descargar();
+      final nuevaCopia = <String, List<Map<String, dynamic>>>{};
+      var hayCambiosEnNube = copia == null;
 
       for (final archivo in AlmacenLocal.nombresDeArchivo) {
         final clave = claveDeArchivo(archivo)!;
         final local = await _leerLocal(archivo);
-        final docs = await _coleccion(archivo).get(const GetOptions(source: Source.server));
-        final nube = {for (final d in docs.docs) clave(d.data()): d.data()};
+        final nube = {for (final m in copia?[archivo] ?? const <Map<String, dynamic>>[]) clave(m): m};
         final base = modo == ModoFusion.combinar && !activar
             ? (bases[archivo] as List<dynamic>?)?.cast<String>().toSet()
             : null;
@@ -151,14 +161,13 @@ final class ServicioNube {
         );
 
         await _escribirLocal(archivo, r.local);
-        await _escribirNube(archivo, r);
+        final enNube = {...nube, ...r.subir}..removeWhere((k, _) => r.borrarEnNube.contains(k));
+        nuevaCopia[archivo] = enNube.values.toList();
+        hayCambiosEnNube = hayCambiosEnNube || r.hayCambiosEnNube;
         nuevasBases[archivo] = r.base.toList();
       }
 
-      await _cuenta.set({
-        'nubeActiva': true,
-        'actualizado': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      if (hayCambiosEnNube) await remoto.subir(nuevaCopia);
       await _guardarEstado({
         'activa': true,
         'ultima': DateTime.now().toIso8601String(),
@@ -191,22 +200,4 @@ final class ServicioNube {
     }
     if (antes != despues) await destino.escribir(despues);
   }
-
-  Future<void> _escribirNube(String archivo, ResultadoFusion r) async {
-    final operaciones = <void Function(WriteBatch)>[
-      for (final e in r.subir.entries)
-        (lote) => lote.set(_coleccion(archivo).doc(_idDoc(e.key)), e.value),
-      for (final k in r.borrarEnNube) (lote) => lote.delete(_coleccion(archivo).doc(_idDoc(k))),
-    ];
-    for (var i = 0; i < operaciones.length; i += _maxPorLote) {
-      final lote = _db.batch();
-      for (final op in operaciones.skip(i).take(_maxPorLote)) {
-        op(lote);
-      }
-      await lote.commit();
-    }
-  }
-
-  /// Un id de documento válido para cualquier clave (sin "/").
-  static String _idDoc(String clave) => Uri.encodeComponent(clave);
 }

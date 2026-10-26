@@ -74,8 +74,8 @@ class _PantallaLoginState extends State<PantallaLogin> {
                 const LemaApp(),
                 const SizedBox(height: 16),
                 Text(
-                  'Tu cuenta protege tus datos y los sincroniza entre '
-                  'tus dispositivos.',
+                  'Tus datos se quedan contigo: en tu dispositivo y, si '
+                  'quieres, en tu propio Google Drive.',
                   textAlign: TextAlign.center,
                   style: textos.bodyMedium?.copyWith(color: const Color(0xFFC9D1E3)),
                 ),

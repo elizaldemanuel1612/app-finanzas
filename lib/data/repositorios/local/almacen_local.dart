@@ -2,7 +2,6 @@ import 'dart:io';
 
 import '../../almacenamiento/archivo_texto.dart';
 import '../../almacenamiento/archivo_texto_disco.dart';
-import '../../almacenamiento/archivo_texto_navegador.dart';
 import 'ajuste_presupuesto_ciclo_repositorio_archivo.dart';
 import 'categoria_repositorio_archivo.dart';
 import 'ciclo_repositorio_archivo.dart';
@@ -36,11 +35,11 @@ final class AlmacenLocal {
   /// tickets). En la web no existe en disco: es solo un nombre.
   final Directory directorio;
 
-  /// Los 7 "archivos" de datos por nombre — lo que sincroniza la nube
+  /// Los 7 "archivos" de datos por nombre — lo que sincroniza el respaldo
   /// (`data/nube/servicio_nube.dart`) y lo que borra [borrarTodo].
   final Map<String, ArchivoTexto> archivos;
 
-  /// Estado del respaldo en la nube de esta cuenta (activo, última
+  /// Estado del respaldo en Drive de esta cuenta (activo, última
   /// sincronización): no son datos de la app, así que no se sincroniza.
   final ArchivoTexto estadoNube;
 
@@ -66,16 +65,16 @@ final class AlmacenLocal {
         admiteFotos: true,
       );
 
-  /// En la web: almacenamiento del navegador, separado por cuenta.
-  factory AlmacenLocal.navegador(String uid) => AlmacenLocal._(
-        Directory('navegador/$uid'),
-        {
-          for (final nombre in nombresDeArchivo)
-            nombre: ArchivoTextoNavegador('usuarios/$uid/$nombre'),
-        },
-        ArchivoTextoNavegador('usuarios/$uid/nube.json'),
-        admiteFotos: false,
-      );
+  /// Con los archivos que se le den: la web (`almacenEnNavegador`, en
+  /// `data/almacenamiento/archivo_texto_navegador.dart`, para que este
+  /// archivo no dependa de Flutter y se pruebe con `dart test`).
+  factory AlmacenLocal.con({
+    required Directory directorio,
+    required Map<String, ArchivoTexto> archivos,
+    required ArchivoTexto estadoNube,
+    required bool admiteFotos,
+  }) =>
+      AlmacenLocal._(directorio, archivos, estadoNube, admiteFotos: admiteFotos);
 
   /// Con los archivos que se le den (pruebas).
   factory AlmacenLocal.sobre(Map<String, ArchivoTexto> archivos) =>

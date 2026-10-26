@@ -1,0 +1,118 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore — spec-app-finanzas-v2.md §7.
+//
+// No se dejan para el final (§7.2): validan pertenencia a la cuenta, rol
+// suficiente, y que los montos sean enteros positivos. La validación vive
+// aquí, en el servidor — la app nunca es la única línea de defensa.
+//
+// NOTA DE FASE: este archivo es código fuente listo para desplegarse,
+// pero no se puede probar con `dart test` (necesita el emulador de
+// Firestore). Se conecta a un proyecto Firebase real y se prueba con el
+// emulador en la Fase 1, cuando se provisiona el proyecto. Vive aquí desde
+// la Fase 0 porque el diseño de las reglas es parte de "Cimientos", no
+// algo que se improvisa después.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function estaAutenticado() {
+      return request.auth != null;
+    }
+
+    // Cuenta personal (respaldo en la nube, spec-app-finanzas-v2.md
+    // §4.2.1): cuentaId = uid de quien inició sesión. Su dueño es el único
+    // que la lee y la escribe, sin necesidad de un documento en miembros/.
+    function esDueno(cuentaId) {
+      return estaAutenticado() && request.auth.uid == cuentaId;
+    }
+
+    function miembroDe(cuentaId) {
+      return esDueno(cuentaId) || (estaAutenticado() &&
+        exists(/databases/$(database)/documents/cuentas/$(cuentaId)/miembros/$(request.auth.uid)));
+    }
+
+    function rolEn(cuentaId) {
+      return get(/databases/$(database)/documents/cuentas/$(cuentaId)/miembros/$(request.auth.uid)).data.rol;
+    }
+
+    function puedeEscribir(cuentaId) {
+      return esDueno(cuentaId) ||
+        (miembroDe(cuentaId) && rolEn(cuentaId) in ['propietario', 'editor']);
+    }
+
+    function esPropietario(cuentaId) {
+      return esDueno(cuentaId) || (miembroDe(cuentaId) && rolEn(cuentaId) == 'propietario');
+    }
+
+    // Presupuesto de una categoría: entero, cero permitido (las categorías
+    // que crea la importación de CSV nacen sin presupuesto).
+    function esPresupuestoValido(valor) {
+      return valor is int && valor >= 0;
+    }
+
+    // Regla no negociable #1: los montos son enteros positivos. Firestore
+    // no tiene un tipo "entero" separado de "número" en las reglas, así
+    // que se valida explícitamente que no traiga parte decimal.
+    function esMontoValido(valor) {
+      return valor is int && valor > 0;
+    }
+
+    match /cuentas/{cuentaId} {
+      allow read: if miembroDe(cuentaId);
+      allow create: if esDueno(cuentaId) || estaAutenticado();
+      allow update, delete: if esPropietario(cuentaId);
+
+      match /miembros/{uid} {
+        allow read: if miembroDe(cuentaId);
+        // Solo el propietario invita, cambia roles o remueve miembros.
+        allow write: if esPropietario(cuentaId);
+      }
+
+      match /categorias/{categoriaId} {
+        allow read: if miembroDe(cuentaId);
+        allow create, update: if puedeEscribir(cuentaId) &&
+          (!('montoFijoCentavos' in request.resource.data) ||
+            esMontoValido(request.resource.data.montoFijoCentavos)) &&
+          (!('presupuestoMensualCentavos' in request.resource.data) ||
+            esPresupuestoValido(request.resource.data.presupuestoMensualCentavos));
+        allow delete: if puedeEscribir(cuentaId);
+      }
+
+      match /movimientos/{movimientoId} {
+        allow read: if miembroDe(cuentaId);
+        allow create: if puedeEscribir(cuentaId) &&
+          esMontoValido(request.resource.data.montoCentavos) &&
+          request.resource.data.clientId is string &&
+          request.resource.data.clientId.size() > 0 &&
+          request.resource.data.cicloId is string;
+        // Regla no negociable #5: el cicloId no se recalcula. Una edición
+        // nunca puede traer un cicloId distinto al que ya tenía el
+        // documento.
+        allow update: if puedeEscribir(cuentaId) &&
+          request.resource.data.cicloId == resource.data.cicloId &&
+          esMontoValido(request.resource.data.montoCentavos);
+        // Excepción a la regla #3 para la cuenta personal: su dueño puede
+        // borrar su respaldo completo ("Eliminar cuenta" o "Borrar copia en
+        // la nube", §4.2.1). La app nunca borra un movimiento suelto: anula.
+        // Regla no negociable #3: nada se elimina físicamente. El campo
+        // `estado` pasa a "anulado"; el documento no se borra desde el
+        // cliente. El borrado físico posterior a 30 días lo hace una
+        // Cloud Function con privilegios de administrador, no un cliente.
+        allow delete: if esDueno(cuentaId);
+
+        match /auditoria/{cambioId} {
+          allow read: if miembroDe(cuentaId);
+          // La auditoría la escribe el servidor (Cloud Functions), nunca
+          // el cliente directamente — si no, cualquiera podría borrar su
+          // propio rastro.
+          allow write: if false;
+        }
+      }
+
+      match /{coleccion}/{documentoId} {
+        allow read: if miembroDe(cuentaId);
+        allow write: if puedeEscribir(cuentaId);
+      }
+    }
+  }
+}

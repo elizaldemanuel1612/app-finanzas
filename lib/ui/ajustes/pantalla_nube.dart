@@ -6,8 +6,8 @@ import '../../domain/sincronizacion/fusion.dart';
 import '../comun/formato_fecha.dart';
 import '../comun/tema.dart';
 
-/// Respaldo en la nube (spec-app-finanzas-v2.md §4.2.1): activar, elegir
-/// cómo combinar si ya había algo en la nube, sincronizar, desactivar o
+/// Respaldo en el Google Drive del usuario (spec-app-finanzas-v2.md §4.2.1):
+/// activar, elegir cómo combinar si ya había un respaldo, sincronizar, desactivar o
 /// borrar la copia.
 class PantallaNube extends StatefulWidget {
   final ServicioNube nube;
@@ -59,7 +59,7 @@ class _PantallaNubeState extends State<PantallaNube> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo conectar con la nube. Revisa tu internet e intenta de nuevo.')),
+          const SnackBar(content: Text('No se pudo conectar con tu Google Drive. Revisa tu internet e intenta de nuevo.')),
         );
       }
     } finally {
@@ -77,7 +77,7 @@ class _PantallaNubeState extends State<PantallaNube> {
       if (!mounted) return;
       setState(() => _trabajando = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo conectar con la nube. Revisa tu internet e intenta de nuevo.')),
+        const SnackBar(content: Text('No se pudo conectar con tu Google Drive. Revisa tu internet e intenta de nuevo.')),
       );
       return;
     }
@@ -94,7 +94,7 @@ class _PantallaNubeState extends State<PantallaNube> {
     } else {
       modo = ModoFusion.usarDispositivo;
     }
-    await _conProgreso(() => widget.nube.activar(modo), 'Listo: tus datos ya tienen respaldo en la nube.');
+    await _conProgreso(() => widget.nube.activar(modo), 'Listo: tus datos ya tienen respaldo en tu Google Drive.');
   }
 
   Future<ModoFusion?> _preguntarModo() => showModalBottomSheet<ModoFusion>(
@@ -110,7 +110,7 @@ class _PantallaNubeState extends State<PantallaNube> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Ya tienes datos en la nube', style: textos.titleMedium),
+                  Text('Ya tienes un respaldo en tu Drive', style: textos.titleMedium),
                   const SizedBox(height: 4),
                   Text('Y también en este dispositivo. ¿Cómo los juntamos?', style: textos.bodySmall),
                   const SizedBox(height: 16),
@@ -121,14 +121,14 @@ class _PantallaNubeState extends State<PantallaNube> {
                     alTocar: () => Navigator.pop(context, ModoFusion.combinar),
                   ),
                   _OpcionModo(
-                    titulo: 'Usar lo de la nube',
+                    titulo: 'Usar lo de mi Drive',
                     detalle: 'Este dispositivo queda igual que tu respaldo.',
                     icono: Icons.cloud_download_outlined,
                     alTocar: () => Navigator.pop(context, ModoFusion.usarNube),
                   ),
                   _OpcionModo(
                     titulo: 'Usar lo de este dispositivo',
-                    detalle: 'Tu respaldo queda igual que este dispositivo. Los gastos que sobren en la nube '
+                    detalle: 'Tu respaldo queda igual que este dispositivo. Los gastos que sobren en el respaldo '
                         'se anulan, no se borran.',
                     icono: Icons.cloud_upload_outlined,
                     alTocar: () => Navigator.pop(context, ModoFusion.usarDispositivo),
@@ -144,7 +144,7 @@ class _PantallaNubeState extends State<PantallaNube> {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('¿Borrar la copia en la nube?'),
+        title: const Text('¿Borrar la copia de tu Drive?'),
         content: const Text(
           'Se borra tu respaldo y dejas de sincronizar. Los datos de este dispositivo no se tocan.',
         ),
@@ -159,7 +159,7 @@ class _PantallaNubeState extends State<PantallaNube> {
       ),
     );
     if (confirmar != true) return;
-    await _conProgreso(widget.nube.borrarCopiaEnNube, 'Listo: se borró tu copia en la nube.');
+    await _conProgreso(widget.nube.borrarCopiaEnNube, 'Listo: se borró tu copia de Google Drive.');
   }
 
   @override
@@ -167,7 +167,7 @@ class _PantallaNubeState extends State<PantallaNube> {
     final textos = Theme.of(context).textTheme;
     final activa = _activa;
     return Scaffold(
-      appBar: AppBar(title: const Text('Respaldo en la nube')),
+      appBar: AppBar(title: const Text('Respaldo en tu Google Drive')),
       body: activa == null
           ? const Center(child: CircularProgressIndicator())
           : AbsorbPointer(
@@ -192,7 +192,7 @@ class _PantallaNubeState extends State<PantallaNube> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    activa ? 'Tu respaldo está activo' : 'Guarda una copia en la nube',
+                    activa ? 'Tu respaldo está activo' : 'Guarda una copia en tu Google Drive',
                     textAlign: TextAlign.center,
                     style: textos.titleMedium,
                   ),
@@ -203,8 +203,8 @@ class _PantallaNubeState extends State<PantallaNube> {
                             ? 'Ligado a ${widget.correo}.'
                             : 'Ligado a ${widget.correo}. Última sincronización: '
                                 '${fechaCorta(_ultima!)}, ${_hora(_ultima!)}.')
-                        : 'Tus datos se guardan ligados a tu cuenta de Google (${widget.correo}). '
-                            'Si cambias de teléfono o entras desde la web, los recuperas.',
+                        : 'La copia se guarda en tu propio Google Drive (${widget.correo}), en una carpeta '
+                            'privada de la app. Si cambias de teléfono o entras desde la web, la recuperas.',
                     textAlign: TextAlign.center,
                     style: textos.bodySmall,
                   ),
@@ -226,14 +226,17 @@ class _PantallaNubeState extends State<PantallaNube> {
                     ),
                     const SizedBox(height: 10),
                     OutlinedButton(
-                      onPressed: () => _conProgreso(widget.nube.desactivar, 'Respaldo pausado. Tu copia sigue en la nube.'),
+                      onPressed: () => _conProgreso(widget.nube.desactivar, 'Respaldo pausado. Tu copia sigue en tu Drive.'),
                       child: const Text('Pausar respaldo'),
                     ),
                   ],
                   const SizedBox(height: 24),
                   const _Aviso(
-                    texto: 'Se sincroniza solo al abrir y al salir de la app. Solo tú puedes ver tu copia. '
-                        'Las fotos de tickets no se suben.',
+                    texto: kIsWeb
+                        ? 'En la web, el acceso a tu Drive dura una hora: después usa "Sincronizar ahora". '
+                            'Solo tú puedes ver tu copia; ni quien hace la app tiene acceso.'
+                        : 'Se sincroniza solo al abrir y al salir de la app. Solo tú puedes ver tu copia; '
+                            'ni quien hace la app tiene acceso. Las fotos de tickets no se suben.',
                   ),
                   if (!_trabajando) ...[
                     const SizedBox(height: 16),
@@ -241,7 +244,7 @@ class _PantallaNubeState extends State<PantallaNube> {
                       child: TextButton(
                         style: TextButton.styleFrom(foregroundColor: ColoresApp.coralTexto),
                         onPressed: _borrarCopia,
-                        child: const Text('Borrar mi copia en la nube'),
+                        child: const Text('Borrar mi copia de Drive'),
                       ),
                     ),
                   ],

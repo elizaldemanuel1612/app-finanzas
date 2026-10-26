@@ -11,6 +11,17 @@ class ServicioAuth {
 
   static bool _googleSignInInicializado = false;
 
+  /// Permiso para la carpeta privada de la app en el Google Drive del
+  /// usuario, donde vive su respaldo (spec-app-finanzas-v2.md §4.2.1). No
+  /// da acceso a ningún otro archivo de su Drive.
+  static const alcanceDrive = 'https://www.googleapis.com/auth/drive.appdata';
+
+  /// En la web, Firebase entrega el token de Drive solo al iniciar sesión o
+  /// al volver a autenticarse con ventana; dura una hora y no se guarda en
+  /// disco.
+  static String? _tokenDriveWeb;
+  static DateTime? _venceTokenDriveWeb;
+
   static Future<void> inicializar() async {
     // En la web se entra con la ventana emergente de Firebase Auth, sin
     // google_sign_in (spec-app-finanzas-v2.md §4.2.2).
@@ -27,7 +38,15 @@ class ServicioAuth {
   /// cuenta. Lanza [GoogleSignInException] si el usuario cancela.
   Future<UserCredential> iniciarSesionConGoogle() async {
     if (kIsWeb) {
-      return FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider()..setCustomParameters({'prompt': 'select_account'}));
+      // El permiso de Drive se pide aquí mismo para poder ofrecer restaurar
+      // el respaldo en cuanto entra (§4.2.2); Google deja desmarcarlo.
+      final credencial = await FirebaseAuth.instance.signInWithPopup(
+        GoogleAuthProvider()
+          ..addScope(alcanceDrive)
+          ..setCustomParameters({'prompt': 'select_account'}),
+      );
+      _guardarTokenDriveWeb(credencial);
+      return credencial;
     }
     final cuenta = await GoogleSignIn.instance.authenticate();
     final idToken = cuenta.authentication.idToken;
@@ -38,7 +57,51 @@ class ServicioAuth {
     return FirebaseAuth.instance.signInWithCredential(credencial);
   }
 
+  /// Token de acceso para el respaldo en Drive. Con [interactivo] puede
+  /// mostrar la ventana de permiso de Google; en la web debe llamarse
+  /// directo desde un toque, sin esperas antes (o el navegador bloquea la
+  /// ventana). Sin [interactivo] devuelve `null` si haría falta preguntar.
+  Future<String?> tokenDrive({required bool interactivo}) async {
+    if (kIsWeb) {
+      final vence = _venceTokenDriveWeb;
+      if (_tokenDriveWeb != null && vence != null && DateTime.now().isBefore(vence)) {
+        return _tokenDriveWeb;
+      }
+      final usuario = FirebaseAuth.instance.currentUser;
+      if (!interactivo || usuario == null) return null;
+      final credencial = await usuario.reauthenticateWithPopup(
+        GoogleAuthProvider()
+          ..addScope(alcanceDrive)
+          ..setCustomParameters({if (usuario.email != null) 'login_hint': usuario.email!}),
+      );
+      _guardarTokenDriveWeb(credencial);
+      return _tokenDriveWeb;
+    }
+    final cliente = GoogleSignIn.instance.authorizationClient;
+    final autorizacion = await cliente.authorizationForScopes(const [alcanceDrive]) ??
+        (interactivo ? await cliente.authorizeScopes(const [alcanceDrive]) : null);
+    return autorizacion?.accessToken;
+  }
+
+  /// Drive rechazó [token]: que no se vuelva a usar.
+  Future<void> invalidarTokenDrive(String token) async {
+    if (kIsWeb) {
+      if (_tokenDriveWeb == token) _tokenDriveWeb = null;
+      return;
+    }
+    await GoogleSignIn.instance.authorizationClient.clearAuthorizationToken(accessToken: token);
+  }
+
+  static void _guardarTokenDriveWeb(UserCredential credencial) {
+    final token = credencial.credential?.accessToken;
+    if (token == null) return;
+    _tokenDriveWeb = token;
+    // Google los emite por una hora; margen para no usar uno a punto de vencer.
+    _venceTokenDriveWeb = DateTime.now().add(const Duration(minutes: 55));
+  }
+
   Future<void> cerrarSesion() async {
+    _tokenDriveWeb = null;
     if (!kIsWeb) await GoogleSignIn.instance.signOut();
     await FirebaseAuth.instance.signOut();
   }

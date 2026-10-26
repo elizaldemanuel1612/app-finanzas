@@ -83,3 +83,6 @@ android/key.properties
 **/ios/Flutter/flutter_export_environment.sh
 **/ios/ServiceDefinitions.json
 **/ios/Runner/GeneratedPluginRegistrant.*
+
+# Caché de despliegue de Firebase CLI
+.firebase/

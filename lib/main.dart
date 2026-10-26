@@ -9,7 +9,9 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'data/almacenamiento/archivo_texto_navegador.dart';
 import 'data/firebase/servicio_auth.dart';
+import 'data/nube/respaldo_drive.dart';
 import 'data/nube/servicio_nube.dart';
 import 'data/repositorios/local/almacen_local.dart';
 import 'domain/modelos/perfil.dart';
@@ -42,7 +44,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   _registrarLicenciasDeFuentes();
   // La captura sigue siendo 100% local (data/repositorios/local/) — esto
-  // solo conecta el proyecto para lo que viene después (Auth, Firestore).
+  // solo conecta el proyecto para el inicio de sesión (Auth); el respaldo
+  // opcional vive en el Drive del propio usuario (spec §4.2.1).
   // Si falla (sin red, o algo mal configurado), la app sigue funcionando:
   // nada del flujo de captura depende de esto todavía.
   try {
@@ -112,8 +115,8 @@ class _CompuertaAuthState extends State<_CompuertaAuth> {
   }
 }
 
-/// Arma los repositorios locales (interinos hasta que haya sincronización
-/// real con Firestore, ver data/repositorios/local/) y decide si mostrar
+/// Arma los repositorios locales (la fuente de verdad, §4.1; el respaldo en
+/// Drive solo copia, ver data/nube/) y decide si mostrar
 /// la configuración inicial o la app.
 class _ContenidoApp extends StatefulWidget {
   final ServicioAuth servicioAuth;
@@ -129,7 +132,7 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
   ServicioNube? _nube;
   Future<Perfil?>? _perfil;
 
-  /// Hay respaldo en la nube y este dispositivo está vacío: se ofrece
+  /// Hay respaldo en el Drive del usuario y este dispositivo está vacío: se ofrece
   /// restaurarlo antes del registro inicial (spec §4.2.1).
   bool _ofrecerRestaurar = false;
   bool _restaurando = false;
@@ -195,8 +198,8 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
     if (kIsWeb) {
       // En la web no hay archivos: almacenamiento del navegador, separado
       // por cuenta igual que en el teléfono (spec §4.2.2).
-      _almacenLocal = AlmacenLocal.navegador(uid);
-      await _prepararNube(uid);
+      _almacenLocal = almacenEnNavegador(uid);
+      await _prepararNube();
       return;
     }
     final base = await getApplicationDocumentsDirectory();
@@ -213,19 +216,19 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
     final directorio = Directory('${base.path}/usuarios/$uid');
     await _migrarDatosDeAntesDeSepararPorCuenta(base, directorio);
     _almacenLocal = AlmacenLocal(directorio);
-    await _prepararNube(uid);
+    await _prepararNube();
   }
 
-  /// Arma el respaldo en la nube. Si este dispositivo no tiene datos y hay
-  /// respaldo, se ofrece restaurarlo; si los tiene y el respaldo está
-  /// activo, se sincroniza en segundo plano. Sin red o sin Firebase, la app
-  /// sigue igual (regla #17).
-  Future<void> _prepararNube(String uid) async {
-    try {
-      _nube = ServicioNube(uid: uid, almacen: _almacenLocal);
-    } catch (_) {
-      _nube = null;
-    }
+  /// Arma el respaldo en el Drive del usuario. Si este dispositivo no tiene
+  /// datos y hay respaldo (y el permiso ya está concedido), se ofrece
+  /// restaurarlo; si los tiene y el respaldo está activo, se sincroniza en
+  /// segundo plano. Sin red o sin permiso, la app sigue igual (regla #17).
+  Future<void> _prepararNube() async {
+    final auth = widget.servicioAuth;
+    _nube = ServicioNube(
+      almacen: _almacenLocal,
+      remoto: RespaldoDrive(token: auth.tokenDrive, invalidar: auth.invalidarTokenDrive),
+    );
     final perfilLocal = await _almacenLocal.perfil.obtener();
     var ofrecer = false;
     if (perfilLocal == null && _nube != null) {
@@ -342,7 +345,7 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
   }
 }
 
-/// Dispositivo nuevo con respaldo en la nube (spec §4.2.1).
+/// Dispositivo nuevo con respaldo en el Drive del usuario (spec §4.2.1).
 class _PantallaRestaurar extends StatelessWidget {
   final String correo;
   final bool restaurando;
@@ -372,7 +375,7 @@ class _PantallaRestaurar extends StatelessWidget {
               Text('Encontramos tu respaldo', textAlign: TextAlign.center, style: textos.headlineMedium),
               const SizedBox(height: 10),
               Text(
-                'Tu cuenta $correo tiene datos guardados en la nube. ¿Los traemos a este dispositivo?',
+                'Tu Google Drive ($correo) tiene una copia de tus datos. ¿La traemos a este dispositivo?',
                 textAlign: TextAlign.center,
                 style: textos.bodySmall,
               ),

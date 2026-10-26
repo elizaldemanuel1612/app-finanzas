@@ -8,7 +8,7 @@ Resumen de traspaso entre conversaciones. Las reglas del proyecto viven en
 - Mac del usuario: proyecto en `~/Documents/app-finanzas`, rama `master`,
   remoto `github.com/elizaldemanuel1612/app-finanzas` (sesión `gh` iniciada).
 - También trabaja en una PC con Windows (Android). Tras `git pull` allá:
-  `flutter pub get` (se agregaron `cloud_firestore` y `shared_preferences`).
+  `flutter pub get` (se agregaron `http` y `shared_preferences`; salió `cloud_firestore`).
 - Flutter 3.47.7 en el Mac; Xcode 27; simulador `iPhone 17`
   (`FE974627-DC6D-40B4-9A0E-B7642FE5C326`) con 98 gastos de ejemplo y la
   sesión cerrada.
@@ -28,22 +28,28 @@ Resumen de traspaso entre conversaciones. Las reglas del proyecto viven en
 - `pubspec.lock` y `analysis_options.yaml` pueden aparecer modificados por
   la versión de Flutter del Mac: no es un problema.
 
-## Pendiente inmediato: probar nube y web
+## Pendiente inmediato: probar el respaldo en Google Drive
 
-Hecho el 2026-10-26: base Firestore `(default)` en `nam5`, reglas
-desplegadas, app web "MAVfin" registrada (bloque `web` en
-`lib/firebase_options.dart`) y web publicada en
-`https://app-finanzas-27e41.web.app` (carga hasta el login sin errores).
+2026-10-26: por privacidad, el respaldo dejó de ser Firestore y ahora vive
+en el **Google Drive del propio usuario** (`appDataFolder`, permiso
+`drive.appdata`; spec §4.2.1). Firestore quedó cerrado (reglas que niegan
+todo). Política de privacidad y términos actualizados. Web publicada en
+`https://app-finanzas-27e41.web.app`.
 
 Falta, en orden:
-1. Probar de punta a punta (requiere la cuenta de Google del usuario): en el
-   simulador, Ajustes → Respaldo en la nube → Activar; luego en la web entrar
-   con la misma cuenta → debe aparecer "Encontramos tu respaldo" → Restaurar.
-   Probar las tres opciones de combinar y que borrar en un lado no "reviva"
-   en el otro.
-2. Instalar la versión nueva en el iPhone físico y revisar ahí el widget
-   (la galería de widgets del simulador falla), la cámara, el dictado y
-   los emojis.
+1. **Habilitar la API de Google Drive** en el proyecto (lo hace el usuario):
+   https://console.cloud.google.com/apis/library/drive.googleapis.com?project=app-finanzas-27e41
+   Sin eso, Drive responde 403 y la app dice "No se pudo conectar con tu
+   Google Drive".
+2. Probar en la web (Safari del iPhone y la app agregada a inicio, que
+   guardan aparte): entrar → aceptar permiso de Drive → Ajustes → Respaldo
+   en tu Google Drive → Activar → registrar gastos → en el otro lado entrar
+   → "Encontramos tu respaldo" → Restaurar. Probar anular/borrar en un lado.
+3. Instalar la versión nueva en el iPhone físico (cable): probar el permiso
+   de Drive desde la app nativa, el widget, la cámara, el dictado y los
+   emojis.
+4. Decidir si se borra la base Firestore `(default)` (ya no se usa; puede
+   tener datos de prueba del 2026-10-26).
 
 ## Decisiones tomadas (no reabrir sin preguntar)
 
@@ -56,8 +62,9 @@ Falta, en orden:
   `/private/tmp/.../scratchpad/logo.swift` (temporal; el PNG es la fuente).
 - Diseño premium: azul noche #0B1F3B, oro #D4AF37 solo como acento, marfil.
   Tipografía Outfit/Plus Jakarta Sans (el usuario no quiere Inter por ahora).
-- Nube = Firestore ligado a la cuenta de Google, **opcional**, el usuario
-  decide; no Google Drive.
+- Respaldo = **Google Drive del propio usuario** (`appDataFolder`),
+  **opcional**; la app no guarda datos financieros en servidores propios
+  (2026-10-26, reemplaza la decisión anterior de Firestore).
 - Publicar en tiendas sigue en pausa; prioridad: uso personal en iPhone y web.
 - Android: falta la contraparte del widget y del atajo de voz.
 

@@ -1,6 +1,6 @@
 # Términos y condiciones — MAVfin
 
-_Última actualización: 2026-08-07._
+_Última actualización: 2026-10-26._
 
 Al usar MAVfin, aceptas estos términos.
 
@@ -30,14 +30,17 @@ decides capturar.
 
 El uso de tus datos dentro de la app se describe en la [política de
 privacidad](./privacidad.md). En resumen: tus movimientos, categorías y
-fotos de tickets viven localmente en tu dispositivo; solo tu correo y UID
-de Google se usan para el inicio de sesión.
+fotos de tickets viven localmente en tu dispositivo y, solo si activas el
+respaldo, en una carpeta privada de tu propio Google Drive; tu correo y UID
+de Google se usan para el inicio de sesión. Quien hace la app no tiene
+acceso a tus datos financieros.
 
 ## 5. Cuenta
 
 Necesitas iniciar sesión con una cuenta de Google para usar la app. Eres
 responsable de mantener el acceso a esa cuenta. Puedes eliminar tu cuenta
-y tus datos locales en cualquier momento desde Ajustes.
+y tus datos (locales y el respaldo en tu Drive) en cualquier momento desde
+Ajustes.
 
 ## 6. Exactitud de los cálculos
 

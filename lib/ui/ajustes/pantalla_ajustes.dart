@@ -14,6 +14,7 @@ import '../../domain/ciclo_de_vida/cambio_de_corte.dart';
 import '../../domain/exportacion/exportar_csv.dart';
 import '../../domain/importacion/plantilla_csv.dart';
 import '../../domain/modelos/perfil.dart';
+import '../../data/nube/respaldo_drive.dart';
 import '../../data/nube/servicio_nube.dart';
 import '../../plataforma/accesos_rapidos.dart';
 import '../ayuda/pantalla_guia.dart';
@@ -80,9 +81,12 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
   }
 
   ServicioNube? get _nube {
-    final uid = widget.servicioAuth.usuarioActual?.uid;
-    if (uid == null) return null;
-    return ServicioNube(uid: uid, almacen: widget.almacenLocal);
+    final auth = widget.servicioAuth;
+    if (auth.usuarioActual == null) return null;
+    return ServicioNube(
+      almacen: widget.almacenLocal,
+      remoto: RespaldoDrive(token: auth.tokenDrive, invalidar: auth.invalidarTokenDrive),
+    );
   }
 
   Future<void> _irANube() async {
@@ -255,7 +259,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       builder: (context) => AlertDialog(
         title: const Text('Eliminar cuenta'),
         content: const Text(
-          'Se borran de este dispositivo y de tu respaldo en la nube: tus '
+          'Se borran de este dispositivo y de tu respaldo en Google Drive: tus '
           'movimientos, categorías, ciclos cerrados, ingresos extra y las '
           'fotos de tus tickets. También se borra tu cuenta de Google '
           'Sign-In. Esto no se puede deshacer.',
@@ -302,7 +306,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       // Orden no negociable (Fase 6, Bloque 2.4): si delete() de Firebase
       // falla, los datos locales deben seguir intactos para reintentar. Al
       // revés, el usuario se queda sin datos y con cuenta.
-      // La copia en la nube se borra primero: después de eliminar la
+      // La copia en Drive se borra primero: después de eliminar la
       // cuenta ya no habría sesión para borrarla (spec §4.2.1).
       final nube = _nube;
       if (nube != null && (await nube.estaActiva() || await nube.hayRespaldoEnNube())) {
@@ -404,8 +408,8 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
               hijos: [
                 _Renglon(
                   icono: Icons.cloud_outlined,
-                  titulo: 'Respaldo en la nube',
-                  subtitulo: 'Guarda y sincroniza con tu cuenta de Google',
+                  titulo: 'Respaldo en tu Google Drive',
+                  subtitulo: 'Una copia privada en tu propia cuenta',
                   onTap: _irANube,
                 ),
                 _Renglon(

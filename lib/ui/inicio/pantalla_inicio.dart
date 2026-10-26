@@ -52,7 +52,7 @@ class PantallaInicio extends StatefulWidget {
   final ServicioAuth servicioAuth;
   final AlmacenLocal almacenLocal;
 
-  /// Cambia cuando la sincronización con la nube trajo datos nuevos.
+  /// Cambia cuando la sincronización con el respaldo en Drive trajo datos nuevos.
   final Listenable? recargar;
 
   const PantallaInicio({
