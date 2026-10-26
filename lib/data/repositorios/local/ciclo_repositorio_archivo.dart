@@ -2,12 +2,18 @@ import 'dart:io';
 
 import '../../../domain/modelos/ciclo_guardado.dart';
 import '../ciclo_repositorio.dart';
+import '../../almacenamiento/archivo_texto.dart';
 import 'almacen_json.dart';
 
 final class CicloRepositorioArchivo implements CicloRepositorio {
   final AlmacenJsonLista _almacen;
 
   CicloRepositorioArchivo(File archivo) : _almacen = AlmacenJsonLista(archivo);
+
+
+  /// Sobre cualquier [ArchivoTexto] (p. ej. el navegador en la web).
+
+  CicloRepositorioArchivo.sobre(ArchivoTexto texto) : _almacen = AlmacenJsonLista.sobre(texto);
 
   @override
   Future<CicloGuardado?> buscarPorId(String id) async {

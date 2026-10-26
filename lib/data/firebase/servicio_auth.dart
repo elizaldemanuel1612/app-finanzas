@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 
 /// Envuelve Google Sign-In + Firebase Auth. Vive en data/firebase/ porque
@@ -11,7 +12,9 @@ class ServicioAuth {
   static bool _googleSignInInicializado = false;
 
   static Future<void> inicializar() async {
-    if (_googleSignInInicializado) return;
+    // En la web se entra con la ventana emergente de Firebase Auth, sin
+    // google_sign_in (spec-app-finanzas-v2.md §4.2.2).
+    if (kIsWeb || _googleSignInInicializado) return;
     await GoogleSignIn.instance.initialize(serverClientId: _serverClientId);
     _googleSignInInicializado = true;
   }
@@ -23,6 +26,9 @@ class ServicioAuth {
   /// Abre el selector de cuentas de Google y entra a Firebase con esa
   /// cuenta. Lanza [GoogleSignInException] si el usuario cancela.
   Future<UserCredential> iniciarSesionConGoogle() async {
+    if (kIsWeb) {
+      return FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider()..setCustomParameters({'prompt': 'select_account'}));
+    }
     final cuenta = await GoogleSignIn.instance.authenticate();
     final idToken = cuenta.authentication.idToken;
     if (idToken == null) {
@@ -33,7 +39,7 @@ class ServicioAuth {
   }
 
   Future<void> cerrarSesion() async {
-    await GoogleSignIn.instance.signOut();
+    if (!kIsWeb) await GoogleSignIn.instance.signOut();
     await FirebaseAuth.instance.signOut();
   }
 
@@ -53,6 +59,11 @@ class ServicioAuth {
       await usuario.delete();
     } on FirebaseAuthException catch (e) {
       if (e.code != 'requires-recent-login') rethrow;
+      if (kIsWeb) {
+        await usuario.reauthenticateWithPopup(GoogleAuthProvider());
+        await usuario.delete();
+        return;
+      }
       final cuenta = await GoogleSignIn.instance.authenticate();
       final idToken = cuenta.authentication.idToken;
       if (idToken == null) {

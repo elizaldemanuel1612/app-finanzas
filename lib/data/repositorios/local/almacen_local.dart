@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import '../../almacenamiento/archivo_texto.dart';
+import '../../almacenamiento/archivo_texto_disco.dart';
+import '../../almacenamiento/archivo_texto_navegador.dart';
 import 'ajuste_presupuesto_ciclo_repositorio_archivo.dart';
 import 'categoria_repositorio_archivo.dart';
 import 'ciclo_repositorio_archivo.dart';
@@ -29,7 +32,20 @@ final class AlmacenLocal {
     'ajustes_presupuesto_ciclo.json',
   ];
 
+  /// Carpeta de la cuenta en el dispositivo (también de las fotos de
+  /// tickets). En la web no existe en disco: es solo un nombre.
   final Directory directorio;
+
+  /// Los 7 "archivos" de datos por nombre — lo que sincroniza la nube
+  /// (`data/nube/servicio_nube.dart`) y lo que borra [borrarTodo].
+  final Map<String, ArchivoTexto> archivos;
+
+  /// Estado del respaldo en la nube de esta cuenta (activo, última
+  /// sincronización): no son datos de la app, así que no se sincroniza.
+  final ArchivoTexto estadoNube;
+
+  /// `false` en la web: no hay sistema de archivos para fotos de tickets.
+  final bool admiteFotos;
 
   final CategoriaRepositorioArchivo categorias;
   final MovimientoRepositorioArchivo movimientos;
@@ -39,29 +55,52 @@ final class AlmacenLocal {
   final IngresoExtraRepositorioArchivo ingresosExtra;
   final AjustePresupuestoCicloRepositorioArchivo ajustesPresupuestoCiclo;
 
-  AlmacenLocal(this.directorio)
-      : categorias = CategoriaRepositorioArchivo(File('${directorio.path}/categorias.json')),
-        movimientos = MovimientoRepositorioArchivo(File('${directorio.path}/movimientos.json')),
-        perfil = PerfilRepositorioArchivo(File('${directorio.path}/perfil.json')),
-        reglasAprendidas = ReglasAprendidasRepositorioArchivo(
-          File('${directorio.path}/reglas_aprendidas.json'),
-        ),
-        ciclos = CicloRepositorioArchivo(File('${directorio.path}/ciclos.json')),
-        ingresosExtra =
-            IngresoExtraRepositorioArchivo(File('${directorio.path}/ingresos.json')),
-        ajustesPresupuestoCiclo = AjustePresupuestoCicloRepositorioArchivo(
-          File('${directorio.path}/ajustes_presupuesto_ciclo.json'),
-        );
+  /// En el teléfono: archivos dentro de [directorio].
+  factory AlmacenLocal(Directory directorio) => AlmacenLocal._(
+        directorio,
+        {
+          for (final nombre in nombresDeArchivo)
+            nombre: ArchivoTextoDisco(File('${directorio.path}/$nombre')),
+        },
+        ArchivoTextoDisco(File('${directorio.path}/nube.json')),
+        admiteFotos: true,
+      );
+
+  /// En la web: almacenamiento del navegador, separado por cuenta.
+  factory AlmacenLocal.navegador(String uid) => AlmacenLocal._(
+        Directory('navegador/$uid'),
+        {
+          for (final nombre in nombresDeArchivo)
+            nombre: ArchivoTextoNavegador('usuarios/$uid/$nombre'),
+        },
+        ArchivoTextoNavegador('usuarios/$uid/nube.json'),
+        admiteFotos: false,
+      );
+
+  /// Con los archivos que se le den (pruebas).
+  factory AlmacenLocal.sobre(Map<String, ArchivoTexto> archivos) =>
+      AlmacenLocal._(Directory('memoria'), archivos, ArchivoTextoMemoria(), admiteFotos: false);
+
+  AlmacenLocal._(this.directorio, this.archivos, this.estadoNube, {required this.admiteFotos})
+      : categorias = CategoriaRepositorioArchivo.sobre(archivos['categorias.json']!),
+        movimientos = MovimientoRepositorioArchivo.sobre(archivos['movimientos.json']!),
+        perfil = PerfilRepositorioArchivo.sobre(archivos['perfil.json']!),
+        reglasAprendidas = ReglasAprendidasRepositorioArchivo.sobre(archivos['reglas_aprendidas.json']!),
+        ciclos = CicloRepositorioArchivo.sobre(archivos['ciclos.json']!),
+        ingresosExtra = IngresoExtraRepositorioArchivo.sobre(archivos['ingresos.json']!),
+        ajustesPresupuestoCiclo =
+            AjustePresupuestoCicloRepositorioArchivo.sobre(archivos['ajustes_presupuesto_ciclo.json']!);
 
   /// Borra los 7 JSON más el directorio de fotos de tickets
   /// (`data/almacenamiento/almacen_fotos.dart`) — todo lo que "eliminar
   /// cuenta" promete que desaparece. Ignora los archivos que ya no
   /// existen: borrar es idempotente, no un error si ya no había nada.
   Future<void> borrarTodo() async {
-    for (final nombre in nombresDeArchivo) {
-      final archivo = File('${directorio.path}/$nombre');
-      if (await archivo.exists()) await archivo.delete();
+    for (final archivo in archivos.values) {
+      await archivo.borrar();
     }
+    await estadoNube.borrar();
+    if (!admiteFotos) return;
     final tickets = Directory('${directorio.path}/tickets');
     if (await tickets.exists()) await tickets.delete(recursive: true);
   }

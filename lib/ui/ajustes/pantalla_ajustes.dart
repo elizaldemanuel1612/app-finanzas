@@ -1,5 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -10,6 +14,7 @@ import '../../domain/ciclo_de_vida/cambio_de_corte.dart';
 import '../../domain/exportacion/exportar_csv.dart';
 import '../../domain/importacion/plantilla_csv.dart';
 import '../../domain/modelos/perfil.dart';
+import '../../data/nube/servicio_nube.dart';
 import '../../plataforma/accesos_rapidos.dart';
 import '../ayuda/pantalla_guia.dart';
 import '../categorias/pantalla_categorias.dart';
@@ -20,6 +25,7 @@ import '../comun/tema.dart';
 import '../importacion/pantalla_importar.dart';
 import '../meta/pantalla_meta_ahorro.dart';
 import 'pantalla_cambiar_corte.dart';
+import 'pantalla_nube.dart';
 
 /// §8 del paquete: "Ajustes" es donde viven la exportación de datos, los
 /// avisos legales y la eliminación de cuenta que ambas tiendas exigen para
@@ -73,6 +79,30 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     setState(() => _perfil = perfilActualizado);
   }
 
+  ServicioNube? get _nube {
+    final uid = widget.servicioAuth.usuarioActual?.uid;
+    if (uid == null) return null;
+    return ServicioNube(uid: uid, almacen: widget.almacenLocal);
+  }
+
+  Future<void> _irANube() async {
+    final nube = _nube;
+    if (nube == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaNube(
+          nube: nube,
+          correo: widget.servicioAuth.usuarioActual?.email ?? '',
+          // Inicio recarga al volver de Ajustes; aquí no hace falta más.
+          alCambiarDatos: () {},
+        ),
+      ),
+    );
+    final perfilActualizado = await widget.almacenLocal.perfil.obtener();
+    if (!mounted || perfilActualizado == null) return;
+    setState(() => _perfil = perfilActualizado);
+  }
+
   Future<void> _irACambiarCorte() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -111,9 +141,19 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     );
   }
 
+  /// En la web no hay hoja de compartir con archivos: se descarga.
+  Future<void> _descargarEnWeb(String nombre, String contenido) => FilePicker.saveFile(
+        fileName: nombre,
+        bytes: Uint8List.fromList(utf8.encode(contenido)),
+      );
+
   Future<void> _descargarPlantilla() async {
     setState(() => _procesando = true);
     try {
+      if (kIsWeb) {
+        await _descargarEnWeb('plantilla_importacion.csv', generarPlantillaCsvDeEjemplo());
+        return;
+      }
       final temporal = await getTemporaryDirectory();
       final archivo = File('${temporal.path}/plantilla_importacion.csv');
       await archivo.writeAsString(generarPlantillaCsvDeEjemplo());
@@ -154,13 +194,16 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       final movimientos = await widget.almacenLocal.movimientos.listarTodos();
       final categorias = await widget.almacenLocal.categorias.listarTodas();
       final csv = exportarMovimientosCsv(movimientos: movimientos, categorias: categorias);
+      final fecha = DateTime.now();
+      final nombre = 'gastos_${fecha.year}${fecha.month.toString().padLeft(2, '0')}'
+          '${fecha.day.toString().padLeft(2, '0')}.csv';
+      if (kIsWeb) {
+        await _descargarEnWeb(nombre, csv);
+        return;
+      }
 
       final temporal = await getTemporaryDirectory();
-      final fecha = DateTime.now();
-      final archivo = File(
-        '${temporal.path}/gastos_${fecha.year}${fecha.month.toString().padLeft(2, '0')}'
-        '${fecha.day.toString().padLeft(2, '0')}.csv',
-      );
+      final archivo = File('${temporal.path}/$nombre');
       await archivo.writeAsString(csv);
 
       await SharePlus.instance.share(
@@ -212,10 +255,10 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       builder: (context) => AlertDialog(
         title: const Text('Eliminar cuenta'),
         content: const Text(
-          'Se borran de este dispositivo: tus movimientos, categorías, '
-          'ciclos cerrados, ingresos extra y las fotos de tus tickets. '
-          'También se borra tu cuenta de Google Sign-In. Esto no se puede '
-          'deshacer.',
+          'Se borran de este dispositivo y de tu respaldo en la nube: tus '
+          'movimientos, categorías, ciclos cerrados, ingresos extra y las '
+          'fotos de tus tickets. También se borra tu cuenta de Google '
+          'Sign-In. Esto no se puede deshacer.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
@@ -259,6 +302,12 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       // Orden no negociable (Fase 6, Bloque 2.4): si delete() de Firebase
       // falla, los datos locales deben seguir intactos para reintentar. Al
       // revés, el usuario se queda sin datos y con cuenta.
+      // La copia en la nube se borra primero: después de eliminar la
+      // cuenta ya no habría sesión para borrarla (spec §4.2.1).
+      final nube = _nube;
+      if (nube != null && (await nube.estaActiva() || await nube.hayRespaldoEnNube())) {
+        await nube.borrarCopiaEnNube();
+      }
       await widget.servicioAuth.eliminarCuenta();
       await widget.almacenLocal.borrarTodo();
       await _borrarExportacionesTemporales();
@@ -285,6 +334,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
   /// "Eliminar cuenta" — el reseteo total que promete el diálogo de
   /// confirmación no era cierto del todo.
   Future<void> _borrarExportacionesTemporales() async {
+    if (kIsWeb) return;
     final temporal = await getTemporaryDirectory();
     final dir = Directory(temporal.path);
     if (!await dir.exists()) return;
@@ -352,6 +402,12 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
             SeccionLista(
               titulo: 'Tus datos',
               hijos: [
+                _Renglon(
+                  icono: Icons.cloud_outlined,
+                  titulo: 'Respaldo en la nube',
+                  subtitulo: 'Guarda y sincroniza con tu cuenta de Google',
+                  onTap: _irANube,
+                ),
                 _Renglon(
                   icono: Icons.ios_share_outlined,
                   titulo: 'Exportar mis gastos',

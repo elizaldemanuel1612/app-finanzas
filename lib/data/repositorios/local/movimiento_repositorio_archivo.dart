@@ -3,6 +3,7 @@ import 'dart:io';
 import '../../../domain/modelos/estado_movimiento.dart';
 import '../../../domain/modelos/movimiento.dart';
 import '../movimiento_repositorio.dart';
+import '../../almacenamiento/archivo_texto.dart';
 import 'almacen_json.dart';
 
 /// Implementación local, respaldada por un archivo JSON — el interino de
@@ -18,6 +19,11 @@ final class MovimientoRepositorioArchivo implements MovimientoRepositorio {
   final AlmacenJsonLista _almacen;
 
   MovimientoRepositorioArchivo(File archivo) : _almacen = AlmacenJsonLista(archivo);
+
+
+  /// Sobre cualquier [ArchivoTexto] (p. ej. el navegador en la web).
+
+  MovimientoRepositorioArchivo.sobre(ArchivoTexto texto) : _almacen = AlmacenJsonLista.sobre(texto);
 
   @override
   Future<Movimiento> guardar(Movimiento movimiento) async {

@@ -136,6 +136,31 @@ Estás en el súper, en un estacionamiento, sin señal. Si la app no guarda, no 
 ### 4.2 [NUEVO] Resolución de conflictos
 Si editas el mismo gasto desde dos dispositivos: gana la escritura más reciente por campo (no por documento completo), y el conflicto queda en la bitácora de auditoría. Nunca se pierde silenciosamente una edición.
 
+### 4.2.1 [NUEVO] Respaldo y sincronización en la nube (opcional)
+Los datos viven en el dispositivo (la captura nunca depende de la red, §4.1). El usuario **decide** si además guarda una copia en la nube, ligada a la cuenta de Google con la que inició sesión (Firestore, `cuentas/{uid}`, §7.1 con `cuentaId = uid` para la cuenta personal). Se activa en Ajustes → Tus datos → "Respaldo en la nube".
+
+**Al activar**, si la nube y el dispositivo tienen datos, el usuario elige:
+- **Combinar** (recomendado): junta ambos; donde el mismo registro difiere, gana el del dispositivo.
+- **Usar lo de la nube**: el dispositivo queda igual que la nube.
+- **Usar lo de este dispositivo**: la nube queda igual que el dispositivo. Los movimientos que sobran en la nube se **anulan**, no se borran (regla #3).
+
+**En un dispositivo nuevo** (sin perfil local) con respaldo en la nube, la app ofrece restaurarlo antes del registro inicial.
+
+**Después**, con el respaldo activo, se sincroniza solo al abrir la app, al volver a ella, al salir de ella y con "Sincronizar ahora". La fusión es de tres vías contra la última sincronización (las claves que ambos lados tenían): lo que se borró en un lado se borra en el otro en vez de "revivir". Reglas al fusionar un mismo registro:
+- `estado: anulado` gana siempre (movimientos, ingresos extra): una anulación nunca se pierde.
+- Un ciclo `cerrado` gana sobre uno abierto (regla #6).
+- Fuera de eso, gana el dispositivo que sincroniza (la escritura más reciente que llega).
+
+Claves: categorías, ciclos e ingresos por `id`; movimientos por `clientId` (regla #2); reglas aprendidas por `patron`; ajustes de presupuesto por `cicloId|categoriaId|cuando`; perfil es un solo documento.
+
+**Privacidad.** Solo el dueño lee y escribe `cuentas/{uid}` (reglas de Firestore). "Eliminar cuenta" borra también la copia en la nube; desactivar el respaldo la conserva, y se puede borrar desde la misma pantalla. Las fotos de tickets no se suben.
+
+### 4.2.2 [NUEVO] Versión web (PWA)
+El mismo código corre en el navegador y se instala como app ("Agregar a inicio" en iPhone, "Instalar" en Chrome/Android). Diferencias:
+- Los datos del dispositivo se guardan en el almacenamiento del navegador (no en archivos). Como el navegador puede borrarlos si no se usa el sitio, la web **recomienda activar el respaldo en la nube** desde el inicio.
+- Sesión con Google por ventana emergente.
+- Sin widget, Siri ni fotos de tickets (no hay sistema de archivos); exportar descarga el CSV.
+
 ### 4.3 [NUEVO] Cola de trabajos pesados
 Fotos de tickets y notas de voz se encolan localmente y se procesan cuando hay conexión (y de preferencia con WiFi). No bloquean la captura.
 

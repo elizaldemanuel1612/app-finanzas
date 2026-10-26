@@ -3,15 +3,17 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart' show LicenseEntryWithLineBreaks, LicenseRegistry;
+import 'package:flutter/foundation.dart' show LicenseEntryWithLineBreaks, LicenseRegistry, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'data/firebase/servicio_auth.dart';
+import 'data/nube/servicio_nube.dart';
 import 'data/repositorios/local/almacen_local.dart';
 import 'domain/modelos/perfil.dart';
+import 'domain/sincronizacion/fusion.dart';
 import 'firebase_options.dart';
 import 'ui/comun/marca.dart';
 import 'ui/comun/pantalla_login.dart';
@@ -122,14 +124,65 @@ class _ContenidoApp extends StatefulWidget {
   State<_ContenidoApp> createState() => _ContenidoAppState();
 }
 
-class _ContenidoAppState extends State<_ContenidoApp> {
+class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserver {
   late final AlmacenLocal _almacenLocal;
+  ServicioNube? _nube;
   Future<Perfil?>? _perfil;
+
+  /// Hay respaldo en la nube y este dispositivo está vacío: se ofrece
+  /// restaurarlo antes del registro inicial (spec §4.2.1).
+  bool _ofrecerRestaurar = false;
+  bool _restaurando = false;
+
+  /// Avisa a Inicio que la sincronización cambió datos y debe recargar.
+  final _datosCambiaron = ValueNotifier<int>(0);
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _inicializar();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _datosCambiaron.dispose();
+    super.dispose();
+  }
+
+  /// Sincroniza al volver a la app y al salir de ella, si el respaldo está
+  /// activo (spec §4.2.1). Nunca bloquea ni falla en voz alta.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState estado) {
+    if (estado == AppLifecycleState.resumed || estado == AppLifecycleState.paused) {
+      _sincronizarEnSegundoPlano();
+    }
+  }
+
+  Future<void> _sincronizarEnSegundoPlano() async {
+    final nube = _nube;
+    if (nube == null) return;
+    if (await nube.sincronizarSiActiva() && mounted) _datosCambiaron.value++;
+  }
+
+  Future<void> _restaurar() async {
+    setState(() => _restaurando = true);
+    try {
+      await _nube!.activar(ModoFusion.usarNube);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo traer tu respaldo. Revisa tu internet e intenta de nuevo.')),
+        );
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _restaurando = false;
+      _ofrecerRestaurar = false;
+      _perfil = _almacenLocal.perfil.obtener();
+    });
   }
 
   Future<void> _inicializar() async {
@@ -139,6 +192,13 @@ class _ContenidoAppState extends State<_ContenidoApp> {
     // antes) deja una ventana real donde un cierre de sesión concurrente
     // vuelve `usuarioActual` null y `!.uid` truena con un null-check.
     final uid = widget.servicioAuth.usuarioActual!.uid;
+    if (kIsWeb) {
+      // En la web no hay archivos: almacenamiento del navegador, separado
+      // por cuenta igual que en el teléfono (spec §4.2.2).
+      _almacenLocal = AlmacenLocal.navegador(uid);
+      await _prepararNube(uid);
+      return;
+    }
     final base = await getApplicationDocumentsDirectory();
     // Namespace por cuenta (hallazgo de seguridad, Fase 6): antes los 6 JSON
     // y las fotos de tickets vivían sueltos en `base`, sin distinguir de
@@ -153,9 +213,34 @@ class _ContenidoAppState extends State<_ContenidoApp> {
     final directorio = Directory('${base.path}/usuarios/$uid');
     await _migrarDatosDeAntesDeSepararPorCuenta(base, directorio);
     _almacenLocal = AlmacenLocal(directorio);
+    await _prepararNube(uid);
+  }
+
+  /// Arma el respaldo en la nube. Si este dispositivo no tiene datos y hay
+  /// respaldo, se ofrece restaurarlo; si los tiene y el respaldo está
+  /// activo, se sincroniza en segundo plano. Sin red o sin Firebase, la app
+  /// sigue igual (regla #17).
+  Future<void> _prepararNube(String uid) async {
+    try {
+      _nube = ServicioNube(uid: uid, almacen: _almacenLocal);
+    } catch (_) {
+      _nube = null;
+    }
+    final perfilLocal = await _almacenLocal.perfil.obtener();
+    var ofrecer = false;
+    if (perfilLocal == null && _nube != null) {
+      try {
+        ofrecer = await _nube!.hayRespaldoEnNube();
+      } catch (_) {
+        ofrecer = false;
+      }
+    }
+    if (!mounted) return;
     setState(() {
-      _perfil = _almacenLocal.perfil.obtener();
+      _ofrecerRestaurar = ofrecer;
+      _perfil = Future.value(perfilLocal);
     });
+    if (perfilLocal != null) _sincronizarEnSegundoPlano();
   }
 
   /// Migración de una sola vez: adopta los archivos sueltos del esquema
@@ -221,6 +306,14 @@ class _ContenidoAppState extends State<_ContenidoApp> {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
         final perfil = snapshot.data;
+        if (perfil == null && _ofrecerRestaurar) {
+          return _PantallaRestaurar(
+            correo: widget.servicioAuth.usuarioActual?.email ?? '',
+            restaurando: _restaurando,
+            alRestaurar: _restaurar,
+            alEmpezarDeCero: () => setState(() => _ofrecerRestaurar = false),
+          );
+        }
         if (perfil == null) {
           return PantallaOnboarding(
             perfilRepositorio: _almacenLocal.perfil,
@@ -242,8 +335,59 @@ class _ContenidoAppState extends State<_ContenidoApp> {
           perfilRepositorio: _almacenLocal.perfil,
           servicioAuth: widget.servicioAuth,
           almacenLocal: _almacenLocal,
+          recargar: _datosCambiaron,
         );
       },
+    );
+  }
+}
+
+/// Dispositivo nuevo con respaldo en la nube (spec §4.2.1).
+class _PantallaRestaurar extends StatelessWidget {
+  final String correo;
+  final bool restaurando;
+  final VoidCallback alRestaurar;
+  final VoidCallback alEmpezarDeCero;
+
+  const _PantallaRestaurar({
+    required this.correo,
+    required this.restaurando,
+    required this.alRestaurar,
+    required this.alEmpezarDeCero,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Spacer(),
+              const Center(child: EmblemaApp(tamano: 104)),
+              const SizedBox(height: 28),
+              Text('Encontramos tu respaldo', textAlign: TextAlign.center, style: textos.headlineMedium),
+              const SizedBox(height: 10),
+              Text(
+                'Tu cuenta $correo tiene datos guardados en la nube. ¿Los traemos a este dispositivo?',
+                textAlign: TextAlign.center,
+                style: textos.bodySmall,
+              ),
+              const Spacer(),
+              if (restaurando)
+                const Center(child: CircularProgressIndicator())
+              else ...[
+                ElevatedButton(onPressed: alRestaurar, child: const Text('Restaurar mis datos')),
+                const SizedBox(height: 10),
+                TextButton(onPressed: alEmpezarDeCero, child: const Text('Empezar de cero')),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

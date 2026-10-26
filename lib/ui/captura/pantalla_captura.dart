@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -481,14 +482,16 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                   suffixIcon: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.photo_camera_outlined,
-                          color: ColoresApp.azul,
+                      // En la web no hay dónde guardar fotos (spec §4.2.2).
+                      if (!kIsWeb)
+                        IconButton(
+                          icon: const Icon(
+                            Icons.photo_camera_outlined,
+                            color: ColoresApp.azul,
+                          ),
+                          tooltip: 'Foto de ticket',
+                          onPressed: _cargandoFoto ? null : _mostrarOpcionesFoto,
                         ),
-                        tooltip: 'Foto de ticket',
-                        onPressed: _cargandoFoto ? null : _mostrarOpcionesFoto,
-                      ),
                       IconButton(
                         icon: const Icon(
                           Icons.mic_none,

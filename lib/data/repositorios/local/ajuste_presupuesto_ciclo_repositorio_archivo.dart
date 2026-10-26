@@ -2,14 +2,19 @@ import 'dart:io';
 
 import '../../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../ajuste_presupuesto_ciclo_repositorio.dart';
+import '../../almacenamiento/archivo_texto.dart';
 import 'almacen_json.dart';
 
 final class AjustePresupuestoCicloRepositorioArchivo
     implements AjustePresupuestoCicloRepositorio {
   final AlmacenJsonLista _almacen;
 
-  AjustePresupuestoCicloRepositorioArchivo(File archivo)
-      : _almacen = AlmacenJsonLista(archivo);
+  AjustePresupuestoCicloRepositorioArchivo(File archivo) : _almacen = AlmacenJsonLista(archivo);
+
+
+  /// Sobre cualquier [ArchivoTexto] (p. ej. el navegador en la web).
+
+  AjustePresupuestoCicloRepositorioArchivo.sobre(ArchivoTexto texto) : _almacen = AlmacenJsonLista.sobre(texto);
 
   @override
   Future<List<AjustePresupuestoCiclo>> listarPorCiclo(String cicloId) async {

@@ -2,12 +2,18 @@ import 'dart:io';
 
 import '../../../domain/modelos/ingreso_extra.dart';
 import '../ingreso_extra_repositorio.dart';
+import '../../almacenamiento/archivo_texto.dart';
 import 'almacen_json.dart';
 
 final class IngresoExtraRepositorioArchivo implements IngresoExtraRepositorio {
   final AlmacenJsonLista _almacen;
 
   IngresoExtraRepositorioArchivo(File archivo) : _almacen = AlmacenJsonLista(archivo);
+
+
+  /// Sobre cualquier [ArchivoTexto] (p. ej. el navegador en la web).
+
+  IngresoExtraRepositorioArchivo.sobre(ArchivoTexto texto) : _almacen = AlmacenJsonLista.sobre(texto);
 
   @override
   Future<IngresoExtra> guardar(IngresoExtra ingreso) async {

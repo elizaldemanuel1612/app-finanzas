@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 
 import '../core/money.dart';
@@ -21,7 +22,7 @@ class AccesosRapidos {
 
   static const _canal = MethodChannel('app_finanzas/accesos_rapidos');
 
-  static bool get _disponible => Platform.isIOS;
+  static bool get _disponible => !kIsWeb && Platform.isIOS;
 
   /// Empieza a recibir accesos rápidos. Si la app se abrió en frío desde el
   /// widget o desde Siri, la acción quedó guardada del lado nativo y se

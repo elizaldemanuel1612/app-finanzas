@@ -52,6 +52,9 @@ class PantallaInicio extends StatefulWidget {
   final ServicioAuth servicioAuth;
   final AlmacenLocal almacenLocal;
 
+  /// Cambia cuando la sincronización con la nube trajo datos nuevos.
+  final Listenable? recargar;
+
   const PantallaInicio({
     super.key,
     required this.perfil,
@@ -64,6 +67,7 @@ class PantallaInicio extends StatefulWidget {
     required this.perfilRepositorio,
     required this.servicioAuth,
     required this.almacenLocal,
+    this.recargar,
   });
 
   @override
@@ -86,6 +90,19 @@ class _PantallaInicioState extends State<PantallaInicio> {
     _recalcularCiclo();
     _cargar();
     AccesosRapidos.escuchar(_abrirAccesoRapido);
+    widget.recargar?.addListener(_alSincronizar);
+  }
+
+  Future<void> _alSincronizar() async {
+    final perfil = await widget.perfilRepositorio.obtener();
+    if (!mounted) return;
+    if (perfil != null) {
+      setState(() {
+        _perfil = perfil;
+        _recalcularCiclo();
+      });
+    }
+    await _cargar();
   }
 
   /// Con el historial de cortes del perfil (spec §2.4): si el usuario
@@ -102,6 +119,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
   @override
   void dispose() {
+    widget.recargar?.removeListener(_alSincronizar);
     AccesosRapidos.dejarDeEscuchar();
     super.dispose();
   }

@@ -2,12 +2,18 @@ import 'dart:io';
 
 import '../../../domain/modelos/categoria.dart';
 import '../categoria_repositorio.dart';
+import '../../almacenamiento/archivo_texto.dart';
 import 'almacen_json.dart';
 
 final class CategoriaRepositorioArchivo implements CategoriaRepositorio {
   final AlmacenJsonLista _almacen;
 
   CategoriaRepositorioArchivo(File archivo) : _almacen = AlmacenJsonLista(archivo);
+
+
+  /// Sobre cualquier [ArchivoTexto] (p. ej. el navegador en la web).
+
+  CategoriaRepositorioArchivo.sobre(ArchivoTexto texto) : _almacen = AlmacenJsonLista.sobre(texto);
 
   @override
   Future<void> guardar(Categoria categoria) async {

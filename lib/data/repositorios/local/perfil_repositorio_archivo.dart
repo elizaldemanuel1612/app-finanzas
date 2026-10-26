@@ -2,26 +2,25 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../../../domain/modelos/perfil.dart';
+import '../../almacenamiento/archivo_texto.dart';
+import '../../almacenamiento/archivo_texto_disco.dart';
 import '../perfil_repositorio.dart';
 
 final class PerfilRepositorioArchivo implements PerfilRepositorio {
-  final File archivo;
+  final ArchivoTexto texto;
 
-  const PerfilRepositorioArchivo(this.archivo);
+  PerfilRepositorioArchivo(File archivo) : texto = ArchivoTextoDisco(archivo);
+
+  /// Sobre cualquier [ArchivoTexto] (p. ej. el navegador en la web).
+  const PerfilRepositorioArchivo.sobre(this.texto);
 
   @override
   Future<Perfil?> obtener() async {
-    if (!await archivo.exists()) return null;
-    final contenido = await archivo.readAsString();
-    if (contenido.trim().isEmpty) return null;
+    final contenido = await texto.leer();
+    if (contenido == null || contenido.trim().isEmpty) return null;
     return Perfil.fromJson(jsonDecode(contenido) as Map<String, dynamic>);
   }
 
   @override
-  Future<void> guardar(Perfil perfil) async {
-    await archivo.parent.create(recursive: true);
-    final temporal = File('${archivo.path}.tmp');
-    await temporal.writeAsString(jsonEncode(perfil.toJson()));
-    await temporal.rename(archivo.path);
-  }
+  Future<void> guardar(Perfil perfil) => texto.escribir(jsonEncode(perfil.toJson()));
 }
