@@ -79,6 +79,8 @@ Estas ya están codificadas y son fáciles de romper por accidente:
 
 ## Estado actual
 
+**Si vienes de otra conversación, lee primero `docs/continuar.md`** (pendientes inmediatos, entorno del Mac/iPhone y decisiones tomadas).
+
 Fases 0–5 completas. Fase 6 (paridad y tiendas) en curso — ver detalle abajo.
 
 - **La persistencia real es JSON en disco, no Firestore.** Se escribe vía `AlmacenJsonLista`, con escritura atómica (temporal + rename) para que un corte a medio guardar no corrompa el archivo. Las implementaciones viven en `lib/data/repositorios/local/` y cumplen interfaces que una implementación Firestore podrá cumplir después sin tocar `domain/` ni `ui/`. `cloud_firestore` salió de `pubspec.yaml` (Fase 6, Bloque 0): cero usos en `lib/`. `firestore.rules` en la raíz se conserva igual: es el contrato para cuando entre la nube.
