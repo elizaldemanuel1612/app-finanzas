@@ -120,7 +120,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(archivo.path)],
-          subject: 'Plantilla de importación — App Finanzas',
+          subject: 'Plantilla de importación — FinVita',
           sharePositionOrigin: _origenCompartir(),
         ),
       );
@@ -166,7 +166,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(archivo.path)],
-          subject: 'Mis gastos — App Finanzas',
+          subject: 'Mis gastos — FinVita',
           sharePositionOrigin: _origenCompartir(),
         ),
       );
@@ -401,7 +401,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(
-                          'App Finanzas es una herramienta de registro y '
+                          'FinVita es una herramienta de registro y '
                           'pronóstico de tus propios gastos. No es asesoría '
                           'financiera, no invierte tu dinero, no se conecta a '
                           'bancos ni tarjetas, y no maneja dinero real en '
@@ -435,7 +435,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
             const SizedBox(height: 32),
             const Center(
               child: Text(
-                'App Finanzas · versión 1.0.0 (1)',
+                'FinVita · versión 1.0.0 (1)',
                 style: TextStyle(color: ColoresApp.medio, fontSize: 12),
               ),
             ),

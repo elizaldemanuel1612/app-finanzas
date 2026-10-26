@@ -57,7 +57,7 @@ class AppFinanzas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'App de Finanzas',
+      title: 'FinVita',
       theme: construirTema(),
       // Fijo, no el del sistema — mismo criterio que la moneda (es_MX):
       // las cifras y el calendario no deben cambiar de formato entre equipos.

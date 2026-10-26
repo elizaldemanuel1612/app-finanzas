@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import 'tema.dart';
 
 /// Elementos de marca de la dirección visual premium (2026-10-25): el
-/// emblema (aro dorado con el 💰 de siempre) y el fondo azul noche con
-/// montañas, para las pantallas de entrada (login y bienvenida). Sin
-/// imágenes: todo se dibuja, así que se ve nítido en cualquier pantalla y
-/// no pesa en la app.
+/// emblema (el logo de FinVita, `assets/marca/logo.png`) y el fondo azul
+/// noche con montañas, dibujado, para las pantallas de entrada (login y
+/// bienvenida).
 
-/// Aro de oro con el emoji de la app al centro.
+/// El logo de FinVita (aro dorado con montaña, bandera, flecha y barras).
 class EmblemaApp extends StatelessWidget {
   final double tamano;
 
@@ -17,31 +16,12 @@ class EmblemaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ExcludeSemantics(
-      child: Container(
-        width: tamano,
-        height: tamano,
-        padding: EdgeInsets.all(tamano * 0.045),
+      child: DecoratedBox(
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFF3DC8A), ColoresApp.oro, Color(0xFF9C7A1C)],
-          ),
-          boxShadow: [BoxShadow(color: Color(0x55D4AF37), blurRadius: 24)],
+          boxShadow: [BoxShadow(color: Color(0x40D4AF37), blurRadius: 28)],
         ),
-        child: Container(
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [ColoresApp.azulMarino, ColoresApp.azul],
-            ),
-          ),
-          padding: EdgeInsets.all(tamano * 0.22),
-          child: FittedBox(
-            child: Text('💰', style: Theme.of(context).textTheme.displaySmall),
-          ),
-        ),
+        child: Image.asset('assets/marca/logo.png', width: tamano, height: tamano),
       ),
     );
   }

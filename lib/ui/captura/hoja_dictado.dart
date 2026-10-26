@@ -132,7 +132,7 @@ class _HojaDictadoState extends State<_HojaDictado> {
                   const Text(
                     'No se pudo activar el micrófono. Si ya lo negaste antes, '
                     've a Ajustes del sistema › Permisos › Micrófono y actívalo '
-                    'para App Finanzas.',
+                    'para FinVita.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: ColoresApp.coralTexto),
                   ),

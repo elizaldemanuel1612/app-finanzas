@@ -66,7 +66,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                 const Center(child: EmblemaApp(tamano: 128)),
                 const SizedBox(height: 28),
                 Text(
-                  'App de finanzas',
+                  'FinVita',
                   textAlign: TextAlign.center,
                   style: textos.headlineMedium?.copyWith(color: Colors.white),
                 ),

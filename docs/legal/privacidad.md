@@ -1,8 +1,8 @@
-# Política de privacidad — App Finanzas
+# Política de privacidad — FinVita
 
 _Última actualización: 2026-08-07._
 
-App Finanzas es una herramienta personal de registro y pronóstico de
+FinVita es una herramienta personal de registro y pronóstico de
 gastos. Esta política describe, en términos llanos, qué datos usa la app,
 dónde se guardan y qué control tienes sobre ellos.
 
@@ -35,7 +35,7 @@ automáticamente — para eso existe "Exportar mis gastos" en Ajustes.
   el estándar de la plataforma.
 - **En reposo:** los datos locales quedan protegidos por el cifrado de
   almacenamiento del sistema operativo de tu dispositivo (el mismo que
-  protege cualquier otro archivo de tus apps). App Finanzas no aplica un
+  protege cualquier otro archivo de tus apps). FinVita no aplica un
   cifrado adicional propio sobre esos archivos.
 
 ## Tus controles
@@ -58,11 +58,11 @@ automáticamente — para eso existe "Exportar mis gastos" en Ajustes.
   esos datos.
 - **Motor de reconocimiento de voz del sistema (Android/iOS):** procesa el
   audio de dictado según la política de privacidad de tu sistema
-  operativo. App Finanzas no envía ese audio a servidores propios.
+  operativo. FinVita no envía ese audio a servidores propios.
 
 ## Menores de edad
 
-App Finanzas no está dirigida a menores de edad y no recopila a sabiendas
+FinVita no está dirigida a menores de edad y no recopila a sabiendas
 información de menores.
 
 ## Cambios a esta política

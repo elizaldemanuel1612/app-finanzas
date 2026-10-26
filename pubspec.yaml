@@ -61,10 +61,10 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   flutter_native_splash: ^2.4.8
 
-# Ícono y splash (dirección visual premium, 2026-10-25): moneda con aro
-# dorado y "$" en Outfit sobre azul noche, saliendo entre montañas
+# Ícono y splash (dirección visual premium, 2026-10-25): el logo de FinVita
+# —aro dorado con montaña, bandera, flecha y barras— sobre azul noche
 # (assets/icono/icono_1024.png; el frente adaptativo de Android es solo el
-# emblema). Colores de lib/ui/comun/paleta.dart (azul noche #0B1F3B). Regenerar
+# logo). assets/marca/logo.png es el mismo logo sin fondo, para la app. Colores de lib/ui/comun/paleta.dart (azul noche #0B1F3B). Regenerar
 # con `dart run flutter_launcher_icons` y `dart run flutter_native_splash:create`
 # tras reemplazar las imágenes por el arte definitivo.
 flutter_launcher_icons:
@@ -95,6 +95,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/marca/logo.png
     - assets/fuentes/OFL-Outfit.txt
     - assets/fuentes/OFL-PlusJakartaSans.txt
     - docs/legal/privacidad.md

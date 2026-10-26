@@ -1,6 +1,6 @@
 import AppIntents
 
-/// "Registrar un gasto": abre App Finanzas con el dictado ya escuchando
+/// "Registrar un gasto": abre FinVita con el dictado ya escuchando
 /// (spec-app-finanzas-v2.md §5.6). Lo usan el atajo de Siri
 /// (`Runner/AtajosSiri.swift`) y el control del Centro de Control
 /// (`WidgetsFinanzas/WidgetsFinanzas.swift`).
@@ -12,7 +12,7 @@ import AppIntents
 struct DictarGastoIntent: AppIntent {
   static let title: LocalizedStringResource = "Registrar un gasto"
   static let description = IntentDescription(
-    "Abre App Finanzas escuchando para que dictes el gasto."
+    "Abre FinVita escuchando para que dictes el gasto."
   )
   static let openAppWhenRun = true
 
