@@ -28,34 +28,22 @@ Resumen de traspaso entre conversaciones. Las reglas del proyecto viven en
 - `pubspec.lock` y `analysis_options.yaml` pueden aparecer modificados por
   la versión de Flutter del Mac: no es un problema.
 
-## Pendiente inmediato: nube y web (código listo, falta conectar)
+## Pendiente inmediato: probar nube y web
 
-Código ya hecho y en GitHub (commit "Respaldo en la nube opcional y versión
-web (PWA), en curso"): spec §4.2.1–4.2.2, `lib/data/almacenamiento/`,
-`lib/data/nube/servicio_nube.dart`, `lib/domain/sincronizacion/fusion.dart`,
-`lib/ui/ajustes/pantalla_nube.dart`, `firestore.rules`, `firebase.json`,
-`.firebaserc` (proyecto `app-finanzas-27e41`), `web/` con marca MAVfin.
+Hecho el 2026-10-26: base Firestore `(default)` en `nam5`, reglas
+desplegadas, app web "MAVfin" registrada (bloque `web` en
+`lib/firebase_options.dart`) y web publicada en
+`https://app-finanzas-27e41.web.app` (carga hasta el login sin errores).
 
 Falta, en orden:
-1. `firebase login --no-localhost` (lo hace el usuario; firebase-tools ya
-   está instalado). Comprobar con `firebase projects:list`.
-2. Crear la base de datos Firestore si no existe
-   (`firebase firestore:databases:create "(default)" --location=nam5` o
-   desde la consola) y desplegar reglas: `firebase deploy --only firestore:rules`.
-3. Registrar la app web: `firebase apps:create web MAVfin` y
-   `firebase apps:sdkconfig web <appId>`; completar el bloque `web` en
-   `lib/firebase_options.dart` (hoy lanza `UnsupportedError` para web).
-4. `flutter build web` y `firebase deploy --only hosting` → URL
-   `https://app-finanzas-27e41.web.app`. El dominio queda autorizado para
-   el login de Google automáticamente.
-5. Probar de punta a punta: en el simulador, Ajustes → Respaldo en la nube
-   → Activar; luego en la web entrar con la misma cuenta → debe aparecer
-   "Encontramos tu respaldo" → Restaurar. Probar las tres opciones de
-   combinar y que borrar en un lado no "reviva" en el otro.
-6. Instalar la versión nueva en el iPhone físico y revisar ahí el widget
+1. Probar de punta a punta (requiere la cuenta de Google del usuario): en el
+   simulador, Ajustes → Respaldo en la nube → Activar; luego en la web entrar
+   con la misma cuenta → debe aparecer "Encontramos tu respaldo" → Restaurar.
+   Probar las tres opciones de combinar y que borrar en un lado no "reviva"
+   en el otro.
+2. Instalar la versión nueva en el iPhone físico y revisar ahí el widget
    (la galería de widgets del simulador falla), la cámara, el dictado y
    los emojis.
-7. Actualizar `CLAUDE.md` (sección Estado actual) con nube y web.
 
 ## Decisiones tomadas (no reabrir sin preguntar)
 
