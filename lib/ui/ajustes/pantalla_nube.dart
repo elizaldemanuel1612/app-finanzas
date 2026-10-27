@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
+import '../../data/nube/errores_respaldo.dart';
 import '../../data/nube/servicio_nube.dart';
 import '../../domain/sincronizacion/fusion.dart';
 import '../comun/formato_fecha.dart';
@@ -56,16 +57,19 @@ class _PantallaNubeState extends State<PantallaNube> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(exito)));
       }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo conectar con tu Google Drive. Revisa tu internet e intenta de nuevo.')),
-        );
-      }
+    } catch (e) {
+      if (mounted) _avisarError(e);
     } finally {
       if (mounted) setState(() => _trabajando = false);
       await _cargar();
     }
+  }
+
+  void _avisarError(Object error) {
+    debugPrint('Respaldo en Drive: $error');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(describirErrorRespaldo(error)), duration: const Duration(seconds: 8)),
+    );
   }
 
   Future<void> _activar() async {
@@ -73,12 +77,10 @@ class _PantallaNubeState extends State<PantallaNube> {
     EstadoInicialNube estado;
     try {
       estado = await widget.nube.estadoInicial();
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() => _trabajando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo conectar con tu Google Drive. Revisa tu internet e intenta de nuevo.')),
-      );
+      _avisarError(e);
       return;
     }
     if (!mounted) return;

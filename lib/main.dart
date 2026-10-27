@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'data/almacenamiento/archivo_texto_navegador.dart';
 import 'data/firebase/servicio_auth.dart';
+import 'data/nube/errores_respaldo.dart';
 import 'data/nube/respaldo_drive.dart';
 import 'data/nube/servicio_nube.dart';
 import 'data/repositorios/local/almacen_local.dart';
@@ -173,10 +174,11 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
     setState(() => _restaurando = true);
     try {
       await _nube!.activar(ModoFusion.usarNube);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Restaurar respaldo: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo traer tu respaldo. Revisa tu internet e intenta de nuevo.')),
+          SnackBar(content: Text(describirErrorRespaldo(e)), duration: const Duration(seconds: 8)),
         );
       }
     }
