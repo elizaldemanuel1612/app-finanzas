@@ -128,4 +128,17 @@ void main() {
       expect(repartirPorPesos(const Dinero.pesos(500), [10]), [const Dinero.pesos(500)]);
     });
   });
+
+  group('porcentajeDelIngreso', () {
+    test('toma el porcentaje y redondea hacia abajo al peso', () {
+      expect(porcentajeDelIngreso(const Dinero.pesos(38500), 30), const Dinero.pesos(11550));
+      expect(porcentajeDelIngreso(const Dinero(1234599), 3), const Dinero.pesos(370));
+    });
+
+    test('ingreso o porcentaje en cero o negativos dan cero', () {
+      expect(porcentajeDelIngreso(const Dinero.cero(), 30), const Dinero.cero());
+      expect(porcentajeDelIngreso(const Dinero.pesos(-100), 30), const Dinero.cero());
+      expect(porcentajeDelIngreso(const Dinero.pesos(1000), 0), const Dinero.cero());
+    });
+  });
 }

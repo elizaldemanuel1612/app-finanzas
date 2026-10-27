@@ -165,7 +165,14 @@ ThemeData construirTema() {
       selectedColor: ColoresApp.azul,
       checkmarkColor: Colors.white,
       secondarySelectedColor: ColoresApp.azul,
-      labelStyle: const TextStyle(color: ColoresApp.tinta),
+      // Seleccionado = fondo azul noche: el texto tiene que pasar a blanco o
+      // se pierde (el estilo fijo en tinta dejaba los nombres invisibles).
+      // (RawChip resuelve el color por estado, no el TextStyle completo).
+      labelStyle: TextStyle(
+        color: WidgetStateColor.resolveWith(
+          (estados) => estados.contains(WidgetState.selected) ? Colors.white : ColoresApp.tinta,
+        ),
+      ),
       secondaryLabelStyle: const TextStyle(color: Colors.white),
       side: const BorderSide(color: ColoresApp.linea),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

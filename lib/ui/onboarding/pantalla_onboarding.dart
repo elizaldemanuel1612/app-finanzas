@@ -25,35 +25,35 @@ enum _TipoCiclo { corte, mesNatural, otroDia }
 
 /// Una de las 8 categorías sugeridas del prototipo interactivo
 /// (`app-finanzas-onboarding-INTERACTIVO.html`, arreglo `CATS`). Ninguna
-/// trae un monto absoluto de fábrica: todas se sugieren repartiendo por
-/// [peso] lo disponible, así que siempre son proporcionales al ingreso
-/// capturado (addendum-v3-ajuste-y-ux.md §2.5.1). [fijaSugerida] solo
-/// decide si arranca marcada como "Fijo".
+/// trae un monto absoluto de fábrica: cada una sugiere su [porcentaje] del
+/// ingreso capturado, sola, sin depender de las demás (addendum-v3-ajuste-
+/// y-ux.md §2.5.1). [fijaSugerida] solo decide si arranca marcada como
+/// "Fijo".
 final class _CategoriaSugerida {
   final String id;
   final String emoji;
   final String nombre;
-  final int peso;
+  final int porcentaje;
   final bool fijaSugerida;
 
   const _CategoriaSugerida({
     required this.id,
     required this.emoji,
     required this.nombre,
-    required this.peso,
+    required this.porcentaje,
     this.fijaSugerida = false,
   });
 }
 
 const _categoriasSugeridas = [
-  _CategoriaSugerida(id: 'vivienda', emoji: '🏠', nombre: 'Vivienda', peso: 30, fijaSugerida: true),
-  _CategoriaSugerida(id: 'super', emoji: '🛒', nombre: 'Súper', peso: 25),
-  _CategoriaSugerida(id: 'salidas', emoji: '🍿', nombre: 'Salidas', peso: 20),
-  _CategoriaSugerida(id: 'auto', emoji: '🚗', nombre: 'Auto', peso: 15),
-  _CategoriaSugerida(id: 'salud', emoji: '💊', nombre: 'Salud', peso: 10),
-  _CategoriaSugerida(id: 'hijos', emoji: '👶', nombre: 'Hijos', peso: 14),
-  _CategoriaSugerida(id: 'gimnasio', emoji: '🏋️', nombre: 'Gimnasio', peso: 4, fijaSugerida: true),
-  _CategoriaSugerida(id: 'suscripciones', emoji: '🎵', nombre: 'Suscripciones', peso: 3, fijaSugerida: true),
+  _CategoriaSugerida(id: 'vivienda', emoji: '🏠', nombre: 'Vivienda', porcentaje: 30, fijaSugerida: true),
+  _CategoriaSugerida(id: 'super', emoji: '🛒', nombre: 'Súper', porcentaje: 20),
+  _CategoriaSugerida(id: 'salidas', emoji: '🍿', nombre: 'Salidas', porcentaje: 10),
+  _CategoriaSugerida(id: 'auto', emoji: '🚗', nombre: 'Auto', porcentaje: 10),
+  _CategoriaSugerida(id: 'salud', emoji: '💊', nombre: 'Salud', porcentaje: 5),
+  _CategoriaSugerida(id: 'hijos', emoji: '👶', nombre: 'Hijos', porcentaje: 10),
+  _CategoriaSugerida(id: 'gimnasio', emoji: '🏋️', nombre: 'Gimnasio', porcentaje: 3, fijaSugerida: true),
+  _CategoriaSugerida(id: 'suscripciones', emoji: '🎵', nombre: 'Suscripciones', porcentaje: 2, fijaSugerida: true),
 ];
 
 const _seleccionInicial = {'vivienda', 'super', 'salidas', 'auto', 'salud'};
@@ -202,8 +202,8 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
     });
   }
 
-  /// Regla no negociable #10: las fijas se respetan tal cual, solo el
-  /// sobrante se reparte entre las variables con [repartirPorPesos].
+  /// Lo que queda para categorías después de la meta. Con "Lo que sobre"
+  /// (`_meta == null`) es todo el ingreso.
   Dinero _disponibleParaCategorias() {
     final ingreso = _ingreso ?? const Dinero.cero();
     final meta = _meta?.montoPara(ingreso) ?? const Dinero.cero();
@@ -211,32 +211,17 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
     return disponible.esNegativo ? const Dinero.cero() : disponible;
   }
 
+  /// Lo que el usuario escribió a mano se respeta tal cual (regla #10); las
+  /// demás sugieren su porcentaje del ingreso, cada una por su lado
+  /// (addendum-v3 §2.5.1). Editar una nunca mueve las otras: lo que no se
+  /// asigna queda libre para apartar.
   Map<String, Dinero> _montosCalculados() {
-    final disponible = _disponibleParaCategorias();
-    final montos = <String, Dinero>{};
-
-    // Lo que el usuario escribió a mano se respeta tal cual (regla #10:
-    // nadie le mueve un monto que ya decidió); todo lo demás — fijo o
-    // variable — sale del reparto por peso, proporcional al ingreso.
-    for (final c in _categoriasSugeridas) {
-      if (!_seleccionadas.contains(c.id)) continue;
-      final editado = _montosEditados[c.id];
-      if (editado != null) montos[c.id] = editado;
-    }
-
-    final variablesAuto = [
+    final ingreso = _ingreso ?? const Dinero.cero();
+    return {
       for (final c in _categoriasSugeridas)
-        if (_seleccionadas.contains(c.id) && !_montosEditados.containsKey(c.id)) c,
-    ];
-    final disponibleParaAuto = disponible - Dinero.suma(montos.values);
-    final repartido = repartirPorPesos(
-      disponibleParaAuto.esNegativo ? const Dinero.cero() : disponibleParaAuto,
-      variablesAuto.map((c) => c.peso).toList(),
-    );
-    for (var i = 0; i < variablesAuto.length; i++) {
-      montos[variablesAuto[i].id] = repartido[i];
-    }
-    return montos;
+        if (_seleccionadas.contains(c.id))
+          c.id: _montosEditados[c.id] ?? porcentajeDelIngreso(ingreso, c.porcentaje),
+    };
   }
 
   Future<void> _guardarCategoriasSeleccionadas() async {
@@ -544,6 +529,12 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
           ),
           Text('Disponible para categorías: ${disponible.formateado()}',
               style: Theme.of(context).textTheme.bodySmall),
+          if (!sobrepasado)
+            Text(
+              '${_meta == null ? 'Te sobra para apartar' : 'Sin asignar'}: '
+              '${(disponible - total).formateado()}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           if (sobrepasado) ...[
             const SizedBox(height: 8),
             Container(
@@ -561,7 +552,7 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
                     style: const TextStyle(color: ColoresApp.ambarTexto),
                   ),
                   // Si cambió el ingreso después de escribir montos a mano,
-                  // esto los regresa al reparto proporcional (§2.5.1).
+                  // esto los regresa a la sugerencia por porcentaje (§2.5.1).
                   if (_montosEditados.isNotEmpty)
                     TextButton.icon(
                       onPressed: () => setState(_montosEditados.clear),

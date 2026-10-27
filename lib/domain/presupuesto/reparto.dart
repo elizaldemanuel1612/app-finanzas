@@ -70,8 +70,8 @@ Resultado<ResultadoReparto> calcularReparto({
 /// a la primera, para que la suma cuadre exacto contra [total] en vez de
 /// quedar unos centavos cortos.
 ///
-/// Usado por el paso "¿En qué se te va?" del onboarding (Bloque C) para
-/// repartir el disponible entre las categorías sugeridas según su peso.
+/// Ya no lo usa el onboarding (ver [porcentajeDelIngreso]); se conserva
+/// como utilidad de reparto exacto.
 List<Dinero> repartirPorPesos(Dinero total, List<int> pesos) {
   if (pesos.isEmpty) return const [];
   final sumaPesos = pesos.fold(0, (a, b) => a + b);
@@ -80,4 +80,14 @@ List<Dinero> repartirPorPesos(Dinero total, List<int> pesos) {
   final partes = [for (final peso in pesos) Dinero(total.centavos * peso ~/ sumaPesos)];
   final residuo = total - Dinero.suma(partes);
   return [partes.first + residuo, ...partes.skip(1)];
+}
+
+/// Sugerencia de presupuesto: [porcentaje] del [ingreso], redondeado hacia
+/// abajo al peso entero (addendum-v3-ajuste-y-ux.md §2.5.1). Cada categoría
+/// sugerida del onboarding se calcula sola con esto, sin depender de las
+/// demás: lo que no se asigna queda para apartar.
+Dinero porcentajeDelIngreso(Dinero ingreso, int porcentaje) {
+  if (!ingreso.esPositivo || porcentaje <= 0) return const Dinero.cero();
+  final centavos = ingreso.centavos * porcentaje ~/ 100;
+  return Dinero(centavos - centavos % 100);
 }

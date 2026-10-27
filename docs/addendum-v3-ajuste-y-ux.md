@@ -67,7 +67,7 @@ Nuevo_c = Presupuesto_c × IngresoNuevo ÷ IngresoAnterior
 
 redondeado hacia abajo al peso entero, con mínimo de $1 (ningún presupuesto queda en cero). Aplica igual a fijas (monto fijo) y variables (presupuesto mensual), y a la meta de apartado solo si es por monto — la meta por porcentaje ya se ajusta sola. Las categorías archivadas no se tocan. El usuario puede contestar "Dejar como están": nunca se reajusta sin preguntar.
 
-En el onboarding, las sugerencias de todas las categorías (fijas y variables) salen de repartir por peso lo disponible después de la meta, así que siempre son proporcionales al ingreso capturado; ninguna sugerencia trae un monto absoluto de fábrica.
+En el onboarding, la sugerencia de cada categoría (fija o variable) es un **porcentaje fijo del ingreso** capturado (Vivienda 30 %, Súper 20 %, Salidas 10 %, Auto 10 %, Salud 5 %, Hijos 10 %, Gimnasio 3 %, Suscripciones 2 %), redondeado hacia abajo al peso; ninguna trae un monto absoluto de fábrica. Cada sugerencia es **independiente**: editar una nunca mueve las demás, y lo que no se asigna queda sin asignar (es "lo que sobre" para apartar). Antes (hasta 2026-10-26) se repartía por peso todo lo disponible entre las no editadas, lo que obligaba a asignar el 100 % y anulaba la meta "Lo que sobre". Si la suma más la meta rebasa el ingreso, se avisa y se ofrece "Usar la sugerencia"; nunca se recorta nada solo.
 
 ### 2.6 Guardarraíles
 - **Nunca sugerir por debajo de un mínimo digno.** Categorías marcadas como necesarias (Súper, Salud, Vivienda) tienen piso configurable. La app no propone dejar de comer.

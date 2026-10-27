@@ -37,10 +37,9 @@ todo). Política de privacidad y términos actualizados. Web publicada en
 `https://app-finanzas-27e41.web.app`.
 
 Falta, en orden:
-1. **Habilitar la API de Google Drive** en el proyecto (lo hace el usuario):
-   https://console.cloud.google.com/apis/library/drive.googleapis.com?project=app-finanzas-27e41
-   Sin eso, Drive responde 403 y la app dice "No se pudo conectar con tu
-   Google Drive".
+1. ~~Habilitar la API de Google Drive~~ — hecho por el usuario el 2026-10-26.
+   Revisar que la pantalla de consentimiento OAuth esté "En producción"
+   (en "Prueba" solo entran usuarios de prueba y el permiso caduca a los 7 días).
 2. Probar en la web (Safari del iPhone y la app agregada a inicio, que
    guardan aparte): entrar → aceptar permiso de Drive → Ajustes → Respaldo
    en tu Google Drive → Activar → registrar gastos → en el otro lado entrar
@@ -48,8 +47,6 @@ Falta, en orden:
 3. Instalar la versión nueva en el iPhone físico (cable): probar el permiso
    de Drive desde la app nativa, el widget, la cámara, el dictado y los
    emojis.
-4. Decidir si se borra la base Firestore `(default)` (ya no se usa; puede
-   tener datos de prueba del 2026-10-26).
 
 ## Decisiones tomadas (no reabrir sin preguntar)
 
@@ -64,7 +61,9 @@ Falta, en orden:
   Tipografía Outfit/Plus Jakarta Sans (el usuario no quiere Inter por ahora).
 - Respaldo = **Google Drive del propio usuario** (`appDataFolder`),
   **opcional**; la app no guarda datos financieros en servidores propios
-  (2026-10-26, reemplaza la decisión anterior de Firestore).
+  (2026-10-26, reemplaza la decisión anterior de Firestore). La base
+  Firestore `(default)` se **conserva cerrada** (reglas que niegan todo) por
+  si se ocupa después; no borrarla sin preguntar.
 - Publicar en tiendas sigue en pausa; prioridad: uso personal en iPhone y web.
 - Android: falta la contraparte del widget y del atajo de voz.
 

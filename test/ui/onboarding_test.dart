@@ -136,4 +136,33 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('editar una categoría no mueve las demás: lo no asignado sobra', (tester) async {
+    await tester.pumpWidget(_app(alTerminar: () {}));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Empezar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Siguiente'));
+    await tester.pumpAndSettle();
+    await tester.enterText(_campoIngreso, '87000');
+    await tester.tap(find.text('Siguiente'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Siguiente')); // meta por defecto (10 %)
+    await tester.pumpAndSettle();
+
+    // Campos de monto en el orden de las categorías: Vivienda, Súper, …
+    final montos = find.byWidgetPredicate((w) => w is TextField && w.decoration?.prefixText == r'$');
+    String monto(int i) => tester.widget<TextField>(montos.at(i)).controller!.text;
+
+    expect(monto(0), '26100', reason: 'Vivienda: 30 % del ingreso');
+    expect(monto(1), '17400', reason: 'Súper: 20 % del ingreso');
+
+    await tester.enterText(montos.at(0), '5000');
+    await tester.pumpAndSettle();
+    expect(monto(1), '17400', reason: 'editar Vivienda no reparte su diferencia en las demás');
+    // 87,000 − 8,700 de meta = 78,300; categorías 5,000 + 17,400 + 8,700 + 8,700 + 4,350 = 44,150.
+    expect(find.text(r'Sin asignar: $34,150.00'), findsOneWidget);
+  });
 }
+
