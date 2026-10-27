@@ -99,7 +99,7 @@ class _PantallaCategoriasState extends State<PantallaCategorias> {
   Widget _buildContenido() {
     final categorias = _categorias!;
     if (categorias.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
@@ -136,7 +136,7 @@ class _PantallaCategoriasState extends State<PantallaCategorias> {
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         '$titulo ($conteo)',
-        style: const TextStyle(
+        style: TextStyle(
           color: ColoresApp.medio,
           fontWeight: FontWeight.w700,
           fontSize: 12,

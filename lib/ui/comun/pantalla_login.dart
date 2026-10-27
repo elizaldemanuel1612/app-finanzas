@@ -54,7 +54,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-      backgroundColor: ColoresApp.azul,
+      backgroundColor: ColoresApp.noche,
       body: FondoMontanas(
         child: SafeArea(
           child: Padding(
@@ -90,7 +90,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                     child: Text(
                       _error!,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: ColoresApp.coralTexto),
+                      style: TextStyle(color: ColoresApp.coralTexto),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -98,7 +98,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: ColoresApp.azul,
+                    foregroundColor: ColoresApp.noche,
                     disabledBackgroundColor: Colors.white70,
                   ),
                   onPressed: _entrando ? null : _entrarConGoogle,

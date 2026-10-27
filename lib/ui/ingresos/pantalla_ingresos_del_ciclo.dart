@@ -349,7 +349,7 @@ class _FilaIngreso extends StatelessWidget {
           valor,
           if (onAnular != null)
             IconButton(
-              icon: const Icon(Icons.close, size: 18, color: ColoresApp.medio),
+              icon: Icon(Icons.close, size: 18, color: ColoresApp.medio),
               tooltip: 'Anular',
               onPressed: onAnular,
             ),

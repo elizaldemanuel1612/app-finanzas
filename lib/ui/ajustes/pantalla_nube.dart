@@ -299,7 +299,7 @@ class _Aviso extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_outline, size: 18, color: ColoresApp.azul),
+          Icon(Icons.info_outline, size: 18, color: ColoresApp.azul),
           const SizedBox(width: 8),
           Expanded(child: Text(texto, style: Theme.of(context).textTheme.bodySmall)),
         ],

@@ -72,7 +72,7 @@ class BarraRitmo extends StatelessWidget {
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEDEFF6),
+                        color: ColoresApp.pista,
                         borderRadius: BorderRadius.circular(99),
                       ),
                     ),

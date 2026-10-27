@@ -257,7 +257,7 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
                   children: [
                     Text(
                       rollup.totalCentavos.formateado(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.w800,
                         color: ColoresApp.tinta,
@@ -295,7 +295,7 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
                   Text(
                     'de ${rollup.presupuestoCentavos!.formateado()}'
                     '${esFija ? '' : ' este ciclo'}',
-                    style: const TextStyle(color: ColoresApp.medio),
+                    style: TextStyle(color: ColoresApp.medio),
                   ),
                   if (datos.deltaCategoria != null &&
                       !datos.deltaCategoria!.esCero)
@@ -340,7 +340,7 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
         ],
         const SizedBox(height: 20),
         if (movimientos.isEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 40),
             child: Center(
               child: Text(
@@ -414,7 +414,7 @@ class _TarjetaPronostico extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Cierre estimado',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
@@ -427,7 +427,7 @@ class _TarjetaPronostico extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               pronostico.pronosticoP50.formateado(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
                 color: ColoresApp.tinta,
@@ -468,7 +468,7 @@ class _TarjetaPlanDeAjuste extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Plan de ajuste',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
@@ -515,7 +515,7 @@ class _TarjetaRebalanceo extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Rebalanceo sugerido',
               style: TextStyle(
                 fontWeight: FontWeight.w700,

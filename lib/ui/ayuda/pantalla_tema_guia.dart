@@ -33,7 +33,7 @@ class PantallaTemaGuia extends StatelessWidget {
                 width: 48,
                 height: 48,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(color: ColoresApp.azulSuave, shape: BoxShape.circle),
+                decoration: BoxDecoration(color: ColoresApp.azulSuave, shape: BoxShape.circle),
                 child: ExcludeSemantics(child: Text(tema.emoji, style: theme.headlineMedium)),
               ),
               const SizedBox(width: 12),

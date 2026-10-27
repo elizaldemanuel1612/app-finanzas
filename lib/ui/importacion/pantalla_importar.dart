@@ -124,7 +124,7 @@ class _PantallaImportarState extends State<PantallaImportar> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              const Text(
+              Text(
                 'Importa tu historial desde un CSV: fecha y monto son obligatorios; '
                 'categoría, descripción y medio de pago son opcionales. Si no sabes '
                 'el formato, descarga la plantilla de ejemplo primero.',
@@ -154,7 +154,7 @@ class _PantallaImportarState extends State<PantallaImportar> {
               ],
               if (_error != null) ...[
                 const SizedBox(height: 16),
-                Text(_error!, style: const TextStyle(color: ColoresApp.coralTexto)),
+                Text(_error!, style: TextStyle(color: ColoresApp.coralTexto)),
               ],
               if (vistaPrevia != null) ...[
                 const SizedBox(height: 24),
@@ -167,7 +167,7 @@ class _PantallaImportarState extends State<PantallaImportar> {
                       color: ColoresApp.verdeSuave,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Listo. Los movimientos y categorías nuevas ya están guardados.',
                       style: TextStyle(color: ColoresApp.verdeTexto, fontWeight: FontWeight.w700),
                     ),
@@ -229,7 +229,7 @@ class _TarjetaVistaPrevia extends StatelessWidget {
                 '${vistaPrevia.renglonesConProblema.length} '
                 '${vistaPrevia.renglonesConProblema.length == 1 ? 'renglón' : 'renglones'} con problema '
                 '(no se van a importar):',
-                style: const TextStyle(color: ColoresApp.coralTexto, fontWeight: FontWeight.w700),
+                style: TextStyle(color: ColoresApp.coralTexto, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 6),
               ...vistaPrevia.renglonesConProblema.take(10).map(

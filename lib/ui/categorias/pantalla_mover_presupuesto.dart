@@ -158,7 +158,7 @@ class _PantallaMoverPresupuestoState extends State<PantallaMoverPresupuesto> {
               const SizedBox(height: 8),
               Text(
                 _error!,
-                style: const TextStyle(color: ColoresApp.coralTexto),
+                style: TextStyle(color: ColoresApp.coralTexto),
               ),
             ],
             const SizedBox(height: 12),

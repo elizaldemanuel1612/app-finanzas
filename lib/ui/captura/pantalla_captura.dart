@@ -451,7 +451,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              const Text(
+              Text(
                 '¿Cuánto gastaste?',
                 style: TextStyle(color: ColoresApp.medio),
               ),
@@ -474,7 +474,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                   ),
                   prefixIconConstraints: const BoxConstraints(),
                   hintText: '0',
-                  hintStyle: const TextStyle(color: ColoresApp.linea),
+                  hintStyle: TextStyle(color: ColoresApp.linea),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
@@ -485,7 +485,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                       // En la web no hay dónde guardar fotos (spec §4.2.2).
                       if (!kIsWeb)
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.photo_camera_outlined,
                             color: ColoresApp.azul,
                           ),
@@ -493,7 +493,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                           onPressed: _cargandoFoto ? null : _mostrarOpcionesFoto,
                         ),
                       IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.mic_none,
                           color: ColoresApp.azul,
                         ),
@@ -524,7 +524,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                 ultimaFecha: rangoFecha.ultima,
               ),
               const Divider(height: 32),
-              const Text(
+              Text(
                 'Categoría',
                 style: TextStyle(color: ColoresApp.medio),
               ),
@@ -534,7 +534,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                 builder: (context, snapshot) {
                   final categorias = snapshot.data ?? const [];
                   if (snapshot.hasData && categorias.isEmpty) {
-                    return const Text(
+                    return Text(
                       'No tienes categorías todavía. Crea una desde Categorías antes de registrar.',
                       style: TextStyle(color: ColoresApp.coralTexto),
                     );
@@ -559,7 +559,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
               ),
               if (_sugerida) ...[
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Sugerida por tus gastos anteriores',
                   style: TextStyle(
                     color: ColoresApp.azul,
@@ -569,7 +569,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                 ),
               ],
               const SizedBox(height: 20),
-              const Text('Medio', style: TextStyle(color: ColoresApp.medio)),
+              Text('Medio', style: TextStyle(color: ColoresApp.medio)),
               const SizedBox(height: 8),
               SegmentedButton<MedioPago>(
                 segments: const [
@@ -604,7 +604,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                 const SizedBox(height: 12),
                 Text(
                   _error!,
-                  style: const TextStyle(color: ColoresApp.coralTexto),
+                  style: TextStyle(color: ColoresApp.coralTexto),
                 ),
               ],
               const SizedBox(height: 24),
@@ -619,7 +619,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Center(
+              Center(
                 child: Text(
                   'Sin internet · se guarda y sincroniza sola',
                   style: TextStyle(color: ColoresApp.medio, fontSize: 12),
@@ -673,7 +673,7 @@ class _TarjetaFotoTicket extends StatelessWidget {
                   const SizedBox(height: 4),
                   GestureDetector(
                     onTap: onDividir,
-                    child: const Text(
+                    child: Text(
                       'Dividir en varias categorías',
                       style: TextStyle(
                         color: ColoresApp.azul,
@@ -686,7 +686,7 @@ class _TarjetaFotoTicket extends StatelessWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.close, size: 18, color: ColoresApp.medio),
+              icon: Icon(Icons.close, size: 18, color: ColoresApp.medio),
               onPressed: onQuitar,
               tooltip: 'Quitar foto',
             ),

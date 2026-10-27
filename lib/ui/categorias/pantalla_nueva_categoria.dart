@@ -246,7 +246,7 @@ class _PantallaNuevaCategoriaState extends State<PantallaNuevaCategoria> {
                 const SizedBox(height: 12),
                 Text(
                   _error!,
-                  style: const TextStyle(color: ColoresApp.coralTexto),
+                  style: TextStyle(color: ColoresApp.coralTexto),
                 ),
               ],
               const SizedBox(height: 24),

@@ -29,7 +29,7 @@ class BloqueGuiaWidget extends StatelessWidget {
             style: theme.bodyMedium?.copyWith(color: ColoresApp.medio),
             children: _spansConNegrita(
               texto,
-              negrita: const TextStyle(fontWeight: FontWeight.w700, color: ColoresApp.tinta),
+              negrita: TextStyle(fontWeight: FontWeight.w700, color: ColoresApp.tinta),
             ),
           ),
         ),
@@ -52,7 +52,7 @@ class BloqueGuiaWidget extends StatelessWidget {
                           style: theme.bodyMedium?.copyWith(color: ColoresApp.medio),
                           children: _spansConNegrita(
                             punto,
-                            negrita: const TextStyle(fontWeight: FontWeight.w700, color: ColoresApp.tinta),
+                            negrita: TextStyle(fontWeight: FontWeight.w700, color: ColoresApp.tinta),
                           ),
                         ),
                       ),
@@ -78,7 +78,7 @@ class BloqueGuiaWidget extends StatelessWidget {
                       width: 22,
                       height: 22,
                       alignment: Alignment.center,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: ColoresApp.azulSuave,
                         shape: BoxShape.circle,
                       ),
@@ -260,7 +260,7 @@ class _ChipsDeFechaEjemplo extends StatelessWidget {
         child: Text(
           texto,
           style: theme.labelSmall?.copyWith(
-            color: activa ? Colors.white : ColoresApp.azul,
+            color: activa ? ColoresApp.sobreAzul : ColoresApp.azul,
             fontWeight: FontWeight.w700,
           ),
         ),

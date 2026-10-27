@@ -19,6 +19,7 @@ import '../../data/nube/servicio_nube.dart';
 import '../../plataforma/accesos_rapidos.dart';
 import '../ayuda/pantalla_guia.dart';
 import '../categorias/pantalla_categorias.dart';
+import '../comun/apariencia.dart';
 import '../comun/documento_legal.dart';
 import '../comun/formato_fecha.dart';
 import '../comun/seccion_lista.dart';
@@ -350,6 +351,28 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     }
   }
 
+  Future<void> _elegirApariencia() async {
+    final elegida = await showModalBottomSheet<Apariencia>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final a in Apariencia.values)
+              ListTile(
+                title: Text(a.etiqueta, style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text(a.detalle),
+                trailing: a == AparienciaApp.actual.value ? Icon(Icons.check, color: ColoresApp.azul) : null,
+                onTap: () => Navigator.pop(context, a),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (elegida != null) await AparienciaApp.elegir(elegida);
+  }
+
   @override
   Widget build(BuildContext context) {
     final correo = widget.servicioAuth.usuarioActual?.email ?? 'Sin sesión';
@@ -363,6 +386,21 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
             SeccionLista(
               titulo: 'Cuenta',
               hijos: [_Renglon(icono: Icons.person_outline, titulo: correo)],
+            ),
+            const SizedBox(height: 20),
+            SeccionLista(
+              titulo: 'Apariencia',
+              hijos: [
+                ValueListenableBuilder<Apariencia>(
+                  valueListenable: AparienciaApp.actual,
+                  builder: (context, apariencia, _) => _Renglon(
+                    icono: Icons.dark_mode_outlined,
+                    titulo: 'Modo claro u oscuro',
+                    subtitulo: apariencia.etiqueta,
+                    onTap: _elegirApariencia,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             SeccionLista(
@@ -493,7 +531,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
               ],
             ),
             const SizedBox(height: 32),
-            const Center(
+            Center(
               child: Text(
                 'MAVfin · versión 1.0.0 (1)',
                 style: TextStyle(color: ColoresApp.medio, fontSize: 12),
@@ -529,7 +567,7 @@ class _Renglon extends StatelessWidget {
       title: Text(titulo, style: TextStyle(color: colorTexto ?? ColoresApp.tinta)),
       subtitle: subtitulo == null ? null : Text(subtitulo!),
       onTap: onTap,
-      trailing: onTap == null ? null : const Icon(Icons.chevron_right, color: ColoresApp.medio),
+      trailing: onTap == null ? null : Icon(Icons.chevron_right, color: ColoresApp.medio),
     );
   }
 }

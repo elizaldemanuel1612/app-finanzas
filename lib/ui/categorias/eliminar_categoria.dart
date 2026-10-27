@@ -126,7 +126,7 @@ Future<bool> confirmarYEliminarCategoria(
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Eliminar', style: TextStyle(color: ColoresApp.coralTexto)),
+              child: Text('Eliminar', style: TextStyle(color: ColoresApp.coralTexto)),
             ),
           ],
         ),

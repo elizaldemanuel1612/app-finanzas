@@ -111,4 +111,42 @@ void main() {
       expect(razonDeContraste(PaletaHex.azul, PaletaHex.azulSuave), greaterThanOrEqualTo(_minimoTexto));
     });
   });
+
+  group('modo oscuro — WCAG AA', () {
+    final pares = <String, (int, int)>{
+      'tinta sobre fondo': (PaletaHexOscura.tinta, PaletaHexOscura.fondo),
+      'tinta sobre tarjeta': (PaletaHexOscura.tinta, PaletaHexOscura.tarjeta),
+      'medio sobre fondo': (PaletaHexOscura.medio, PaletaHexOscura.fondo),
+      'medio sobre tarjeta': (PaletaHexOscura.medio, PaletaHexOscura.tarjeta),
+      'medio sobre azulSuave': (PaletaHexOscura.medio, PaletaHexOscura.azulSuave),
+      'azul (texto) sobre fondo': (PaletaHexOscura.azul, PaletaHexOscura.fondo),
+      'azul (texto) sobre tarjeta': (PaletaHexOscura.azul, PaletaHexOscura.tarjeta),
+      'azul (texto) sobre azulSuave': (PaletaHexOscura.azul, PaletaHexOscura.azulSuave),
+      'sobreAzul sobre azul (botón)': (PaletaHexOscura.sobreAzul, PaletaHexOscura.azul),
+      'oroTexto sobre tarjeta': (PaletaHexOscura.oroTexto, PaletaHexOscura.tarjeta),
+      'oroTexto sobre oroSuave': (PaletaHexOscura.oroTexto, PaletaHexOscura.oroSuave),
+      'verdeTexto sobre tarjeta': (PaletaHexOscura.verdeTexto, PaletaHexOscura.tarjeta),
+      'verdeTexto sobre verdeSuave': (PaletaHexOscura.verdeTexto, PaletaHexOscura.verdeSuave),
+      'ambarTexto sobre tarjeta': (PaletaHexOscura.ambarTexto, PaletaHexOscura.tarjeta),
+      'ambarTexto sobre ambarSuave': (PaletaHexOscura.ambarTexto, PaletaHexOscura.ambarSuave),
+      'coralTexto sobre tarjeta': (PaletaHexOscura.coralTexto, PaletaHexOscura.tarjeta),
+      'coralTexto sobre coralSuave': (PaletaHexOscura.coralTexto, PaletaHexOscura.coralSuave),
+    };
+    for (final MapEntry(key: nombre, value: (a, b)) in pares.entries) {
+      test('$nombre pasa 4.5:1', () {
+        expect(razonDeContraste(a, b), greaterThanOrEqualTo(_minimoTexto));
+      });
+    }
+
+    test('los brillantes pasan el umbral gráfico sobre tarjeta', () {
+      for (final c in [PaletaHexOscura.verde, PaletaHexOscura.ambar, PaletaHexOscura.coral, PaletaHexOscura.oro, PaletaHexOscura.azul]) {
+        expect(razonDeContraste(c, PaletaHexOscura.tarjeta), greaterThanOrEqualTo(_minimoGrafico));
+      }
+    });
+
+    test('el azul noche de marca lleva texto blanco en los dos modos', () {
+      expect(razonDeContraste(0xFFFFFF, PaletaHex.noche), greaterThanOrEqualTo(_minimoTexto));
+    });
+  });
 }
+

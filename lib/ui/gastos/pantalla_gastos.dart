@@ -150,7 +150,7 @@ class _PantallaGastosState extends State<PantallaGastos> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Categoría (puedes elegir varias)',
                     style: TextStyle(color: ColoresApp.medio),
                   ),
@@ -172,7 +172,7 @@ class _PantallaGastosState extends State<PantallaGastos> {
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Medio de pago',
                     style: TextStyle(color: ColoresApp.medio),
                   ),
@@ -283,7 +283,7 @@ class _PantallaGastosState extends State<PantallaGastos> {
                 child: Text(
                   '${filtrados.length} movimiento(s) · '
                   '${Dinero.suma(filtrados.map((m) => m.monto)).formateado()}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: ColoresApp.azul,
                   ),
@@ -293,7 +293,7 @@ class _PantallaGastosState extends State<PantallaGastos> {
           ),
         Expanded(
           child: filtrados.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
                     'Nada por aquí.',
                     style: TextStyle(color: ColoresApp.medio),
@@ -446,14 +446,14 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
                 children: [
                   Text(
                     _fechaLarga(dia),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
                       color: ColoresApp.medio,
                     ),
                   ),
                   Text(
                     total.formateado(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
                       color: ColoresApp.medio,
                     ),

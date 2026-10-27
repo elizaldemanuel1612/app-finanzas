@@ -69,6 +69,6 @@ Falta, en orden:
 
 ## Ideas anotadas para después
 
-Modo oscuro, recordatorios (fijas por vencer, "no has registrado hoy"),
+Recordatorios (fijas por vencer, "no has registrado hoy"),
 presupuesto compartido en pareja (el modelo `cuentas/{cuentaId}/miembros`
 ya lo permite), subir fotos de tickets a la nube.

@@ -145,8 +145,8 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
           child: Container(
             width: 88,
             height: 88,
-            decoration: const BoxDecoration(color: ColoresApp.oroSuave, shape: BoxShape.circle),
-            child: const Icon(Icons.insights_rounded, size: 40, color: ColoresApp.oroTexto),
+            decoration: BoxDecoration(color: ColoresApp.oroSuave, shape: BoxShape.circle),
+            child: Icon(Icons.insights_rounded, size: 40, color: ColoresApp.oroTexto),
           ),
         ),
         const SizedBox(height: 20),
@@ -241,10 +241,10 @@ class _Resumen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [ColoresApp.azul, ColoresApp.azulMarino],
+          colors: [ColoresApp.noche, ColoresApp.azulMarino],
         ),
         borderRadius: BorderRadius.circular(20),
       ),
@@ -468,9 +468,9 @@ class _Ritmo extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                const _Leyenda(color: ColoresApp.azul, texto: 'Lo que llevas'),
+                _Leyenda(color: ColoresApp.azul, texto: 'Lo que llevas'),
                 const SizedBox(width: 16),
-                const _Leyenda(color: ColoresApp.oro, texto: 'Ritmo parejo'),
+                _Leyenda(color: ColoresApp.oro, texto: 'Ritmo parejo'),
               ],
             ),
             const SizedBox(height: 8),
@@ -551,7 +551,7 @@ class _ContraAnterior extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                const _Leyenda(color: ColoresApp.azul, texto: 'Este ciclo'),
+                _Leyenda(color: ColoresApp.azul, texto: 'Este ciclo'),
                 const SizedBox(width: 16),
                 const _Leyenda(color: Color(0xFFB8C1D1), texto: 'Ciclo pasado'),
                 const Spacer(),
@@ -764,7 +764,7 @@ class _TarjetaYEfectivo extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _Leyenda(color: ColoresApp.azul, texto: 'Tarjeta'),
+                      _Leyenda(color: ColoresApp.azul, texto: 'Tarjeta'),
                       const SizedBox(height: 4),
                       Text(r.conTarjeta.formateado(), style: textos.titleMedium),
                       Text('${(proporcion * 100).round()}%', style: textos.bodySmall),
@@ -775,7 +775,7 @@ class _TarjetaYEfectivo extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _Leyenda(color: ColoresApp.linea, texto: 'Efectivo'),
+                      _Leyenda(color: ColoresApp.linea, texto: 'Efectivo'),
                       const SizedBox(height: 4),
                       Text(r.enEfectivo.formateado(), style: textos.titleMedium),
                       Text('${total == 0 ? 0 : 100 - (proporcion * 100).round()}%', style: textos.bodySmall),

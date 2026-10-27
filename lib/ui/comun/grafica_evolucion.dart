@@ -5,8 +5,8 @@ import '../../domain/ciclo_de_vida/alcance.dart';
 import '../../domain/ciclo_de_vida/evolucion_ciclos.dart';
 import 'tema.dart';
 
-const _bordeSuave = Color(0xFFC9CDE4);
-const _relleno = Color(0xFFEDEFF6);
+Color get _bordeSuave => ColoresApp.oscuro ? const Color(0xFF3A4A66) : const Color(0xFFC9CDE4);
+Color get _relleno => ColoresApp.pista;
 
 const _bordeBarra = BorderRadius.only(
   topLeft: Radius.circular(9),
@@ -113,7 +113,7 @@ class GraficaEvolucion extends StatelessWidget {
                       child: Text(
                         evolucion.puntos[i].etiqueta,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                           color: ColoresApp.medio,
@@ -151,7 +151,7 @@ class _LineaMeta extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
                 'meta ${meta.formateado()}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: ColoresApp.medio,

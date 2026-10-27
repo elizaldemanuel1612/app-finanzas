@@ -230,7 +230,7 @@ class _SelectorMetaState extends State<SelectorMeta> {
             child: Text(
               '¿No sabes cuánto? Te sugiero empezar con ${sugerencia.porcentaje}% '
               '(~${montoSugerido.formateado()}) e ir subiendo.',
-              style: const TextStyle(color: ColoresApp.tinta, fontSize: 12.5),
+              style: TextStyle(color: ColoresApp.tinta, fontSize: 12.5),
             ),
           ),
           TextButton(onPressed: _usarSugerencia, child: const Text('Usar sugerencia')),
@@ -261,7 +261,7 @@ class _SelectorMetaState extends State<SelectorMeta> {
             'Tus presupuestos se pasan por ${evaluacion.excedente.absoluto.formateado()} '
             'de lo que esta meta deja disponible. Con ellos tal cual están, solo apartarías '
             '${evaluacion.porcentajeSiRespetaPresupuestos}%.',
-            style: const TextStyle(color: ColoresApp.tinta, fontSize: 12.5),
+            style: TextStyle(color: ColoresApp.tinta, fontSize: 12.5),
           ),
           const SizedBox(height: 8),
           Row(

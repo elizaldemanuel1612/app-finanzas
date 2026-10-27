@@ -59,7 +59,7 @@ class SelectorFecha extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(etiqueta, style: const TextStyle(color: ColoresApp.medio)),
+        Text(etiqueta, style: TextStyle(color: ColoresApp.medio)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,

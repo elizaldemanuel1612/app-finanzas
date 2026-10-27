@@ -188,7 +188,7 @@ class _PantallaRevisionDictadoState extends State<PantallaRevisionDictado> {
             }
             final categorias = snapshot.data!;
             if (_items.isEmpty) {
-              return const Center(
+              return Center(
                 child: Text(
                   'No queda ningún gasto por registrar.',
                   style: TextStyle(color: ColoresApp.medio),
@@ -222,7 +222,7 @@ class _PantallaRevisionDictadoState extends State<PantallaRevisionDictado> {
                 if (_error != null) ...[
                   Text(
                     _error!,
-                    style: const TextStyle(color: ColoresApp.coralTexto),
+                    style: TextStyle(color: ColoresApp.coralTexto),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -286,7 +286,7 @@ class _TarjetaItem extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close,
                     size: 18,
                     color: ColoresApp.medio,
@@ -297,7 +297,7 @@ class _TarjetaItem extends StatelessWidget {
               ],
             ),
             if (item.montosAmbiguos.length > 1) ...[
-              const Text(
+              Text(
                 'No quedó claro cuál es el monto:',
                 style: TextStyle(
                   color: ColoresApp.coralTexto,
@@ -342,7 +342,7 @@ class _TarjetaItem extends StatelessWidget {
             ),
             if (item.categoriaId == null) ...[
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Elige una categoría para este gasto.',
                 style: TextStyle(color: ColoresApp.coralTexto, fontSize: 12),
               ),

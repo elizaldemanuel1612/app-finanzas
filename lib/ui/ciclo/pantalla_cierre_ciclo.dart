@@ -199,7 +199,7 @@ class _PantallaCierreCicloState extends State<PantallaCierreCiclo> {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text(error, style: const TextStyle(color: ColoresApp.coralTexto)),
+                  child: Text(error, style: TextStyle(color: ColoresApp.coralTexto)),
                 ),
               );
             }
@@ -361,7 +361,7 @@ class _FilaCifra extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(etiqueta, style: const TextStyle(color: ColoresApp.medio)),
+          Text(etiqueta, style: TextStyle(color: ColoresApp.medio)),
           Text(valor,
               style: TextStyle(fontWeight: FontWeight.w700, color: color ?? ColoresApp.tinta)),
         ],
@@ -398,7 +398,7 @@ class _AvisoExtra extends StatelessWidget {
         color: ColoresApp.azulSuave,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(texto, style: const TextStyle(color: ColoresApp.tinta, fontSize: 12.5)),
+      child: Text(texto, style: TextStyle(color: ColoresApp.tinta, fontSize: 12.5)),
     );
   }
 }

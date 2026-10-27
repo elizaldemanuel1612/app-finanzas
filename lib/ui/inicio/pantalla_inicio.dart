@@ -478,7 +478,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                 child: Text('👋', style: TextStyle(fontSize: 40)),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Todavía no tienes categorías. Crea la primera para empezar.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: ColoresApp.medio),
@@ -524,13 +524,13 @@ class _PantallaInicioState extends State<PantallaInicio> {
           margin: const EdgeInsets.only(top: 16),
           child: ListTile(
             onTap: _irACiclosAnteriores,
-            leading: const Icon(Icons.history, color: ColoresApp.medio),
+            leading: Icon(Icons.history, color: ColoresApp.medio),
             title: const Text(
               'Ciclos anteriores',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
             subtitle: const Text('Revisa cómo te fue en meses pasados'),
-            trailing: const Icon(Icons.chevron_right, color: ColoresApp.medio),
+            trailing: Icon(Icons.chevron_right, color: ColoresApp.medio),
           ),
         ),
         if (datos.variables.isNotEmpty) ...[
@@ -768,8 +768,8 @@ class _TarjetaMeta extends StatelessWidget {
               Container(
                 width: 44,
                 height: 44,
-                decoration: const BoxDecoration(color: ColoresApp.oroSuave, shape: BoxShape.circle),
-                child: const Icon(Icons.track_changes_rounded, color: ColoresApp.oroTexto),
+                decoration: BoxDecoration(color: ColoresApp.oroSuave, shape: BoxShape.circle),
+                child: Icon(Icons.track_changes_rounded, color: ColoresApp.oroTexto),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -797,7 +797,7 @@ class _TarjetaMeta extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, color: ColoresApp.medio),
+              Icon(Icons.chevron_right, color: ColoresApp.medio),
             ],
           ),
         ),
@@ -883,7 +883,7 @@ class _BarraCobertura extends StatelessWidget {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEDEFF6),
+                    color: ColoresApp.pista,
                     borderRadius: BorderRadius.circular(99),
                   ),
                 ),
@@ -974,8 +974,8 @@ class _TarjetaHoyPuedes extends StatelessWidget {
               Container(
                 width: 44,
                 height: 44,
-                decoration: const BoxDecoration(color: ColoresApp.azulSuave, shape: BoxShape.circle),
-                child: const Icon(Icons.today_rounded, color: ColoresApp.azul),
+                decoration: BoxDecoration(color: ColoresApp.azulSuave, shape: BoxShape.circle),
+                child: Icon(Icons.today_rounded, color: ColoresApp.azul),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -996,7 +996,7 @@ class _TarjetaHoyPuedes extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: ColoresApp.medio),
+              Icon(Icons.chevron_right, color: ColoresApp.medio),
             ],
           ),
         ),

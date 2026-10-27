@@ -18,6 +18,7 @@ import 'data/repositorios/local/almacen_local.dart';
 import 'domain/modelos/perfil.dart';
 import 'domain/sincronizacion/fusion.dart';
 import 'firebase_options.dart';
+import 'ui/comun/apariencia.dart';
 import 'ui/comun/marca.dart';
 import 'ui/comun/pantalla_login.dart';
 import 'ui/comun/tema.dart';
@@ -55,6 +56,7 @@ Future<void> main() async {
   } catch (e) {
     debugPrint('Firebase/Auth no se pudo inicializar: $e');
   }
+  await AparienciaApp.cargar();
   runApp(const AppFinanzas());
 }
 
@@ -63,24 +65,34 @@ class AppFinanzas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: nombreApp,
-      theme: construirTema(),
-      // Fijo, no el del sistema — mismo criterio que la moneda (es_MX):
-      // las cifras y el calendario no deben cambiar de formato entre equipos.
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      supportedLocales: const [Locale('es', 'MX')],
-      locale: const Locale('es', 'MX'),
-      // El teclado numérico de iOS no trae tecla para cerrarse (el de
-      // Android sí) y tapa "Listo" en las pantallas de captura: tocar fuera
-      // de un campo lo cierra, como en las apps nativas. Los toques sobre
-      // botones y chips los ganan ellos, así que no se pierden.
-      builder: (context, child) => GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-        child: child,
+    return ValueListenableBuilder<Apariencia>(
+      valueListenable: AparienciaApp.actual,
+      builder: (context, apariencia, _) => MaterialApp(
+        title: nombreApp,
+        theme: construirTema(Paleta.clara),
+        darkTheme: construirTema(Paleta.oscura),
+        themeMode: apariencia.modo,
+        // Sin animación: los colores de `ColoresApp` cambian de golpe, y un
+        // tema a medio camino los dejaría desfasados durante el cruce.
+        themeAnimationDuration: Duration.zero,
+        // Fijo, no el del sistema — mismo criterio que la moneda (es_MX):
+        // las cifras y el calendario no deben cambiar de formato entre equipos.
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        supportedLocales: const [Locale('es', 'MX')],
+        locale: const Locale('es', 'MX'),
+        // El teclado numérico de iOS no trae tecla para cerrarse (el de
+        // Android sí) y tapa "Listo" en las pantallas de captura: tocar fuera
+        // de un campo lo cierra, como en las apps nativas. Los toques sobre
+        // botones y chips los ganan ellos, así que no se pierden.
+        builder: (context, child) => SincronizarPaleta(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+            child: child,
+          ),
+        ),
+        home: const _CompuertaAuth(),
       ),
-      home: const _CompuertaAuth(),
     );
   }
 }

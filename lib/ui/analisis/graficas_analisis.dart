@@ -10,7 +10,7 @@ import '../comun/tema.dart';
 /// dependencias. Cada una lleva un `Semantics` con su lectura en texto.
 
 /// Colores por categoría, en orden: los de la marca primero.
-const coloresCategoria = [
+List<Color> get coloresCategoria => [
   ColoresApp.azul,
   ColoresApp.oro,
   Color(0xFF3E7CB1),
@@ -70,6 +70,9 @@ class GraficaDona extends StatelessWidget {
 class _PintorDona extends CustomPainter {
   final List<Dinero> valores;
 
+  /// La apariencia con la que se pintó: al cambiarla hay que repintar.
+  final Paleta paleta = ColoresApp.actual;
+
   _PintorDona(this.valores);
 
   @override
@@ -106,7 +109,7 @@ class _PintorDona extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _PintorDona old) => old.valores != valores;
+  bool shouldRepaint(covariant _PintorDona old) => old.valores != valores || old.paleta != paleta;
 }
 
 /// "Ritmo del ciclo": lo acumulado día a día contra la línea pareja del
@@ -144,6 +147,8 @@ class _PintorRitmo extends CustomPainter {
   final List<Dinero> acumulado;
   final int dias;
   final Dinero presupuesto;
+
+  final Paleta paleta = ColoresApp.actual;
 
   _PintorRitmo(this.acumulado, this.dias, this.presupuesto);
 
@@ -206,7 +211,7 @@ class _PintorRitmo extends CustomPainter {
         ..strokeJoin = StrokeJoin.round,
     );
     final punta = Offset(x(acumulado.length - 1), y(ultimo));
-    canvas.drawCircle(punta, 5, Paint()..color = Colors.white);
+    canvas.drawCircle(punta, 5, Paint()..color = ColoresApp.tarjeta);
     canvas.drawCircle(
       punta,
       5,
@@ -219,7 +224,7 @@ class _PintorRitmo extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PintorRitmo old) =>
-      old.acumulado != acumulado || old.dias != dias || old.presupuesto != presupuesto;
+      old.acumulado != acumulado || old.dias != dias || old.presupuesto != presupuesto || old.paleta != paleta;
 }
 
 /// Barras verticales con etiqueta abajo; [destacada] va en oro.

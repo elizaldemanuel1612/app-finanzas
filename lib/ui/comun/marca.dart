@@ -19,9 +19,9 @@ class EmblemaApp extends StatelessWidget {
       child: DecoratedBox(
         // Relleno azul noche: sin él, el brillo dorado se ve a través del
         // logo (que es transparente) y tiñe el interior del aro.
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: ColoresApp.azul,
+          color: ColoresApp.noche,
           boxShadow: [BoxShadow(color: Color(0x40D4AF37), blurRadius: 28)],
         ),
         child: Image.asset('assets/marca/logo.png', width: tamano, height: tamano),
@@ -63,11 +63,11 @@ class FondoMontanas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF071529), ColoresApp.azul, ColoresApp.azulMarino],
+          colors: [Color(0xFF071529), ColoresApp.noche, ColoresApp.azulMarino],
         ),
       ),
       child: Stack(

@@ -280,7 +280,7 @@ class _PantallaRegistrarIngresoExtraState
                   ),
                   child: Text(
                     _vistaPrevia!,
-                    style: const TextStyle(color: ColoresApp.tinta),
+                    style: TextStyle(color: ColoresApp.tinta),
                   ),
                 ),
               ],
@@ -288,7 +288,7 @@ class _PantallaRegistrarIngresoExtraState
                 const SizedBox(height: 12),
                 Text(
                   _error!,
-                  style: const TextStyle(color: ColoresApp.coralTexto),
+                  style: TextStyle(color: ColoresApp.coralTexto),
                 ),
               ],
               const SizedBox(height: 24),

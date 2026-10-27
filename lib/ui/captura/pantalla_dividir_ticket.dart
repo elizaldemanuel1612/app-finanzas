@@ -205,7 +205,7 @@ class _PantallaDividirTicketState extends State<PantallaDividirTicket> {
             return ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                const Text(
+                Text(
                   'Total del ticket',
                   style: TextStyle(color: ColoresApp.medio),
                 ),
@@ -233,7 +233,7 @@ class _PantallaDividirTicketState extends State<PantallaDividirTicket> {
                   ultimaFecha: hoySoloFecha,
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Renglones',
                   style: TextStyle(color: ColoresApp.medio),
                 ),
@@ -289,7 +289,7 @@ class _PantallaDividirTicketState extends State<PantallaDividirTicket> {
                   const SizedBox(height: 12),
                   Text(
                     _error!,
-                    style: const TextStyle(color: ColoresApp.coralTexto),
+                    style: TextStyle(color: ColoresApp.coralTexto),
                   ),
                 ],
                 const SizedBox(height: 20),
@@ -355,7 +355,7 @@ class _TarjetaRenglon extends StatelessWidget {
                 ),
                 if (onQuitar != null)
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close,
                       size: 18,
                       color: ColoresApp.medio,

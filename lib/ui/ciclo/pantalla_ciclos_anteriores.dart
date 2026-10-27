@@ -127,7 +127,7 @@ class _PantallaCiclosAnterioresState extends State<PantallaCiclosAnteriores> {
             final datos = snapshot.data!;
             final resumenes = datos.historial;
             if (resumenes.isEmpty) {
-              return const Center(
+              return Center(
                 child: Padding(
                   padding: EdgeInsets.all(24),
                   child: Column(
@@ -180,7 +180,7 @@ class _EncabezadoEvolucion extends StatelessWidget {
     if (!evolucion.hayDatos) {
       return Card(
         margin: const EdgeInsets.only(bottom: 8),
-        child: const Padding(
+        child: Padding(
           padding: EdgeInsets.all(20),
           child: Text(
             'Necesito un ciclo cerrado para dibujar tu evolución.',
@@ -199,7 +199,7 @@ class _EncabezadoEvolucion extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Cuánto has apartado por ciclo',
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: ColoresApp.tinta),
             ),
@@ -244,12 +244,12 @@ class _TarjetaFrase extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Lo que te dice la gráfica',
               style: TextStyle(fontWeight: FontWeight.w800, color: ColoresApp.azul, fontSize: 13),
             ),
             const SizedBox(height: 6),
-            Text(frase, style: const TextStyle(color: ColoresApp.tinta, fontSize: 13)),
+            Text(frase, style: TextStyle(color: ColoresApp.tinta, fontSize: 13)),
           ],
         ),
       ),

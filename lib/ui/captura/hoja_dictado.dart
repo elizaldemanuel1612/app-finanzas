@@ -129,7 +129,7 @@ class _HojaDictadoState extends State<_HojaDictado> {
             else if (!_disponible)
               Column(
                 children: [
-                  const Text(
+                  Text(
                     'No se pudo activar el micrófono. Si ya lo negaste antes, '
                     've a Ajustes del sistema › Permisos › Micrófono y actívalo '
                     'para MAVfin.',
@@ -148,7 +148,7 @@ class _HojaDictadoState extends State<_HojaDictado> {
                   backgroundColor: _escuchando ? ColoresApp.azul : ColoresApp.azulSuave,
                   child: Icon(
                     _escuchando ? Icons.mic : Icons.mic_none,
-                    color: _escuchando ? Colors.white : ColoresApp.azul,
+                    color: _escuchando ? ColoresApp.sobreAzul : ColoresApp.azul,
                     size: 32,
                   ),
                 ),
@@ -156,7 +156,7 @@ class _HojaDictadoState extends State<_HojaDictado> {
               const SizedBox(height: 12),
               Text(
                 _escuchando ? 'Escuchando… toca para detener' : 'Toca para hablar de nuevo',
-                style: const TextStyle(color: ColoresApp.medio, fontSize: 12, fontWeight: FontWeight.w600),
+                style: TextStyle(color: ColoresApp.medio, fontSize: 12, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 16),
               Container(
@@ -177,7 +177,7 @@ class _HojaDictadoState extends State<_HojaDictado> {
               ),
               if (_error != null) ...[
                 const SizedBox(height: 8),
-                Text(_error!, style: const TextStyle(color: ColoresApp.coralTexto, fontSize: 12)),
+                Text(_error!, style: TextStyle(color: ColoresApp.coralTexto, fontSize: 12)),
               ],
               const SizedBox(height: 20),
               Row(

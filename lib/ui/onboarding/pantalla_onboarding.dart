@@ -417,7 +417,7 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
           ),
           if (_errorIngreso != null) ...[
             const SizedBox(height: 8),
-            Text(_errorIngreso!, style: const TextStyle(color: ColoresApp.coralTexto)),
+            Text(_errorIngreso!, style: TextStyle(color: ColoresApp.coralTexto)),
           ],
         ],
       ),
@@ -549,7 +549,7 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
                   Text(
                     'Tus categorías (${total.formateado()}) ya se pasan de lo disponible '
                     '(${disponible.formateado()}). Ajusta los montos arriba.',
-                    style: const TextStyle(color: ColoresApp.ambarTexto),
+                    style: TextStyle(color: ColoresApp.ambarTexto),
                   ),
                   // Si cambió el ingreso después de escribir montos a mano,
                   // esto los regresa a la sugerencia por porcentaje (§2.5.1).
@@ -581,7 +581,7 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
             descripcion: 'este ejemplo',
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'La línea marca dónde deberías ir hoy. Si la barra no llega, vas bien. '
             'Si la rebasa, vas rápido y te avisamos.',
             textAlign: TextAlign.center,
@@ -590,7 +590,7 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
           const SizedBox(height: 24),
           const Text('¿Traes historial?', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Si tienes tus gastos de meses pasados en un archivo, impórtalos. '
             'Si no, no pasa nada: también puedes hacerlo después desde Ajustes.',
             textAlign: TextAlign.center,
@@ -741,7 +741,7 @@ class _RenglonTemaMuestra extends StatelessWidget {
         width: 40,
         height: 40,
         alignment: Alignment.center,
-        decoration: const BoxDecoration(color: ColoresApp.azulSuave, shape: BoxShape.circle),
+        decoration: BoxDecoration(color: ColoresApp.azulSuave, shape: BoxShape.circle),
         child: ExcludeSemantics(child: Text(tema.emoji, style: theme.titleMedium)),
       ),
       title: Text(tema.titulo, style: theme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
@@ -774,7 +774,7 @@ class _Paso extends StatelessWidget {
             const SizedBox(height: 8),
           ],
           if (subtitulo != null)
-            Text(subtitulo!, textAlign: TextAlign.center, style: const TextStyle(color: ColoresApp.medio)),
+            Text(subtitulo!, textAlign: TextAlign.center, style: TextStyle(color: ColoresApp.medio)),
           const SizedBox(height: 28),
           child,
           if (nota != null) ...[
@@ -803,7 +803,7 @@ class _NotaDespues extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.edit_outlined, size: 18, color: ColoresApp.azul),
+          Icon(Icons.edit_outlined, size: 18, color: ColoresApp.azul),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

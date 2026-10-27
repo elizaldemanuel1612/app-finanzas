@@ -152,7 +152,7 @@ class _PantallaReasignarMovimientosState extends State<PantallaReasignarMovimien
     final movimientos = _movimientos!;
 
     if (_destinos.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
@@ -173,7 +173,7 @@ class _PantallaReasignarMovimientosState extends State<PantallaReasignarMovimien
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Mover todos a:', style: TextStyle(color: ColoresApp.medio)),
+                Text('Mover todos a:', style: TextStyle(color: ColoresApp.medio)),
                 const SizedBox(height: 8),
                 _SelectorCategoria(
                   opciones: _destinos,
@@ -187,7 +187,7 @@ class _PantallaReasignarMovimientosState extends State<PantallaReasignarMovimien
           const Divider(height: 1),
           Expanded(
             child: movimientos.isEmpty
-                ? const Center(
+                ? Center(
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: Text(
@@ -327,7 +327,7 @@ class _SelectorCategoria extends StatelessWidget {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<Categoria>(
           value: seleccionada,
-          hint: Text(etiquetaVacia, style: const TextStyle(color: ColoresApp.medio)),
+          hint: Text(etiquetaVacia, style: TextStyle(color: ColoresApp.medio)),
           isExpanded: true,
           items: opciones
               .map((c) => DropdownMenuItem(

@@ -77,7 +77,7 @@ class TarjetaResumenCiclo extends StatelessWidget {
                   ),
                   Text(
                     subtituloIngreso,
-                    style: const TextStyle(color: ColoresApp.medio),
+                    style: TextStyle(color: ColoresApp.medio),
                   ),
                 ],
               ),
