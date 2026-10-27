@@ -42,6 +42,19 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <!--
+    Gesto de regresar en iPhone: si el dedo empieza en el borde izquierdo,
+    Safari arranca su propio "atrás" del historial al mismo tiempo que el
+    deslizar de la app (Flutter, primeros 20 px), y las dos animaciones
+    chocan. Se cancela el toque de Safari en esa franja; los eventos de
+    puntero que usa Flutter siguen llegando, así que el gesto de la app
+    queda solo y fluido.
+  -->
+  <script>
+    document.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 1 && e.touches[0].clientX < 24) e.preventDefault();
+    }, { passive: false });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
