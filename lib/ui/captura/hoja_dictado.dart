@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -41,9 +42,20 @@ class _HojaDictadoState extends State<_HojaDictado> {
   String _texto = '';
   String? _error;
 
+  /// En la web no se usa el reconocimiento de voz del navegador
+  /// (`webkitSpeechRecognition`): en las apps web de la pantalla de inicio
+  /// del iPhone pide permiso, se traba y luego falla con "no se pudo
+  /// escuchar" (2026-10-28). Se dicta con el micrófono del teclado del
+  /// sistema, que sí funciona ahí, sobre un campo de texto.
+  final _campoWeb = TextEditingController();
+
   @override
   void initState() {
     super.initState();
+    if (kIsWeb) {
+      _inicializando = false;
+      return;
+    }
     _inicializar();
   }
 
@@ -98,14 +110,52 @@ class _HojaDictadoState extends State<_HojaDictado> {
   }
 
   void _cancelar() {
-    _speech.cancel();
+    if (!kIsWeb) _speech.cancel();
     Navigator.of(context).pop(null);
   }
 
   @override
   void dispose() {
-    _speech.stop();
+    if (!kIsWeb) _speech.stop();
+    _campoWeb.dispose();
     super.dispose();
+  }
+
+  List<Widget> _contenidoWeb(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    return [
+      CircleAvatar(
+        radius: 30,
+        backgroundColor: ColoresApp.azulSuave,
+        child: Icon(Icons.keyboard_voice_outlined, color: ColoresApp.azul, size: 28),
+      ),
+      const SizedBox(height: 12),
+      Text(
+        'Toca el micrófono de tu teclado y di tu gasto',
+        textAlign: TextAlign.center,
+        style: textos.titleMedium,
+      ),
+      const SizedBox(height: 4),
+      Text(
+        'También puedes escribirlo. Si no ves el micrófono, actívalo en Ajustes del '
+        'teléfono › General › Teclado › Dictado.',
+        textAlign: TextAlign.center,
+        style: textos.bodySmall,
+      ),
+      const SizedBox(height: 16),
+      TextField(
+        controller: _campoWeb,
+        autofocus: true,
+        minLines: 1,
+        maxLines: 3,
+        textInputAction: TextInputAction.done,
+        decoration: const InputDecoration(hintText: 'Ej. "480 de súper con tarjeta"'),
+        onChanged: (texto) => setState(() => _texto = texto),
+        onSubmitted: (_) {
+          if (_texto.trim().isNotEmpty) _usarTexto();
+        },
+      ),
+    ];
   }
 
   @override
@@ -121,7 +171,22 @@ class _HojaDictadoState extends State<_HojaDictado> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (_inicializando)
+            if (kIsWeb) ..._contenidoWeb(context),
+            if (kIsWeb) const SizedBox(height: 20),
+            if (kIsWeb)
+              Row(
+                children: [
+                  Expanded(child: OutlinedButton(onPressed: _cancelar, child: const Text('Cancelar'))),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _texto.trim().isEmpty ? null : _usarTexto,
+                      child: const Text('Usar esto'),
+                    ),
+                  ),
+                ],
+              )
+            else if (_inicializando)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 40),
                 child: CircularProgressIndicator(),

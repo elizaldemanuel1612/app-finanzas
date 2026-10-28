@@ -1,7 +1,8 @@
 // Demo SIN login ni Firebase, con datos de ejemplo en memoria, para revisar
 // la web en Safari del simulador (gestos, modo oscuro). No se publica:
 //   flutter build web --wasm -t tool/demo_web.dart -o <carpeta>
-// `?modo=oscuro` o `?modo=claro` en la URL fija la apariencia.
+// `?modo=oscuro` o `?modo=claro` en la URL fija la apariencia;
+// `?pantalla=importar` abre directo la importación de CSV.
 import 'package:app_finanzas/core/ciclo.dart';
 import 'package:app_finanzas/core/money.dart';
 import 'package:app_finanzas/data/almacenamiento/archivo_texto.dart';
@@ -13,6 +14,7 @@ import 'package:app_finanzas/domain/modelos/movimiento.dart';
 import 'package:app_finanzas/domain/modelos/perfil.dart';
 import 'package:app_finanzas/ui/comun/apariencia.dart';
 import 'package:app_finanzas/ui/comun/tema.dart';
+import 'package:app_finanzas/ui/importacion/pantalla_importar.dart';
 import 'package:app_finanzas/ui/inicio/pantalla_inicio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -91,7 +93,13 @@ Future<void> main() async {
       supportedLocales: const [Locale('es', 'MX')],
       locale: const Locale('es', 'MX'),
       builder: (context, child) => SincronizarPaleta(child: child!),
-      home: PantallaInicio(
+      home: Uri.base.queryParameters['pantalla'] == 'importar'
+          ? PantallaImportar(
+              perfil: perfil,
+              categoriaRepositorio: almacen.categorias,
+              movimientoRepositorio: almacen.movimientos,
+            )
+          : PantallaInicio(
         perfil: perfil,
         categoriaRepositorio: almacen.categorias,
         movimientoRepositorio: almacen.movimientos,

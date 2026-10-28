@@ -10,6 +10,7 @@ import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/importacion/importar_movimientos.dart';
 import '../../domain/importacion/plantilla_csv.dart';
 import '../../domain/modelos/perfil.dart';
+import '../../plataforma/elegir_archivo.dart';
 import '../ayuda/modelo_guia.dart';
 import '../comun/nota_destacada.dart';
 import '../comun/popscope_descartar.dart';
@@ -52,7 +53,7 @@ class _PantallaImportarState extends State<PantallaImportar> {
   }
 
   Future<void> _elegirArchivo() async {
-    final archivo = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: ['csv']);
+    final archivo = await elegirArchivo(extensiones: ['csv']);
     if (archivo == null) return;
 
     setState(() {
@@ -60,12 +61,12 @@ class _PantallaImportarState extends State<PantallaImportar> {
       _error = null;
       _vistaPrevia = null;
       _importado = false;
-      _nombreArchivo = archivo.name;
+      _nombreArchivo = archivo.nombre;
     });
 
     final String contenido;
     try {
-      contenido = utf8.decode(await archivo.readAsBytes());
+      contenido = utf8.decode(archivo.bytes);
     } catch (_) {
       setState(() {
         _cargando = false;
