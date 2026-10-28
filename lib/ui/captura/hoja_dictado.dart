@@ -6,6 +6,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../domain/modelos/categoria.dart';
 import '../../domain/voz/parser_dictado.dart';
 import '../../domain/voz/seleccion_locale.dart';
+import '../../plataforma/dictado_web.dart';
 import '../comun/tema.dart';
 
 /// Abre la hoja de dictado y regresa los gastos que el parser entendió del
@@ -14,21 +15,28 @@ import '../comun/tema.dart';
 /// addendum-v3-ajuste-y-ux.md §3.4: "Foto y voz viven dentro del mismo
 /// teclado, no en menús aparte" — por eso esto es una hoja modal sobre
 /// Pantalla Captura, no una pantalla nueva con su propia navegación.
+///
+/// En la web, [dictadoWeb] ya viene escuchando: se arranca en el toque del
+/// botón, antes de cualquier espera, porque Safari solo deja abrir el
+/// micrófono directo desde un toque. Si es `null` (o el navegador no da
+/// permiso), la hoja cae al dictado del teclado.
 Future<List<GastoDictado>?> mostrarHojaDictado(
   BuildContext context, {
   required List<Categoria> categorias,
+  DictadoWeb? dictadoWeb,
 }) {
   return showModalBottomSheet<List<GastoDictado>>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => _HojaDictado(categorias: categorias),
+    builder: (_) => _HojaDictado(categorias: categorias, dictadoWeb: dictadoWeb),
   );
 }
 
 class _HojaDictado extends StatefulWidget {
   final List<Categoria> categorias;
+  final DictadoWeb? dictadoWeb;
 
-  const _HojaDictado({required this.categorias});
+  const _HojaDictado({required this.categorias, this.dictadoWeb});
 
   @override
   State<_HojaDictado> createState() => _HojaDictadoState();
@@ -42,21 +50,54 @@ class _HojaDictadoState extends State<_HojaDictado> {
   String _texto = '';
   String? _error;
 
-  /// En la web no se usa el reconocimiento de voz del navegador
-  /// (`webkitSpeechRecognition`): en las apps web de la pantalla de inicio
-  /// del iPhone pide permiso, se traba y luego falla con "no se pudo
-  /// escuchar" (2026-10-28). Se dicta con el micrófono del teclado del
-  /// sistema, que sí funciona ahí, sobre un campo de texto.
+  /// En la web se escucha con el reconocimiento del navegador
+  /// ([DictadoWeb]); si no hay o no da permiso, se dicta con el micrófono
+  /// del teclado sobre este campo de texto.
   final _campoWeb = TextEditingController();
+  DictadoWeb? _web;
+  bool _usado = false;
 
   @override
   void initState() {
     super.initState();
     if (kIsWeb) {
       _inicializando = false;
+      _escucharWeb(widget.dictadoWeb);
       return;
     }
     _inicializar();
+  }
+
+  void _escucharWeb(DictadoWeb? dictado) {
+    _web?.estado.removeListener(_alCambiarWeb);
+    _web = dictado;
+    dictado?.estado.addListener(_alCambiarWeb);
+  }
+
+  /// Al terminar de escuchar (Safari corta solo tras una pausa) se usa lo
+  /// que entendió sin pedir otro toque: el gasto llega a la captura para
+  /// confirmarlo con "Registrar".
+  void _alCambiarWeb() {
+    if (!mounted) return;
+    final estado = _web!.estado.value;
+    setState(() {
+      _texto = estado.texto;
+      if (estado.escuchando) _campoWeb.text = estado.texto;
+    });
+    if (!estado.escuchando && estado.error == null && !_usado) {
+      if (parsearDictado(estado.texto, categorias: widget.categorias).isNotEmpty) {
+        _usado = true;
+        _usarTexto();
+      }
+    }
+  }
+
+  /// Volver a escuchar: se llama directo desde el toque del micrófono.
+  void _reintentarWeb() {
+    _web?.cancelar();
+    _usado = false;
+    _escucharWeb(DictadoWeb.iniciar());
+    setState(() => _texto = '');
   }
 
   Future<void> _inicializar() async {
@@ -116,12 +157,68 @@ class _HojaDictadoState extends State<_HojaDictado> {
 
   @override
   void dispose() {
-    if (!kIsWeb) _speech.stop();
+    if (kIsWeb) {
+      _web?.estado.removeListener(_alCambiarWeb);
+      _web?.cancelar();
+    } else {
+      _speech.stop();
+    }
     _campoWeb.dispose();
     super.dispose();
   }
 
   List<Widget> _contenidoWeb(BuildContext context) {
+    final estado = _web?.estado.value;
+    if (estado == null || estado.sinPermiso) return _contenidoTeclado(context, sinPermiso: estado != null);
+    final textos = Theme.of(context).textTheme;
+    final escuchando = estado.escuchando;
+    final aviso = switch (estado.error) {
+      null when !escuchando && _texto.isNotEmpty => 'No entendí un gasto. Toca el micrófono para repetirlo.',
+      null => null,
+      'no-speech' => 'No te escuché. Toca el micrófono para intentar de nuevo.',
+      'audio-capture' => 'No encontré el micrófono. Toca para intentar de nuevo.',
+      'network' => 'El dictado necesita internet. Revisa tu conexión.',
+      final codigo => 'No se pudo escuchar ($codigo). Toca para intentar de nuevo.',
+    };
+    return [
+      GestureDetector(
+        onTap: escuchando ? _web!.detener : _reintentarWeb,
+        child: CircleAvatar(
+          radius: 36,
+          backgroundColor: escuchando ? ColoresApp.azul : ColoresApp.azulSuave,
+          child: Icon(
+            escuchando ? Icons.mic : Icons.mic_none,
+            color: escuchando ? ColoresApp.sobreAzul : ColoresApp.azul,
+            size: 32,
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+      Text(
+        escuchando ? 'Escuchando… di tu gasto' : 'Toca el micrófono para hablar',
+        style: textos.labelSmall?.copyWith(color: ColoresApp.medio),
+      ),
+      const SizedBox(height: 16),
+      TextField(
+        controller: _campoWeb,
+        minLines: 1,
+        maxLines: 3,
+        readOnly: escuchando,
+        textInputAction: TextInputAction.done,
+        decoration: const InputDecoration(hintText: 'Ej. "480 de súper con tarjeta"'),
+        onChanged: (texto) => setState(() => _texto = texto),
+        onSubmitted: (_) {
+          if (_texto.trim().isNotEmpty) _usarTexto();
+        },
+      ),
+      if (aviso != null) ...[
+        const SizedBox(height: 8),
+        Text(aviso, textAlign: TextAlign.center, style: textos.bodySmall?.copyWith(color: ColoresApp.coralTexto)),
+      ],
+    ];
+  }
+
+  List<Widget> _contenidoTeclado(BuildContext context, {required bool sinPermiso}) {
     final textos = Theme.of(context).textTheme;
     return [
       CircleAvatar(
@@ -137,8 +234,11 @@ class _HojaDictadoState extends State<_HojaDictado> {
       ),
       const SizedBox(height: 4),
       Text(
-        'También puedes escribirlo. Si no ves el micrófono, actívalo en Ajustes del '
-        'teléfono › General › Teclado › Dictado.',
+        sinPermiso
+            ? 'Tu navegador no dejó usar el micrófono aquí. Puedes dictar con el del teclado '
+                'o permitirlo en Ajustes del teléfono › Safari › Micrófono.'
+            : 'También puedes escribirlo. Si no ves el micrófono, actívalo en Ajustes del '
+                'teléfono › General › Teclado › Dictado.',
         textAlign: TextAlign.center,
         style: textos.bodySmall,
       ),

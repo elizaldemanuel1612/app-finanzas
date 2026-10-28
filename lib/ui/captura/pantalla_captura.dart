@@ -22,6 +22,7 @@ import '../../domain/modelos/perfil.dart';
 import '../../domain/reglas/creacion_movimiento.dart';
 import '../../domain/reglas/fecha_movimiento.dart';
 import '../../domain/reglas/monto.dart';
+import '../../plataforma/dictado_web.dart';
 import '../comun/asegurar_ciclo_abierto.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/popscope_descartar.dart';
@@ -385,9 +386,15 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   }
 
   Future<void> _dictar() async {
+    // En la web el micrófono se abre aquí, todavía dentro del toque: Safari
+    // no lo deja abrir después de una espera (ver `DictadoWeb`).
+    final dictadoWeb = kIsWeb ? DictadoWeb.iniciar() : null;
     final categorias = await _categorias;
-    if (!mounted) return;
-    final gastos = await mostrarHojaDictado(context, categorias: categorias);
+    if (!mounted) {
+      dictadoWeb?.cancelar();
+      return;
+    }
+    final gastos = await mostrarHojaDictado(context, categorias: categorias, dictadoWeb: dictadoWeb);
     if (gastos == null) return;
     if (!mounted) return;
 

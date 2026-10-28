@@ -41,7 +41,11 @@ del usuario (activado y funcionando con su cuenta), Firestore cerrado,
 modo oscuro, fuentes Plus Jakarta Sans en botones/chips/listas, sugerencias
 del onboarding independientes ("lo que sobre" sí sobra), chips legibles,
 gesto de regresar sin choque con Safari, importar CSV (selector propio en
-web) y dictado web con el micrófono del teclado.
+web). Dictado web (2026-10-28): micrófono directo con el reconocimiento de
+Safari (`lib/plataforma/dictado_web.dart`), arrancado en el mismo toque y
+usando lo entendido al terminar de hablar; si el navegador no da permiso,
+cae al micrófono del teclado. **Falta confirmarlo en el iPhone** (el
+simulador no tiene micrófono), sobre todo desde el ícono de pantalla de inicio.
 
 Al instalar la nativa (cable; comandos en "Entorno"), probar en este orden:
 1. Login con Google y **permiso de Drive desde la app nativa** (hoja de
