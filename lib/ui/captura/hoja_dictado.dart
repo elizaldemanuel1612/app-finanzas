@@ -169,7 +169,7 @@ class _HojaDictadoState extends State<_HojaDictado> {
 
   List<Widget> _contenidoWeb(BuildContext context) {
     final estado = _web?.estado.value;
-    if (estado == null || estado.sinPermiso) return _contenidoTeclado(context, sinPermiso: estado != null);
+    if (estado == null || estado.sinPermiso) return _contenidoTeclado(context, estado: estado);
     final textos = Theme.of(context).textTheme;
     final escuchando = estado.escuchando;
     final aviso = switch (estado.error) {
@@ -218,7 +218,7 @@ class _HojaDictadoState extends State<_HojaDictado> {
     ];
   }
 
-  List<Widget> _contenidoTeclado(BuildContext context, {required bool sinPermiso}) {
+  List<Widget> _contenidoTeclado(BuildContext context, {EstadoDictadoWeb? estado}) {
     final textos = Theme.of(context).textTheme;
     return [
       CircleAvatar(
@@ -234,7 +234,11 @@ class _HojaDictadoState extends State<_HojaDictado> {
       ),
       const SizedBox(height: 4),
       Text(
-        sinPermiso
+        estado?.error == EstadoDictadoWeb.sinRespuesta
+            // Lo que va entre corchetes dice hasta dónde llegó el navegador.
+            ? 'El micrófono se abrió pero no regresó texto. Dicta con el del teclado. '
+                '[${['audio', 'sonido', 'voz'].map((e) => estado!.eventos.contains(e) ? '$e ✓' : '$e ✗').join(' · ')}]'
+            : estado != null
             ? 'Tu navegador no dejó usar el micrófono aquí. Puedes dictar con el del teclado '
                 'o permitirlo en Ajustes del teléfono › Safari › Micrófono.'
             : 'También puedes escribirlo. Si no ves el micrófono, actívalo en Ajustes del '

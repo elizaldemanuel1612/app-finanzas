@@ -13,11 +13,26 @@ final class EstadoDictadoWeb {
   /// `no-speech`, `network`, `audio-capture`…) o `null` si no hubo error.
   final String? error;
 
-  const EstadoDictadoWeb({this.texto = '', this.escuchando = false, this.error});
+  /// Qué eventos del navegador llegaron (`audio`, `sonido`, `voz`): para
+  /// saber en qué paso se quedó cuando no regresa texto.
+  final Set<String> eventos;
 
-  /// El navegador no deja usar el micrófono o el servicio de dictado: no
-  /// tiene caso reintentar, toca el respaldo del teclado.
-  bool get sinPermiso => error == 'not-allowed' || error == 'service-not-allowed';
+  const EstadoDictadoWeb({
+    this.texto = '',
+    this.escuchando = false,
+    this.error,
+    this.eventos = const {},
+  });
+
+  /// El navegador no deja usar el micrófono o el servicio de dictado, o
+  /// abrió el micrófono pero nunca regresó texto (pasa en las apps web de
+  /// la pantalla de inicio del iPhone, 2026-10-28): no tiene caso
+  /// reintentar, toca el respaldo del teclado.
+  bool get sinPermiso =>
+      error == 'not-allowed' || error == 'service-not-allowed' || error == sinRespuesta;
+
+  /// Código propio: pasó [DictadoWeb.limiteSinTexto] escuchando sin texto.
+  static const sinRespuesta = 'sin-respuesta';
 }
 
 /// Dictado con el micrófono directo en la web (`SpeechRecognition` /
@@ -32,6 +47,10 @@ abstract interface class DictadoWeb {
 
   /// Empieza a escuchar en es-MX; `null` si no hay reconocimiento.
   static DictadoWeb? iniciar() => impl.iniciar();
+
+  /// Si en este tiempo no llega ni una palabra se deja de escuchar con
+  /// [EstadoDictadoWeb.sinRespuesta], en vez de quedarse "Escuchando…".
+  static const limiteSinTexto = Duration(seconds: 8);
 
   ValueListenable<EstadoDictadoWeb> get estado;
 
