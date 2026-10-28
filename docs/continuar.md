@@ -28,25 +28,37 @@ Resumen de traspaso entre conversaciones. Las reglas del proyecto viven en
 - `pubspec.lock` y `analysis_options.yaml` pueden aparecer modificados por
   la versión de Flutter del Mac: no es un problema.
 
-## Pendiente inmediato: probar el respaldo en Google Drive
+## Pendiente inmediato: instalar la app nativa en el iPhone (en pausa)
 
-2026-10-26: por privacidad, el respaldo dejó de ser Firestore y ahora vive
-en el **Google Drive del propio usuario** (`appDataFolder`, permiso
-`drive.appdata`; spec §4.2.1). Firestore quedó cerrado (reglas que niegan
-todo). Política de privacidad y términos actualizados. Web publicada en
-`https://app-finanzas-27e41.web.app`.
+El usuario decidió (2026-10-28) **esperar a instalar la app nativa** antes
+de seguir puliendo: la web en iPhone es más lenta y no tiene cámara. Todo
+lo hecho desde el 2026-10-26 vive en el código compartido de Flutter, así
+que **ya va incluido** en la nativa al instalarla; no hay que replicar nada,
+solo probarlo ahí.
 
-Falta, en orden:
-1. ~~Habilitar la API de Google Drive~~ — hecho por el usuario el 2026-10-26.
-   Revisar que la pantalla de consentimiento OAuth esté "En producción"
-   (en "Prueba" solo entran usuarios de prueba y el permiso caduca a los 7 días).
-2. Probar en la web (Safari del iPhone y la app agregada a inicio, que
-   guardan aparte): entrar → aceptar permiso de Drive → Ajustes → Respaldo
-   en tu Google Drive → Activar → registrar gastos → en el otro lado entrar
-   → "Encontramos tu respaldo" → Restaurar. Probar anular/borrar en un lado.
-3. Instalar la versión nueva en el iPhone físico (cable): probar el permiso
-   de Drive desde la app nativa, el widget, la cámara, el dictado y los
+Hecho y probado en la web (2026-10-26 a 10-28): respaldo en el Google Drive
+del usuario (activado y funcionando con su cuenta), Firestore cerrado,
+modo oscuro, fuentes Plus Jakarta Sans en botones/chips/listas, sugerencias
+del onboarding independientes ("lo que sobre" sí sobra), chips legibles,
+gesto de regresar sin choque con Safari, importar CSV (selector propio en
+web) y dictado web con el micrófono del teclado.
+
+Al instalar la nativa (cable; comandos en "Entorno"), probar en este orden:
+1. Login con Google y **permiso de Drive desde la app nativa** (hoja de
+   Google al tocar Activar respaldo); que restaure lo que ya está en Drive
+   desde la web ("Encontramos tu respaldo" o Combinar).
+2. **Dictado nativo** (`speech_to_text`, no el de la web): permiso de
+   micrófono la primera vez, que no se trabe, que entienda es-MX.
+3. **Foto de ticket** (cámara y galería) y "Dividir ticket". Hoy es solo
+   adjunto: **no lee** total ni productos. Si el usuario lo pide, la lectura
+   automática es una función nueva (ML Kit en el dispositivo o IA nivel 3).
+4. **Importar CSV** con `file_picker` nativo desde Archivos/iCloud.
+5. Modo oscuro (Ajustes → Apariencia y "Automático" con el del iPhone),
+   gesto de regresar, velocidad general, widget de inicio y atajo de Siri,
    emojis.
+6. Revisar que la pantalla de consentimiento OAuth esté "En producción"
+   antes de que otra persona use el respaldo (en "Prueba" solo entran
+   usuarios de prueba y el permiso caduca a los 7 días).
 
 ## Decisiones tomadas (no reabrir sin preguntar)
 
