@@ -3,7 +3,10 @@ import 'dart:convert';
 import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../../core/result.dart';
+import '../clasificacion/cascada_clasificacion.dart';
+import '../clasificacion/historial_comercios.dart';
 import '../clasificacion/normalizacion_texto.dart';
+import '../clasificacion/regla_aprendida.dart';
 import '../exportacion/exportar_csv.dart';
 import '../migracion/movimiento_migrado.dart';
 import '../modelos/categoria.dart';
@@ -14,7 +17,9 @@ import 'csv.dart';
 import 'emoji_sugerido.dart';
 import 'mapeo_columnas.dart';
 
-const _categoriaSinNombre = 'Importado';
+/// A dónde va un gasto sin categoría que tampoco se pudo adivinar por su
+/// descripción. Antes era "Importado" (2026-10-29).
+const categoriaSinCategoria = 'Sin categoría';
 
 /// Un renglón del CSV que no se pudo convertir en movimiento — [numeroDeRenglon]
 /// es 1-based contando el encabezado como renglón 1, tal como lo vería
@@ -47,6 +52,13 @@ final class ResultadoImportacion {
   final List<RenglonConProblema> avisos;
   final Map<String, Dinero> totalesPorCiclo;
 
+  /// Renglones sin categoría a los que se les adivinó por su descripción.
+  final int categoriasAdivinadas;
+
+  /// Renglones sin categoría que no se pudieron adivinar: van a
+  /// [categoriaSinCategoria] y el usuario los mueve después.
+  final int sinCategoria;
+
   const ResultadoImportacion({
     required this.movimientos,
     required this.categoriasPorCrear,
@@ -54,6 +66,8 @@ final class ResultadoImportacion {
     required this.renglonesConProblema,
     this.avisos = const [],
     required this.totalesPorCiclo,
+    this.categoriasAdivinadas = 0,
+    this.sinCategoria = 0,
   });
 
   /// Cuántos movimientos llegan anulados (exportados así): se guardan para
@@ -72,6 +86,14 @@ final class ResultadoImportacion {
 /// un estado o medio que no se reconoce no tumba el renglón: se importa con
 /// el valor de omisión y queda en [ResultadoImportacion.avisos].
 ///
+/// Un renglón sin categoría se clasifica por su descripción con la misma
+/// cascada que la captura (spec-app-finanzas-v2.md §6.1, Niveles 1 y 2):
+/// [reglasUsuario], luego [historialComercios] (comercio → id de categoría
+/// de los movimientos que ya tiene el usuario) y, al final, lo que el
+/// propio archivo enseña en sus renglones que sí traen categoría. Lo que
+/// no se resuelve va a [categoriaSinCategoria] — nunca se inventa una
+/// categoría en la que no se confía (spec §0.4).
+///
 /// Cada movimiento se construye con [crearMovimientoMigrado]. Su
 /// `clientId` es la columna ID si viene (lo que escribe la exportación:
 /// reimportar en la misma cuenta no duplica) o, si no, una huella estable
@@ -84,6 +106,8 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
   required String contenidoCsv,
   required CalculadoraCiclo calculadoraCiclo,
   required List<Categoria> categoriasExistentes,
+  List<ReglaAprendida> reglasUsuario = const [],
+  Map<String, String> historialComercios = const {},
 }) {
   final filas = leerCsv(contenidoCsv, separador: detectarSeparador(contenidoCsv));
   if (filas.isEmpty) {
@@ -108,6 +132,35 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
   final problemas = <RenglonConProblema>[];
   final avisos = <RenglonConProblema>[];
   final totalesPorCiclo = <String, Dinero>{};
+  var adivinadas = 0;
+  var sinCategoria = 0;
+
+  final existentesPorId = {for (final c in categoriasExistentes) c.id: c};
+  // Lo que enseña el propio archivo: descripción → nombre de categoría,
+  // de los renglones que traen las dos.
+  final historialDelArchivo = construirHistorialComercios([
+    for (final renglon in filas.skip(1))
+      if (_campo(renglon, mapeo[CampoImportado.categoria]).isNotEmpty)
+        ObservacionComercio(
+          _campo(renglon, mapeo[CampoImportado.descripcion]),
+          separarEmojiDelNombre(_campo(renglon, mapeo[CampoImportado.categoria])).nombre,
+        ),
+  ]);
+
+  String? adivinarPorDescripcion(String descripcion) {
+    final porCuenta = clasificar(
+      texto: descripcion,
+      reglasUsuario: reglasUsuario,
+      historialComercios: historialComercios,
+    );
+    final existente = existentesPorId[porCuenta.categoriaId];
+    if (existente != null) return existente.nombre;
+    return clasificar(
+      texto: descripcion,
+      reglasUsuario: const [],
+      historialComercios: historialDelArchivo,
+    ).categoriaId;
+  }
 
   for (var i = 1; i < filas.length; i++) {
     final renglon = filas[i];
@@ -138,7 +191,11 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
     }
 
     final separado = separarEmojiDelNombre(campo(CampoImportado.categoria));
-    final nombreCategoria = separado.nombre.isEmpty ? _categoriaSinNombre : separado.nombre;
+    final descripcion = campo(CampoImportado.descripcion);
+    final adivinada = separado.nombre.isEmpty ? adivinarPorDescripcion(descripcion) : null;
+    final nombreCategoria = separado.nombre.isNotEmpty
+        ? separado.nombre
+        : adivinada ?? categoriaSinCategoria;
     final emojiDelArchivo = campo(CampoImportado.emoji);
     final emoji = emojiDelArchivo.isNotEmpty
         ? emojiDelArchivo
@@ -150,8 +207,6 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
       categoriasNuevasPorNombre,
       categoriasActualizadas,
     );
-
-    final descripcion = campo(CampoImportado.descripcion);
 
     final textoMedio = campo(CampoImportado.medio);
     final medio = _leerMedio(textoMedio);
@@ -185,6 +240,7 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
         problemas.add(RenglonConProblema(numeroDeRenglon: numeroDeRenglon, motivo: mensaje));
       case Exito(:final valor):
         movimientos.add(valor);
+        if (separado.nombre.isEmpty) adivinada != null ? adivinadas++ : sinCategoria++;
         if (valor.estado == EstadoMovimiento.activo) {
           totalesPorCiclo[valor.cicloId] =
               (totalesPorCiclo[valor.cicloId] ?? const Dinero.cero()) + valor.monto;
@@ -199,6 +255,8 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
     renglonesConProblema: problemas,
     avisos: avisos,
     totalesPorCiclo: totalesPorCiclo,
+    categoriasAdivinadas: adivinadas,
+    sinCategoria: sinCategoria,
   ));
 }
 

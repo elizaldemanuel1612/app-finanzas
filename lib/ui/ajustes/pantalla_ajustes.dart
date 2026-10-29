@@ -141,6 +141,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
           perfil: _perfil,
           categoriaRepositorio: widget.almacenLocal.categorias,
           movimientoRepositorio: widget.almacenLocal.movimientos,
+          reglasAprendidasRepositorio: widget.almacenLocal.reglasAprendidas,
         ),
       ),
     );

@@ -7,8 +7,11 @@ import 'package:flutter/material.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
+import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
+import '../../domain/clasificacion/historial_comercios.dart';
 import '../../domain/importacion/importar_movimientos.dart';
 import '../../domain/importacion/plantilla_csv.dart';
+import '../../domain/modelos/estado_movimiento.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../plataforma/elegir_archivo.dart';
 import '../ayuda/modelo_guia.dart';
@@ -26,11 +29,16 @@ class PantallaImportar extends StatefulWidget {
   final CategoriaRepositorio categoriaRepositorio;
   final MovimientoRepositorio movimientoRepositorio;
 
+  /// Para adivinar la categoría de los renglones que no la traen (Nivel 1
+  /// de la cascada). Sin él se usa solo el historial de comercios.
+  final ReglasAprendidasRepositorio? reglasAprendidasRepositorio;
+
   const PantallaImportar({
     super.key,
     required this.perfil,
     required this.categoriaRepositorio,
     required this.movimientoRepositorio,
+    this.reglasAprendidasRepositorio,
   });
 
   @override
@@ -75,10 +83,16 @@ class _PantallaImportarState extends State<PantallaImportar> {
       return;
     }
 
+    final movimientos = await widget.movimientoRepositorio.listarTodos();
     final procesado = previsualizarImportacion(
       contenidoCsv: contenido,
       calculadoraCiclo: widget.perfil.calculadoraCiclo,
       categoriasExistentes: await widget.categoriaRepositorio.listarTodas(),
+      reglasUsuario: await widget.reglasAprendidasRepositorio?.listarTodas() ?? const [],
+      historialComercios: construirHistorialComercios([
+        for (final m in movimientos)
+          if (m.estado == EstadoMovimiento.activo) ObservacionComercio(m.descripcion, m.categoriaId),
+      ]),
     );
 
     if (!mounted) return;
@@ -211,6 +225,24 @@ class _TarjetaVistaPrevia extends StatelessWidget {
               'para importar',
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
+            if (vistaPrevia.categoriasAdivinadas > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                '${vistaPrevia.categoriasAdivinadas} sin categoría '
+                '${vistaPrevia.categoriasAdivinadas == 1 ? 'se clasificó' : 'se clasificaron'} '
+                'por su descripción, como cuando registras un gasto.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+            if (vistaPrevia.sinCategoria > 0) ...[
+              const SizedBox(height: 8),
+              Text(
+                '${vistaPrevia.sinCategoria} ${vistaPrevia.sinCategoria == 1 ? 'gasto no tiene' : 'gastos no tienen'} '
+                'categoría y no pude adivinarla: ${vistaPrevia.sinCategoria == 1 ? 'irá' : 'irán'} a '
+                '"$categoriaSinCategoria". Después muévelos a la suya desde Gastos.',
+                style: TextStyle(color: ColoresApp.ambarTexto, fontWeight: FontWeight.w700),
+              ),
+            ],
             if (vistaPrevia.anulados > 0) ...[
               const SizedBox(height: 4),
               Text(

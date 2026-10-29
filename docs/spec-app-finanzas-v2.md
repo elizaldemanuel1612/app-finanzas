@@ -306,7 +306,7 @@ Exportar todo a Excel/CSV cuando quieras. No quedas atrapado en la app — y te 
 |---|---|---|
 | Fecha | `aaaa-mm-dd`, con `HH:mm` si tiene hora | Obligatoria. También `dd/mm/aaaa` (y con hora, como la reescribe Excel) |
 | Monto | `450.00`, sin símbolo | Obligatorio, mayor a 0. Tolera `$`, comas de miles y `MXN` |
-| Categoría | Nombre | Se busca por nombre sin acentos/mayúsculas; si no existe se crea variable con presupuesto $0. Acepta el emoji pegado al inicio ("🛒 Súper") |
+| Categoría | Nombre | Se busca por nombre sin acentos/mayúsculas; si no existe se crea variable con presupuesto $0. Acepta el emoji pegado al inicio ("🛒 Súper"). **Vacía:** se adivina por la descripción con la cascada §6.1 (reglas del usuario → historial de comercios de la cuenta → lo que enseñan los renglones del mismo archivo que sí traen categoría); si nada resuelve, va a "Sin categoría" y la vista previa dice cuántos son, para moverlos después desde Gastos. Nunca se inventa una categoría en la que no se confía (§0.4) |
 | Emoji | El de la categoría | Para la categoría nueva; vacío → sugerido por el nombre. Una categoría existente con el 📥 genérico de antes lo recibe |
 | Descripción | Texto | Vacía → nombre de la categoría |
 | Medio de pago | `Tarjeta` / `Efectivo` | Vacío → Tarjeta. Otro texto → Tarjeta con aviso |

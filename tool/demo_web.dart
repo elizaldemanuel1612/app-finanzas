@@ -98,6 +98,7 @@ Future<void> main() async {
               perfil: perfil,
               categoriaRepositorio: almacen.categorias,
               movimientoRepositorio: almacen.movimientos,
+              reglasAprendidasRepositorio: almacen.reglasAprendidas,
             )
           : PantallaInicio(
         perfil: perfil,

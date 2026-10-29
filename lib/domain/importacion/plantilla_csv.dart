@@ -26,7 +26,7 @@ String generarPlantillaCsvDeEjemplo() {
 const ayudaColumnasCsv = [
   ('Fecha', 'Obligatoria. 2026-08-05, 05/08/2026 o con hora: 2026-08-05 13:30.'),
   ('Monto', 'Obligatorio. Mayor a 0, sin signo: 450.00 o \$1,250.'),
-  ('Categoría', 'Si no existe, se crea. Vacía: "Importado".'),
+  ('Categoría', 'Si no existe, se crea. Vacía: se adivina por la descripción; si no se puede, va a "Sin categoría".'),
   ('Emoji', 'De la categoría nueva. Vacío: se elige uno por el nombre.'),
   ('Descripción', 'Texto libre. Vacía: el nombre de la categoría.'),
   ('Medio de pago', 'Tarjeta o Efectivo. Vacío: Tarjeta.'),

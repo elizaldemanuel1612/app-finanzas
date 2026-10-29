@@ -1,6 +1,7 @@
 import 'package:app_finanzas/core/ciclo.dart';
 import 'package:app_finanzas/core/money.dart';
 import 'package:app_finanzas/core/result.dart';
+import 'package:app_finanzas/domain/clasificacion/regla_aprendida.dart';
 import 'package:app_finanzas/domain/importacion/importar_movimientos.dart';
 import 'package:app_finanzas/domain/modelos/categoria.dart';
 import 'package:app_finanzas/domain/modelos/estado_movimiento.dart';
@@ -121,9 +122,10 @@ void main() {
     expect(datos.movimientos[0].categoriaId, datos.movimientos[1].categoriaId);
   });
 
-  test('sin columna de categoría, usa "Importado"', () {
+  test('sin columna de categoría ni forma de adivinarla, va a "Sin categoría"', () {
     final datos = _ok('fecha,monto\n2026-08-05,100\n');
-    expect(datos.categoriasPorCrear.single.nombre, 'Importado');
+    expect(datos.categoriasPorCrear.single.nombre, categoriaSinCategoria);
+    expect(datos.sinCategoria, 1);
   });
 
   test('descripción vacía usa el nombre de la categoría', () {
@@ -303,6 +305,70 @@ void main() {
     test('la comilla de seguridad de la exportación se quita al leer', () {
       final datos = _ok("fecha,monto,descripcion\n2026-08-05,1,'=algo\n");
       expect(datos.movimientos.single.descripcion, '=algo');
+    });
+  });
+
+  group('categoría vacía: se adivina por la descripción', () {
+    ResultadoImportacion importar(
+      String csv, {
+      List<ReglaAprendida> reglas = const [],
+      Map<String, String> historial = const {},
+    }) =>
+        (previsualizarImportacion(
+          contenidoCsv: csv,
+          calculadoraCiclo: _calculadora,
+          categoriasExistentes: [_categoriaExistente('super', 'Súper'), _categoriaExistente('auto', 'Auto')],
+          reglasUsuario: reglas,
+          historialComercios: historial,
+        ) as Exito<ResultadoImportacion>)
+            .valor;
+
+    test('con una regla del usuario (Nivel 1)', () {
+      final datos = importar(
+        'fecha,monto,categoria,descripcion\n2026-08-05,100,,Gasolina Pemex\n',
+        reglas: const [ReglaAprendida(patron: 'pemex', categoriaId: 'auto', contador: 3)],
+      );
+      expect(datos.movimientos.single.categoriaId, 'auto');
+      expect(datos.categoriasAdivinadas, 1);
+      expect(datos.sinCategoria, 0);
+      expect(datos.categoriasPorCrear, isEmpty);
+    });
+
+    test('con el historial de comercios de la cuenta (Nivel 2)', () {
+      final datos = importar(
+        'fecha,monto,categoria,descripcion\n2026-08-05,100,,OXXO\n',
+        historial: const {'oxxo': 'super'},
+      );
+      expect(datos.movimientos.single.categoriaId, 'super');
+    });
+
+    test('un historial que apunta a una categoría que ya no existe se ignora', () {
+      final datos = importar(
+        'fecha,monto,categoria,descripcion\n2026-08-05,100,,Oxxo\n',
+        historial: const {'oxxo': 'borrada'},
+      );
+      expect(datos.categoriasPorCrear.single.nombre, categoriaSinCategoria);
+    });
+
+    test('con lo que enseña el propio archivo', () {
+      final datos = importar('fecha,monto,categoria,descripcion\n'
+          '2026-08-05,100,,Netflix\n2026-08-06,200,🎵 Suscripciones,Netflix\n');
+      expect(datos.movimientos.first.categoriaId, datos.movimientos.last.categoriaId);
+      expect(datos.categoriasPorCrear.single.nombre, 'Suscripciones');
+      expect(datos.categoriasAdivinadas, 1);
+    });
+
+    test('sin descripción ni pistas: "Sin categoría", contado aparte', () {
+      final datos = importar('fecha,monto,categoria,descripcion\n2026-08-05,100,,\n2026-08-06,50,,Algo raro\n');
+      expect(datos.sinCategoria, 2);
+      expect(datos.categoriasAdivinadas, 0);
+      expect(datos.categoriasPorCrear.single.nombre, categoriaSinCategoria);
+    });
+
+    test('un renglón que no se importa no cuenta como adivinado ni sin categoría', () {
+      final datos = importar('fecha,monto,categoria\n2026-08-05,0,\n');
+      expect(datos.sinCategoria, 0);
+      expect(datos.categoriasAdivinadas, 0);
     });
   });
 }
