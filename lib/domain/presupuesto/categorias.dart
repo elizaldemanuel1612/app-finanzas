@@ -121,11 +121,15 @@ Resultado<CategoriaVariable> actualizarPresupuestoVariable({
 /// pintan de rojo hasta que alguien las presupueste — sin validación ni
 /// `Resultado` porque no hay forma de que esto falle (a diferencia de
 /// [crearCategoriaVariable], que sí valida entrada de usuario).
-CategoriaVariable crearCategoriaImportada({required String id, required String nombre}) =>
+CategoriaVariable crearCategoriaImportada({
+  required String id,
+  required String nombre,
+  required String emoji,
+}) =>
     CategoriaVariable(
       id: id,
       nombre: nombre,
-      emoji: '📥',
+      emoji: emoji,
       activa: true,
       esNecesaria: false,
       presupuestoMensualCentavos: const Dinero.cero(),
@@ -148,6 +152,27 @@ Categoria conActiva(Categoria categoria, bool activa) => switch (categoria) {
           nombre: v.nombre,
           emoji: v.emoji,
           activa: activa,
+          esNecesaria: v.esNecesaria,
+          presupuestoMensualCentavos: v.presupuestoMensualCentavos,
+        ),
+    };
+
+/// Cambia solo el emoji, preservando tipo y el resto de los campos.
+Categoria conEmoji(Categoria categoria, String emoji) => switch (categoria) {
+      CategoriaFija f => CategoriaFija(
+          id: f.id,
+          nombre: f.nombre,
+          emoji: emoji,
+          activa: f.activa,
+          esNecesaria: f.esNecesaria,
+          montoFijoCentavos: f.montoFijoCentavos,
+          diaDelCiclo: f.diaDelCiclo,
+        ),
+      CategoriaVariable v => CategoriaVariable(
+          id: v.id,
+          nombre: v.nombre,
+          emoji: emoji,
+          activa: v.activa,
           esNecesaria: v.esNecesaria,
           presupuestoMensualCentavos: v.presupuestoMensualCentavos,
         ),

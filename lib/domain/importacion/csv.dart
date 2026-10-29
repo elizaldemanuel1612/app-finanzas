@@ -4,7 +4,8 @@
 ///
 /// Quita el BOM UTF-8 inicial si lo hay (el mismo que escribe la
 /// exportación) y tolera tanto `\n` como `\r\n` como fin de línea.
-List<List<String>> leerCsv(String contenido) {
+/// [separador] es `,` salvo que [detectarSeparador] diga otra cosa.
+List<List<String>> leerCsv(String contenido, {String separador = ','}) {
   final texto = _sinBom(contenido);
   final filas = <List<String>>[];
   var campoActual = StringBuffer();
@@ -50,7 +51,7 @@ List<List<String>> leerCsv(String contenido) {
       case '"':
         dentroDeComillas = true;
         i++;
-      case ',':
+      case _ when c == separador:
         cerrarCampo();
         i++;
       case '\r':
@@ -72,6 +73,17 @@ List<List<String>> leerCsv(String contenido) {
   if (huboContenidoSinCerrar) cerrarFila();
 
   return filas;
+}
+
+/// Excel en algunos idiomas guarda el CSV con `;` en vez de `,`: si el
+/// encabezado tiene más `;` que `,`, ese es el separador.
+String detectarSeparador(String contenido) {
+  final texto = _sinBom(contenido);
+  final finDeLinea = texto.indexOf('\n');
+  final encabezado = finDeLinea < 0 ? texto : texto.substring(0, finDeLinea);
+  final comas = ','.allMatches(encabezado).length;
+  final puntosYComa = ';'.allMatches(encabezado).length;
+  return puntosYComa > comas ? ';' : ',';
 }
 
 String _sinBom(String texto) => texto.startsWith('﻿') ? texto.substring(1) : texto;

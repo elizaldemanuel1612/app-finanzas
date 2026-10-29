@@ -280,12 +280,14 @@ const _temaTusDatos = TemaGuia(
   resumen: 'Exportar, importar y qué pasa si eliminas tu cuenta.',
   bloques: [
     Parrafo(
-      '**Exportar mis gastos** genera un CSV con todo tu historial, listo '
-      'para compartir o guardar aparte.',
+      '**Exportar mis gastos** genera un CSV con todo tu historial —incluido '
+      'lo anulado y el emoji de cada categoría—, listo para compartir, '
+      'guardar aparte o volver a importar sin perder nada.',
     ),
     Subtitulo('Importar desde CSV'),
     Pasos([
-      'Descarga la plantilla de ejemplo, si no tienes tu propio archivo.',
+      'Descarga la plantilla de ejemplo, si no tienes tu propio archivo. '
+          'Solo fecha y monto son obligatorios; las demás columnas pueden ir vacías.',
       'Elige tu CSV desde Ajustes → Importar gastos.',
       'Revisa la vista previa antes de confirmar — no se guarda nada '
           'hasta que aceptas.',
@@ -293,8 +295,9 @@ const _temaTusDatos = TemaGuia(
     Nota(
       tono: TonoNota.tip,
       etiqueta: 'SIN DUPLICADOS',
-      texto: 'Si vuelves a importar el mismo archivo, la app reconoce que '
-          'ya lo tenía y no te duplica los movimientos.',
+      texto: 'Si vuelves a importar el mismo archivo, o el que sacaste con '
+          'Exportar, la app reconoce lo que ya tenía y no te duplica los '
+          'movimientos.',
     ),
     Subtitulo('Eliminar cuenta'),
     Parrafo(

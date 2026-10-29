@@ -11,8 +11,10 @@ import '../reglas/monto.dart';
 /// idempotencia de captura en vivo — [idOrigen] ya es la llave estable que
 /// identifica el renglón de origen, así que se reusa como `clientId`.
 ///
-/// Nace `activo`: es dinero que de verdad se movió en el pasado, no algo
-/// que el usuario tiene que confirmar.
+/// Nace `activo` y con origen `migracion` por omisión: es dinero que de
+/// verdad se movió en el pasado, no algo que el usuario tiene que
+/// confirmar. La importación de CSV pasa [estado] y [origenCaptura] cuando
+/// el archivo los trae (un CSV exportado conserva lo anulado como anulado).
 ///
 /// Sin UI todavía; se conecta en la fase de importación (ver "Estado
 /// actual" en CLAUDE.md). Se conserva sin consumidor a propósito.
@@ -25,6 +27,8 @@ Resultado<Movimiento> crearMovimientoMigrado({
   required MedioPago medio,
   required String descripcion,
   bool granularidadAgregadaDiaria = false,
+  EstadoMovimiento estado = EstadoMovimiento.activo,
+  OrigenCaptura origenCaptura = OrigenCaptura.migracion,
 }) {
   if (idOrigen.trim().isEmpty) {
     return const Falla('idOrigen no puede estar vacío para un movimiento migrado.');
@@ -45,8 +49,8 @@ Resultado<Movimiento> crearMovimientoMigrado({
     categoriaId: categoriaId,
     medio: medio,
     descripcion: descripcion,
-    estado: EstadoMovimiento.activo,
-    origenCaptura: OrigenCaptura.migracion,
+    estado: estado,
+    origenCaptura: origenCaptura,
     granularidad:
         granularidadAgregadaDiaria ? Granularidad.agregadoDiario : null,
   ));

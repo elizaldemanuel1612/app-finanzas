@@ -46,7 +46,7 @@ void main() {
     final primeraLinea = csv.replaceFirst('﻿', '').split('\n').first;
     expect(
       primeraLinea,
-      'Fecha,Categoría,Descripción,Monto,Medio de pago,Estado,Origen de captura',
+      'Fecha,Monto,Categoría,Emoji,Descripción,Medio de pago,Estado,Cómo se registró,ID',
     );
   });
 
@@ -100,7 +100,7 @@ void main() {
     expect(csv, contains('"Le dijo ""hola"""'));
   });
 
-  test('fecha en ISO 8601, estado y origen en su renglón propio', () {
+  test('fecha sin hora, valores en palabras, emoji e ID en su renglón', () {
     final csv = exportarMovimientosCsv(
       movimientos: [
         _mov(
@@ -112,8 +112,35 @@ void main() {
       ],
       categorias: [_super],
     );
-    expect(csv, contains(DateTime(2026, 7, 16).toIso8601String()));
-    expect(csv, contains(',tarjeta,propuesto,ticket'));
+    expect(csv.split('\n')[1], '2026-07-16,10.00,Súper/Comida,🛒,Compra,Tarjeta,Pendiente,Ticket,a');
+  });
+
+  test('la hora se conserva si la tiene', () {
+    expect(fechaParaCsv(DateTime(2026, 7, 16, 9, 5)), '2026-07-16 09:05');
+    expect(fechaParaCsv(DateTime(2026, 7, 16)), '2026-07-16');
+  });
+
+  test('lo anulado también se exporta, marcado como Anulado', () {
+    final csv = exportarMovimientosCsv(
+      movimientos: [_mov(clientId: 'a', monto: const Dinero.pesos(10), estado: EstadoMovimiento.anulado)],
+      categorias: [_super],
+    );
+    expect(csv, contains(',Anulado,'));
+  });
+
+  test('categoría desconocida: emoji vacío', () {
+    final csv = exportarMovimientosCsv(
+      movimientos: [_mov(clientId: 'a', monto: const Dinero.pesos(10), categoriaId: 'x')],
+      categorias: const [],
+    );
+    expect(csv.split('\n')[1], startsWith('2026-07-16,10.00,x,,'));
+  });
+
+  test('quitarNeutralizacion deshace la comilla de seguridad', () {
+    expect(quitarNeutralizacion("'=SUMA(A1)"), '=SUMA(A1)');
+    expect(quitarNeutralizacion("'hola"), "'hola");
+    expect(quitarNeutralizacion("'"), "'");
+    expect(quitarNeutralizacion('normal'), 'normal');
   });
 
   test('descripción que empieza con = se antepone con comilla (CSV injection)', () {

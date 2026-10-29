@@ -72,4 +72,17 @@ void main() {
       ['c', 'd'],
     ]);
   });
+
+  test('con separador punto y coma', () {
+    expect(leerCsv('a;"b;c"\n1;2\n', separador: ';'), [
+      ['a', 'b;c'],
+      ['1', '2'],
+    ]);
+  });
+
+  test('detectarSeparador: punto y coma solo si domina en el encabezado', () {
+    expect(detectarSeparador('﻿Fecha;Monto;Nota, larga\n1;2;3'), ';');
+    expect(detectarSeparador('Fecha,Monto\n1;2'), ',');
+    expect(detectarSeparador('Fecha'), ',');
+  });
 }

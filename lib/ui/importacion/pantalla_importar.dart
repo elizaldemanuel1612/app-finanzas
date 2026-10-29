@@ -101,7 +101,7 @@ class _PantallaImportarState extends State<PantallaImportar> {
     if (vistaPrevia == null) return;
 
     setState(() => _importando = true);
-    for (final categoria in vistaPrevia.categoriasPorCrear) {
+    for (final categoria in [...vistaPrevia.categoriasPorCrear, ...vistaPrevia.categoriasPorActualizar]) {
       await widget.categoriaRepositorio.guardar(categoria);
     }
     for (final movimiento in vistaPrevia.movimientos) {
@@ -126,11 +126,12 @@ class _PantallaImportarState extends State<PantallaImportar> {
             padding: const EdgeInsets.all(20),
             children: [
               Text(
-                'Importa tu historial desde un CSV: fecha y monto son obligatorios; '
-                'categoría, descripción y medio de pago son opcionales. Si no sabes '
-                'el formato, descarga la plantilla de ejemplo primero.',
+                'Importa tu historial desde un CSV: solo fecha y monto son obligatorios. '
+                'El archivo de "Exportar mis gastos" se importa tal cual, sin duplicar.',
                 style: TextStyle(color: ColoresApp.medio),
               ),
+              const SizedBox(height: 8),
+              const _AyudaColumnas(),
               const SizedBox(height: 16),
               OutlinedButton(
                 onPressed: _descargarPlantilla,
@@ -141,7 +142,8 @@ class _PantallaImportarState extends State<PantallaImportar> {
                 etiqueta: 'TIP',
                 texto: 'Si tienes alguna IA, como ChatGPT, Copilot, Gemini, etc., '
                     'descarga la plantilla, pásale también tus gastos, y dile que '
-                    'ponga todo en el formato de la plantilla. ¡Listo!',
+                    'ponga todo en el formato de la plantilla, dejando vacías las '
+                    'columnas que no sepa. ¡Listo!',
                 tono: TonoNota.tip,
               ),
               const SizedBox(height: 12),
@@ -209,6 +211,14 @@ class _TarjetaVistaPrevia extends StatelessWidget {
               'para importar',
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
+            if (vistaPrevia.anulados > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                '${vistaPrevia.anulados} ${vistaPrevia.anulados == 1 ? 'viene anulado' : 'vienen anulados'}: '
+                'se guardan, pero no cuentan en tus totales.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             if (vistaPrevia.categoriasPorCrear.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
@@ -224,26 +234,94 @@ class _TarjetaVistaPrevia extends StatelessWidget {
                     .toList(),
               ),
             ],
-            if (vistaPrevia.renglonesConProblema.isNotEmpty) ...[
+            if (vistaPrevia.categoriasPorActualizar.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
-                '${vistaPrevia.renglonesConProblema.length} '
-                '${vistaPrevia.renglonesConProblema.length == 1 ? 'renglón' : 'renglones'} con problema '
-                '(no se van a importar):',
-                style: TextStyle(color: ColoresApp.coralTexto, fontWeight: FontWeight.w700),
+                'Estas categorías que ya tenías reciben su emoji:',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 6),
-              ...vistaPrevia.renglonesConProblema.take(10).map(
-                    (p) => Text('• $p', style: Theme.of(context).textTheme.labelSmall),
-                  ),
-              if (vistaPrevia.renglonesConProblema.length > 10)
-                Text(
-                  'y ${vistaPrevia.renglonesConProblema.length - 10} más…',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: vistaPrevia.categoriasPorActualizar
+                    .map((c) => Chip(label: Text('${c.emoji} ${c.nombre}')))
+                    .toList(),
+              ),
             ],
+            _ListaRenglones(
+              renglones: vistaPrevia.avisos,
+              titulo: '${vistaPrevia.avisos.length} '
+                  '${vistaPrevia.avisos.length == 1 ? 'aviso' : 'avisos'} '
+                  '(sí se importan, con el valor de omisión):',
+              color: ColoresApp.ambarTexto,
+            ),
+            _ListaRenglones(
+              renglones: vistaPrevia.renglonesConProblema,
+              titulo: '${vistaPrevia.renglonesConProblema.length} '
+                  '${vistaPrevia.renglonesConProblema.length == 1 ? 'renglón' : 'renglones'} con problema '
+                  '(no se van a importar):',
+              color: ColoresApp.coralTexto,
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Renglones con problema o con aviso: los primeros 10 y cuántos faltan.
+class _ListaRenglones extends StatelessWidget {
+  final List<RenglonConProblema> renglones;
+  final String titulo;
+  final Color color;
+
+  const _ListaRenglones({required this.renglones, required this.titulo, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    if (renglones.isEmpty) return const SizedBox.shrink();
+    final pequeno = Theme.of(context).textTheme.labelSmall;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Text(titulo, style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        ...renglones.take(10).map((p) => Text('• $p', style: pequeno)),
+        if (renglones.length > 10) Text('y ${renglones.length - 10} más…', style: pequeno),
+      ],
+    );
+  }
+}
+
+/// Qué va en cada columna, plegado para no saturar la pantalla.
+class _AyudaColumnas extends StatelessWidget {
+  const _AyudaColumnas();
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(bottom: 8),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        title: Text('Qué va en cada columna', style: textos.titleMedium),
+        children: [
+          for (final (columna, ayuda) in ayudaColumnasCsv)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text.rich(
+                TextSpan(children: [
+                  TextSpan(text: '$columna: ', style: const TextStyle(fontWeight: FontWeight.w700)),
+                  TextSpan(text: ayuda),
+                ]),
+                style: textos.bodySmall,
+              ),
+            ),
+        ],
       ),
     );
   }

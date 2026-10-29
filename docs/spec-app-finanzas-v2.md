@@ -300,6 +300,22 @@ Face ID / Touch ID al abrir, configurable. Tu información financiera completa n
 ### 7.4 [NUEVO] Exportación y portabilidad
 Exportar todo a Excel/CSV cuando quieras. No quedas atrapado en la app — y te da una red de seguridad psicológica al abandonar el Excel.
 
+**Formato de ida y vuelta (2026-10-29).** Lo que se exporta se puede reimportar sin perder nada del movimiento, y la plantilla de importación usa las mismas columnas:
+
+| Columna | Al exportar | Al importar |
+|---|---|---|
+| Fecha | `aaaa-mm-dd`, con `HH:mm` si tiene hora | Obligatoria. También `dd/mm/aaaa` (y con hora, como la reescribe Excel) |
+| Monto | `450.00`, sin símbolo | Obligatorio, mayor a 0. Tolera `$`, comas de miles y `MXN` |
+| Categoría | Nombre | Se busca por nombre sin acentos/mayúsculas; si no existe se crea variable con presupuesto $0. Acepta el emoji pegado al inicio ("🛒 Súper") |
+| Emoji | El de la categoría | Para la categoría nueva; vacío → sugerido por el nombre. Una categoría existente con el 📥 genérico de antes lo recibe |
+| Descripción | Texto | Vacía → nombre de la categoría |
+| Medio de pago | `Tarjeta` / `Efectivo` | Vacío → Tarjeta. Otro texto → Tarjeta con aviso |
+| Estado | `Activo` / `Anulado` / `Pendiente` | Vacío → Activo. Otro texto → Activo con aviso (nunca tumba el renglón). Lo anulado se guarda anulado, sin contar en totales |
+| Cómo se registró | `Manual`, `Voz`, `Ticket`, `Recurrente`, `Importado` | Se conserva si se reconoce; si no, Importado |
+| ID | `clientId` | Si viene, es el `clientId`: reimportar en la misma cuenta no duplica (regla #2). Vacío → huella estable del archivo + renglón |
+
+Se exporta todo, también lo anulado: si no, reimportar revivía gastos que el usuario había quitado. El tipo (fija/variable) y el presupuesto de las categorías no viajan en el CSV —son del plan, no de los movimientos—; para mover la cuenta completa está el respaldo en Drive (§4.2.1). Excel en algunos idiomas guarda con `;`: la importación lo detecta.
+
 ---
 
 ## 8. Migración desde el Excel: con verificación

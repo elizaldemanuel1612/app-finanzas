@@ -52,4 +52,27 @@ void main() {
     final mapeo = detectarColumnas(['fecha', 'date']);
     expect(mapeo[CampoImportado.fecha], 0);
   });
+
+  test('detecta las columnas de la exportación completa', () {
+    final mapeo = detectarColumnas([
+      'Fecha', 'Monto', 'Categoría', 'Emoji', 'Descripción',
+      'Medio de pago', 'Estado', 'Cómo se registró', 'ID',
+    ]);
+    expect([for (final c in CampoImportado.values) mapeo[c]], [0, 1, 3, 2, 4, 5, 6, 7, 8]);
+  });
+
+  test('"id" solo cuenta como encabezado completo', () {
+    expect(detectarColumnas(['Fecha', 'Monto', 'Válido'])[CampoImportado.id], isNull);
+    expect(detectarColumnas(['ClientId'])[CampoImportado.id], 0);
+  });
+
+  test('una columna no se usa para dos campos', () {
+    final mapeo = detectarColumnas(['Emoji de categoría', 'Categoría']);
+    expect(mapeo[CampoImportado.emoji], 0);
+    expect(mapeo[CampoImportado.categoria], 1);
+  });
+
+  test('"Origen de captura" de exportaciones anteriores se reconoce', () {
+    expect(detectarColumnas(['Origen de captura'])[CampoImportado.origen], 0);
+  });
 }

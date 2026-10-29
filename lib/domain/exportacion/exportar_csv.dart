@@ -1,23 +1,54 @@
 import '../modelos/categoria.dart';
+import '../modelos/estado_movimiento.dart';
 import '../modelos/movimiento.dart';
 
 /// Pública para que `domain/importacion/plantilla_csv.dart` genere la
 /// plantilla de ejemplo con los mismos encabezados — lo que la app exporta
-/// se puede reimportar tal cual.
+/// se puede reimportar tal cual. Las obligatorias van primero; lo demás es
+/// opcional al importar (2026-10-29: se agregaron Emoji, ID y los valores
+/// en español para que la ida y vuelta no pierda nada del movimiento).
 const encabezadosExportacion = [
   'Fecha',
-  'Categoría',
-  'Descripción',
   'Monto',
+  'Categoría',
+  'Emoji',
+  'Descripción',
   'Medio de pago',
   'Estado',
-  'Origen de captura',
+  'Cómo se registró',
+  'ID',
 ];
+
+/// Cómo se escribe cada valor en el CSV, en palabras que entiende quien
+/// lo abre en una hoja de cálculo. La importación lee estas mismas
+/// etiquetas (y también los nombres internos de antes, `activo`, `manual`…).
+const etiquetaMedio = {
+  MedioPago.tarjeta: 'Tarjeta',
+  MedioPago.efectivo: 'Efectivo',
+};
+
+const etiquetaEstado = {
+  EstadoMovimiento.activo: 'Activo',
+  EstadoMovimiento.propuesto: 'Pendiente',
+  EstadoMovimiento.anulado: 'Anulado',
+};
+
+const etiquetaOrigen = {
+  OrigenCaptura.manual: 'Manual',
+  OrigenCaptura.voz: 'Voz',
+  OrigenCaptura.ticket: 'Ticket',
+  OrigenCaptura.recurrente: 'Recurrente',
+  OrigenCaptura.migracion: 'Importado',
+};
 
 /// Exportación de movimientos a CSV (spec-app-finanzas-v2.md §7.4,
 /// paquete-construccion-final.md §8: "Exportar/compartir → API de Flutter,
 /// igual en ambas"). Dart puro para poder probarse con `dart test` y
 /// mantener el 100% de cobertura de `domain/`.
+///
+/// Exporta todo, también lo anulado y lo pendiente (con su estado), para
+/// que reimportar no reviva un gasto que el usuario había quitado. El ID
+/// es el `clientId`: reimportar en la misma cuenta no duplica nada.
 ///
 /// RFC 4180: campos con coma, comilla o salto de línea van entre comillas,
 /// con las comillas internas duplicadas. Los montos se exportan como texto
@@ -29,24 +60,35 @@ String exportarMovimientosCsv({
   required List<Categoria> categorias,
 }) {
   final categoriasPorId = {for (final c in categorias) c.id: c};
-  final buffer = StringBuffer('﻿');
+  final buffer = StringBuffer('\uFEFF');
   buffer.writeln(encabezadosExportacion.map(_celda).join(','));
 
   for (final m in movimientos) {
     final categoria = categoriasPorId[m.categoriaId];
     final fila = [
-      m.fecha.toIso8601String(),
-      _neutralizarFormula(categoria?.nombre ?? m.categoriaId),
-      _neutralizarFormula(m.descripcion),
+      fechaParaCsv(m.fecha),
       _montoPlano(m.monto.centavos),
-      m.medio.name,
-      m.estado.name,
-      m.origenCaptura.name,
+      _neutralizarFormula(categoria?.nombre ?? m.categoriaId),
+      _neutralizarFormula(categoria?.emoji ?? ''),
+      _neutralizarFormula(m.descripcion),
+      etiquetaMedio[m.medio]!,
+      etiquetaEstado[m.estado]!,
+      etiquetaOrigen[m.origenCaptura]!,
+      _neutralizarFormula(m.clientId),
     ];
     buffer.writeln(fila.map(_celda).join(','));
   }
 
   return buffer.toString();
+}
+
+/// `aaaa-mm-dd`, y la hora (`aaaa-mm-dd HH:mm`) solo si la tiene: así la
+/// hoja de cálculo la reconoce como fecha y el orden del día se conserva.
+String fechaParaCsv(DateTime fecha) {
+  String dos(int n) => n.toString().padLeft(2, '0');
+  final dia = '${fecha.year}-${dos(fecha.month)}-${dos(fecha.day)}';
+  if (fecha.hour == 0 && fecha.minute == 0) return dia;
+  return '$dia ${dos(fecha.hour)}:${dos(fecha.minute)}';
 }
 
 String _montoPlano(int centavos) {
@@ -64,12 +106,21 @@ String _montoPlano(int centavos) {
 /// se ejecutaría al abrir el CSV. Anteponer una comilla simple lo fuerza a
 /// texto. No se aplica a `_montoPlano` (los negativos empiezan con `-` a
 /// propósito, para que la hoja los lea como número) ni a los campos que
-/// vienen de enums propios (`medio`, `estado`, `origenCaptura`).
+/// vienen de etiquetas propias (medio, estado, cómo se registró). La
+/// importación quita esa comilla al leer (`quitarNeutralizacion`).
 const _caracteresDeFormula = {'=', '+', '-', '@', '\t', '\r'};
 
 String _neutralizarFormula(String valor) {
   if (valor.isEmpty || !_caracteresDeFormula.contains(valor[0])) return valor;
   return "'$valor";
+}
+
+/// Inverso de la neutralización: `'=algo` vuelve a `=algo` al importar.
+String quitarNeutralizacion(String valor) {
+  if (valor.length > 1 && valor[0] == "'" && _caracteresDeFormula.contains(valor[1])) {
+    return valor.substring(1);
+  }
+  return valor;
 }
 
 String _celda(String valor) {
