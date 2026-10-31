@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/ciclo.dart';
 import '../../core/money.dart';
@@ -21,6 +22,7 @@ import '../../domain/presupuesto/disponible_por_dia.dart';
 import '../../domain/presupuesto/meta_base.dart';
 import '../../domain/rollups/calcular_rollups.dart';
 import '../../domain/rollups/estado_ritmo.dart';
+import '../../domain/rollups/orden_categorias.dart';
 import '../../domain/rollups/rollup.dart';
 import '../../plataforma/accesos_rapidos.dart';
 import '../ajustes/pantalla_ajustes.dart';
@@ -83,10 +85,34 @@ class _PantallaInicioState extends State<PantallaInicio> {
   bool _variablesExpandido = true;
   bool _fijasExpandido = true;
   bool _capturaAbierta = false;
+  OrdenCategorias _orden = OrdenCategorias.porcentajeUsado;
+
+  static const _claveOrden = 'orden_categorias_inicio';
+
+  /// Preferencia del dispositivo, como la apariencia: no viaja en el respaldo.
+  Future<void> _cargarOrden() async {
+    try {
+      final guardado = await SharedPreferencesAsync().getString(_claveOrden);
+      if (!mounted) return;
+      setState(() {
+        _orden = OrdenCategorias.values.firstWhere((o) => o.name == guardado, orElse: () => _orden);
+      });
+    } catch (_) {
+      // Sin almacenamiento disponible: se queda el orden por omisión.
+    }
+  }
+
+  Future<void> _elegirOrden(OrdenCategorias orden) async {
+    setState(() => _orden = orden);
+    try {
+      await SharedPreferencesAsync().setString(_claveOrden, orden.name);
+    } catch (_) {}
+  }
 
   @override
   void initState() {
     super.initState();
+    _cargarOrden();
     _recalcularCiclo();
     _cargar();
     AccesosRapidos.escuchar(_abrirAccesoRapido);
@@ -180,16 +206,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
     // presupuesto mostrado en la fila) sale de `rollupPorCategoria`, que
     // se calculó con `categoriasEfectivas`.
     final fijas = categorias.whereType<CategoriaFija>().toList();
-    final variables = categorias.whereType<CategoriaVariable>().toList()
-      ..sort((a, b) {
-        final ea = calcularEstadoRitmo(
-          porcentajeUsado: rollupPorCategoria[a.id]?.porcentajeUsado,
-        );
-        final eb = calcularEstadoRitmo(
-          porcentajeUsado: rollupPorCategoria[b.id]?.porcentajeUsado,
-        );
-        return eb.index.compareTo(ea.index); // excedido primero
-      });
+    final variables = categorias.whereType<CategoriaVariable>().toList();
 
     final totalGastado = Dinero.suma(rollups.map((r) => r.totalCentavos));
     final gastadoVariables = Dinero.suma(
@@ -533,8 +550,12 @@ class _PantallaInicioState extends State<PantallaInicio> {
             trailing: Icon(Icons.chevron_right, color: ColoresApp.medio),
           ),
         ),
+        if (datos.variables.isNotEmpty || datos.fijas.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          _SelectorOrden(orden: _orden, alElegir: _elegirOrden),
+        ],
         if (datos.variables.isNotEmpty) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _EncabezadoSeccion(
             titulo: 'Gastos Variables',
             resumen: '${datos.gastadoVariables.formateado()} de '
@@ -544,7 +565,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
           ),
           if (_variablesExpandido) ...[
             const SizedBox(height: 10),
-            ...datos.variables.map((c) {
+            ...ordenarCategorias(datos.variables, datos.rollupPorCategoria, _orden).map((c) {
             final rollup = datos.rollupPorCategoria[c.id];
             final estado = calcularEstadoRitmo(
               porcentajeUsado: rollup?.porcentajeUsado,
@@ -657,7 +678,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
             const SizedBox(height: 10),
             Card(
               child: Column(
-                children: datos.fijas.map((c) {
+                children: ordenarCategorias(datos.fijas, datos.rollupPorCategoria, _orden).map((c) {
                   final rollup = datos.rollupPorCategoria[c.id];
                   final gastado = rollup?.totalCentavos ?? const Dinero.cero();
                   final presupuesto = rollup?.presupuestoCentavos ?? c.montoFijoCentavos;
@@ -802,6 +823,41 @@ class _TarjetaMeta extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Elige el orden de las dos listas con un toque, siempre de mayor a menor.
+class _SelectorOrden extends StatelessWidget {
+  final OrdenCategorias orden;
+  final ValueChanged<OrdenCategorias> alElegir;
+
+  const _SelectorOrden({required this.orden, required this.alElegir});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          'Ordenar por',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: ColoresApp.medio),
+        ),
+        ChoiceChip(
+          label: const Text('% usado'),
+          tooltip: 'Ordenar por presupuesto consumido, de mayor a menor',
+          selected: orden == OrdenCategorias.porcentajeUsado,
+          onSelected: (_) => alElegir(OrdenCategorias.porcentajeUsado),
+        ),
+        ChoiceChip(
+          label: const Text('\$ gastado'),
+          tooltip: 'Ordenar por dinero gastado, de mayor a menor',
+          selected: orden == OrdenCategorias.dineroGastado,
+          onSelected: (_) => alElegir(OrdenCategorias.dineroGastado),
+        ),
+      ],
     );
   }
 }

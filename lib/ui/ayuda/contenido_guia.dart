@@ -61,9 +61,10 @@ const _temaInicio = TemaGuia(
     ),
     Subtitulo('Gastos Variables'),
     Parrafo(
-      'La lista de categorías variables se ordena sola: las que van '
-      'excedidas aparecen primero, para que sepas dónde mirar sin '
-      'recorrer toda la lista. El encabezado siempre muestra cuánto llevas '
+      'Con **Ordenar por** eliges cómo ver tus categorías, variables y fijas, '
+      'de mayor a menor: **% usado** muestra primero las que más han '
+      'consumido de su presupuesto, y **\$ gastado**, donde más dinero se ha '
+      'ido. El encabezado siempre muestra cuánto llevas '
       'gastado de lo presupuestado para toda la sección, y puedes tocarlo '
       'para contraer o desplegar la lista.',
     ),
