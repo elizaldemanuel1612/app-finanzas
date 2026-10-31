@@ -126,4 +126,13 @@ void main() {
         MovimientoRepositorioArchivo(File('${temp.path}/movimientos.json'));
     expect(await otraInstancia.listarTodos(), hasLength(1));
   });
+
+  test('reemplazarTodos deja exactamente esos, con id', () async {
+    await repo.guardar(_mov('cliente-1-uuid'));
+    await repo.guardar(_mov('cliente-1-uui8'));
+    await repo.reemplazarTodos([_mov('cliente-1-uui9')]);
+    final todos = await repo.listarTodos();
+    expect(todos.single.clientId, 'cliente-1-uui9');
+    expect(todos.single.id, 'cliente-1-uui9');
+  });
 }

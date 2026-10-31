@@ -12,7 +12,6 @@ import '../migracion/movimiento_migrado.dart';
 import '../modelos/categoria.dart';
 import '../modelos/estado_movimiento.dart';
 import '../modelos/movimiento.dart';
-import '../presupuesto/categorias.dart';
 import 'csv.dart';
 import 'emoji_sugerido.dart';
 import 'mapeo_columnas.dart';
@@ -43,11 +42,19 @@ final class RenglonConProblema {
 /// que el usuario vea a qué meses afecta.
 final class ResultadoImportacion {
   final List<Movimiento> movimientos;
-  final List<CategoriaVariable> categoriasPorCrear;
+  final List<Categoria> categoriasPorCrear;
 
-  /// Categorías que ya existían con el emoji genérico de importaciones
-  /// anteriores (📥) y que ahora reciben el del archivo o uno sugerido.
+  /// Categorías que ya existían y cuyo plan o emoji cambia con el archivo.
   final List<Categoria> categoriasPorActualizar;
+
+  /// Categorías de la cuenta que no vienen en el archivo: se eliminan.
+  final List<Categoria> categoriasPorEliminar;
+
+  /// Todas las categorías que quedan: las del archivo.
+  final List<Categoria> categoriasFinales;
+
+  /// Movimientos de la cuenta que no vienen en el archivo: se eliminan.
+  final int movimientosPorEliminar;
   final List<RenglonConProblema> renglonesConProblema;
   final List<RenglonConProblema> avisos;
   final Map<String, Dinero> totalesPorCiclo;
@@ -63,12 +70,18 @@ final class ResultadoImportacion {
     required this.movimientos,
     required this.categoriasPorCrear,
     this.categoriasPorActualizar = const [],
+    this.categoriasPorEliminar = const [],
+    this.categoriasFinales = const [],
+    this.movimientosPorEliminar = 0,
     required this.renglonesConProblema,
     this.avisos = const [],
     required this.totalesPorCiclo,
     this.categoriasAdivinadas = 0,
     this.sinCategoria = 0,
   });
+
+  /// Hay datos de la cuenta que se perderían: pide confirmación.
+  bool get eliminaDatos => movimientosPorEliminar > 0 || categoriasPorEliminar.isNotEmpty;
 
   /// Cuántos movimientos llegan anulados (exportados así): se guardan para
   /// no perderlos, pero no cuentan en ningún total.
@@ -94,6 +107,17 @@ final class ResultadoImportacion {
 /// no se resuelve va a [categoriaSinCategoria] — nunca se inventa una
 /// categoría en la que no se confía (spec §0.4).
 ///
+/// **Reemplaza, no suma (spec-app-finanzas-v2.md §7.4):** quien llama guarda
+/// [ResultadoImportacion.categoriasFinales] y
+/// [ResultadoImportacion.movimientos]; todo lo demás se elimina. Un
+/// movimiento con el mismo ID que uno de [movimientosExistentes] toma los
+/// valores del archivo pero conserva su `cicloId` (regla #5) y lo que el
+/// archivo no lleva (foto, ticket).
+///
+/// Un renglón con Fecha y Monto vacíos y con categoría solo declara esa
+/// categoría. El plan (presupuesto, tipo…) vacío conserva el de la categoría
+/// existente del mismo nombre, que además conserva su id.
+///
 /// Cada movimiento se construye con [crearMovimientoMigrado]. Su
 /// `clientId` es la columna ID si viene (lo que escribe la exportación:
 /// reimportar en la misma cuenta no duplica) o, si no, una huella estable
@@ -108,6 +132,7 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
   required List<Categoria> categoriasExistentes,
   List<ReglaAprendida> reglasUsuario = const [],
   Map<String, String> historialComercios = const {},
+  List<Movimiento> movimientosExistentes = const [],
 }) {
   final filas = leerCsv(contenidoCsv, separador: detectarSeparador(contenidoCsv));
   // Las instrucciones de la plantilla pueden seguir en el archivo. El número
@@ -131,8 +156,8 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
   final existentesPorNombre = {
     for (final c in categoriasExistentes) normalizarTexto(c.nombre): c,
   };
-  final categoriasNuevasPorNombre = <String, CategoriaVariable>{};
-  final categoriasActualizadas = <String, Categoria>{};
+  final existentesPorClientId = {for (final m in movimientosExistentes) m.clientId: m};
+  final planes = <String, _PlanCategoria>{};
   final idsVistos = <String>{};
   final movimientos = <Movimiento>[];
   final problemas = <RenglonConProblema>[];
@@ -174,6 +199,23 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
     void avisar(String motivo) =>
         avisos.add(RenglonConProblema(numeroDeRenglon: numeroDeRenglon, motivo: motivo));
 
+    void declararCategoria(String nombre, String? emojiPegado) {
+      final plan = planes.putIfAbsent(
+        normalizarTexto(nombre),
+        () => _PlanCategoria(nombre: nombre, renglon: numeroDeRenglon),
+      );
+      plan.emojiDelArchivo ??= _noVacio(campo(CampoImportado.emoji)) ?? emojiPegado;
+      _leerPlan(plan, campo, avisar);
+    }
+
+    final categoriaDelRenglon = separarEmojiDelNombre(campo(CampoImportado.categoria));
+    if (campo(CampoImportado.fecha).isEmpty &&
+        campo(CampoImportado.monto).isEmpty &&
+        categoriaDelRenglon.nombre.isNotEmpty) {
+      declararCategoria(categoriaDelRenglon.nombre, categoriaDelRenglon.emoji);
+      continue;
+    }
+
     final textoFecha = campo(CampoImportado.fecha);
     final fecha = _parsearFecha(textoFecha);
     if (fecha == null) {
@@ -194,23 +236,15 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
       continue;
     }
 
-    final separado = separarEmojiDelNombre(campo(CampoImportado.categoria));
+    final separado = categoriaDelRenglon;
     final descripcion = campo(CampoImportado.descripcion);
     final adivinada = separado.nombre.isEmpty ? adivinarPorDescripcion(descripcion) : null;
     final nombreCategoria = separado.nombre.isNotEmpty
         ? separado.nombre
         : adivinada ?? categoriaSinCategoria;
-    final emojiDelArchivo = campo(CampoImportado.emoji);
-    final emoji = emojiDelArchivo.isNotEmpty
-        ? emojiDelArchivo
-        : separado.emoji ?? sugerirEmoji(nombreCategoria);
-    final categoriaId = _categoriaPara(
-      nombreCategoria,
-      emoji,
-      existentesPorNombre,
-      categoriasNuevasPorNombre,
-      categoriasActualizadas,
-    );
+    declararCategoria(nombreCategoria, separado.emoji);
+    final existenteDelNombre = existentesPorNombre[normalizarTexto(nombreCategoria)];
+    final categoriaId = existenteDelNombre?.id ?? _idNuevo(nombreCategoria);
 
     final textoMedio = campo(CampoImportado.medio);
     final medio = _leerMedio(textoMedio);
@@ -238,11 +272,25 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
       estado: estado ?? EstadoMovimiento.activo,
       origenCaptura: _leerOrigen(campo(CampoImportado.origen)),
     );
+    final textoOrigen = campo(CampoImportado.origen);
 
     switch (resultado) {
       case Falla(:final mensaje):
         problemas.add(RenglonConProblema(numeroDeRenglon: numeroDeRenglon, motivo: mensaje));
-      case Exito(:final valor):
+      case Exito(valor: final leido):
+        final previo = existentesPorClientId[leido.clientId];
+        final valor = previo == null
+            ? leido
+            : previo.copyWith(
+                fecha: leido.fecha,
+                periodoNatural: leido.periodoNatural,
+                monto: leido.monto,
+                categoriaId: leido.categoriaId,
+                medio: leido.medio,
+                descripcion: leido.descripcion,
+                estado: leido.estado,
+                origenCaptura: textoOrigen.isEmpty ? previo.origenCaptura : leido.origenCaptura,
+              );
         movimientos.add(valor);
         if (separado.nombre.isEmpty) adivinada != null ? adivinadas++ : sinCategoria++;
         if (valor.estado == EstadoMovimiento.activo) {
@@ -252,10 +300,32 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
     }
   }
 
+  final finales = <Categoria>[];
+  final porCrear = <Categoria>[];
+  final porActualizar = <Categoria>[];
+  for (final e in planes.entries) {
+    final existente = existentesPorNombre[e.key];
+    final categoria = _construirCategoria(e.value, existente, avisos);
+    finales.add(categoria);
+    if (existente == null) {
+      porCrear.add(categoria);
+    } else if (jsonEncode(existente.toJson()) != jsonEncode(categoria.toJson())) {
+      porActualizar.add(categoria);
+    }
+  }
+  final clientIdsDelArchivo = {for (final m in movimientos) m.clientId};
+
   return Exito(ResultadoImportacion(
     movimientos: movimientos,
-    categoriasPorCrear: categoriasNuevasPorNombre.values.toList(),
-    categoriasPorActualizar: categoriasActualizadas.values.toList(),
+    categoriasPorCrear: porCrear,
+    categoriasPorActualizar: porActualizar,
+    categoriasPorEliminar: [
+      for (final c in categoriasExistentes)
+        if (!planes.containsKey(normalizarTexto(c.nombre))) c,
+    ],
+    categoriasFinales: finales,
+    movimientosPorEliminar:
+        movimientosExistentes.where((m) => !clientIdsDelArchivo.contains(m.clientId)).length,
     renglonesConProblema: problemas,
     avisos: avisos,
     totalesPorCiclo: totalesPorCiclo,
@@ -264,33 +334,123 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
   ));
 }
 
-/// Id de la categoría [nombre]: la existente con ese nombre (sin importar
-/// acentos ni mayúsculas), la nueva que ya se armó en este archivo, o una
-/// nueva con [emoji]. A una existente que conserva el 📥 genérico de
-/// importaciones anteriores se le pone [emoji].
-String _categoriaPara(
-  String nombre,
-  String emoji,
-  Map<String, Categoria> existentes,
-  Map<String, CategoriaVariable> nuevas,
-  Map<String, Categoria> actualizadas,
+/// Lo que el archivo dice de una categoría; `null` es "no lo dijo".
+final class _PlanCategoria {
+  final String nombre;
+  final int renglon;
+  String? emojiDelArchivo;
+  Dinero? monto;
+  bool? fija;
+  int? dia;
+  bool? necesaria;
+  bool? activa;
+
+  _PlanCategoria({required this.nombre, required this.renglon});
+}
+
+String? _noVacio(String texto) => texto.isEmpty ? null : texto;
+
+String _idNuevo(String nombre) => 'imp-${_slug(normalizarTexto(nombre))}';
+
+/// Lee el plan de un renglón. Si contradice lo ya leído de la categoría
+/// gana lo primero; un valor inválido se ignora. Ambos dejan aviso.
+void _leerPlan(
+  _PlanCategoria plan,
+  String Function(CampoImportado) campo,
+  void Function(String) avisar,
 ) {
-  final clave = normalizarTexto(nombre);
-  final existente = existentes[clave];
-  if (existente != null) {
-    if (existente.emoji == emojiImportadoAntiguo &&
-        emoji != emojiImportadoAntiguo &&
-        !actualizadas.containsKey(clave)) {
-      actualizadas[clave] = conEmoji(existente, emoji);
+  T? combinar<T>(T? actual, T? nuevo, String etiqueta) {
+    if (actual != null && nuevo != null && actual != nuevo) {
+      avisar('$etiqueta de "${plan.nombre}" no coincide con otro renglón; se usó el primero.');
     }
-    return existente.id;
+    return actual ?? nuevo;
   }
-  return nuevas
-      .putIfAbsent(
-        clave,
-        () => crearCategoriaImportada(id: 'imp-${_slug(clave)}', nombre: nombre, emoji: emoji),
-      )
-      .id;
+
+  final textoMonto = campo(CampoImportado.presupuesto);
+  final monto = textoMonto.isEmpty ? null : _parsearMonto(textoMonto);
+  if (textoMonto.isNotEmpty && (monto == null || monto.centavos < 0)) {
+    avisar('Presupuesto "$textoMonto" no reconocido; se ignoró.');
+  } else {
+    plan.monto = combinar(plan.monto, monto, 'El presupuesto');
+  }
+
+  final textoTipo = normalizarTexto(campo(CampoImportado.tipo));
+  final fija = switch (textoTipo) { 'fija' || 'fijo' => true, 'variable' => false, _ => null };
+  if (textoTipo.isNotEmpty && fija == null) avisar('Tipo "$textoTipo" no reconocido; se ignoró.');
+  plan.fija = combinar(plan.fija, fija, 'El tipo');
+
+  final textoDia = campo(CampoImportado.diaDeCobro);
+  final dia = int.tryParse(textoDia);
+  if (dia != null && dia >= 1 && dia <= 31) {
+    plan.dia = combinar(plan.dia, dia, 'El día de cobro');
+  } else if (textoDia.isNotEmpty) {
+    avisar('Día de cobro "$textoDia" no reconocido; se ignoró.');
+  }
+
+  bool? siNo(CampoImportado c) {
+    final t = normalizarTexto(campo(c));
+    if (t.isEmpty) return null;
+    if (t == 'si' || t == 'true') return true;
+    if (t == 'no' || t == 'false') return false;
+    avisar('"$t" no es Sí ni No; se ignoró.');
+    return null;
+  }
+
+  plan.necesaria = combinar(plan.necesaria, siNo(CampoImportado.necesaria), 'Necesaria');
+  plan.activa = combinar(plan.activa, siNo(CampoImportado.activa), 'Activa');
+}
+
+/// Combina el plan del archivo con la categoría [existente] del mismo
+/// nombre. El tipo solo sale del archivo o de lo que ya era (regla #8).
+Categoria _construirCategoria(
+  _PlanCategoria plan,
+  Categoria? existente,
+  List<RenglonConProblema> avisos,
+) {
+  void avisar(String motivo) =>
+      avisos.add(RenglonConProblema(numeroDeRenglon: plan.renglon, motivo: motivo));
+
+  final monto = plan.monto ??
+      switch (existente) {
+        final CategoriaFija c => c.montoFijoCentavos,
+        final CategoriaVariable c => c.presupuestoMensualCentavos,
+        _ => const Dinero.cero(),
+      };
+  var fija = plan.fija ?? existente is CategoriaFija;
+  if (fija && monto.centavos <= 0) {
+    avisar('"${plan.nombre}" es fija pero no tiene monto; quedó como variable.');
+    fija = false;
+  }
+  final id = existente?.id ?? _idNuevo(plan.nombre);
+  final emoji = plan.emojiDelArchivo ??
+      (existente == null || existente.emoji == emojiImportadoAntiguo
+          ? sugerirEmoji(plan.nombre)
+          : existente.emoji);
+  final activa = plan.activa ?? existente?.activa ?? true;
+  final necesaria = plan.necesaria ?? existente?.esNecesaria ?? false;
+  if (!fija) {
+    return CategoriaVariable(
+      id: id,
+      nombre: plan.nombre,
+      emoji: emoji,
+      activa: activa,
+      esNecesaria: necesaria,
+      presupuestoMensualCentavos: monto,
+    );
+  }
+  final diaPrevio = existente is CategoriaFija ? existente.diaDelCiclo : null;
+  if (plan.dia == null && diaPrevio == null) {
+    avisar('"${plan.nombre}" es fija sin día de cobro; se usó el día 1.');
+  }
+  return CategoriaFija(
+    id: id,
+    nombre: plan.nombre,
+    emoji: emoji,
+    activa: activa,
+    esNecesaria: necesaria,
+    montoFijoCentavos: monto,
+    diaDelCiclo: plan.dia ?? diaPrevio ?? 1,
+  );
 }
 
 String _campo(List<String> renglon, int? indice) {

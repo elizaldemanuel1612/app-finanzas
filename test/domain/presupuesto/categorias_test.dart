@@ -176,29 +176,4 @@ void main() {
       expect((conActiva(fija, true) as CategoriaFija).activa, isTrue);
     });
   });
-
-  group('conEmoji', () {
-    test('cambia solo el emoji de una fija', () {
-      final fija = crearCategoriaFija(
-        id: 'gimnasio',
-        nombre: 'Gimnasio',
-        emoji: '📥',
-        montoFijoCentavos: const Dinero.pesos(658),
-        diaDelCiclo: 5,
-      ).valorOLanza;
-      final nueva = conEmoji(fija, '🏋️') as CategoriaFija;
-      expect(nueva.emoji, '🏋️');
-      expect(nueva.montoFijoCentavos, fija.montoFijoCentavos);
-      expect(nueva.diaDelCiclo, 5);
-      expect(nueva.activa, fija.activa);
-    });
-
-    test('cambia solo el emoji de una variable', () {
-      final variable = crearCategoriaImportada(id: 'imp-x', nombre: 'X', emoji: '📥');
-      final nueva = conEmoji(variable, '🛒') as CategoriaVariable;
-      expect(nueva.emoji, '🛒');
-      expect(nueva.id, 'imp-x');
-      expect(nueva.presupuestoMensualCentavos, const Dinero.cero());
-    });
-  });
 }

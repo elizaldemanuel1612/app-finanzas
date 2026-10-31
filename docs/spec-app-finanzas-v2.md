@@ -308,15 +308,23 @@ Exportar todo a Excel/CSV cuando quieras. No quedas atrapado en la app — y te 
 | Monto | `450.00`, sin símbolo | Obligatorio, mayor a 0. Tolera `$`, comas de miles y `MXN` |
 | Categoría | Nombre | Se busca por nombre sin acentos/mayúsculas; si no existe se crea variable con presupuesto $0. Acepta el emoji pegado al inicio ("🛒 Súper"). **Vacía:** se adivina por la descripción con la cascada §6.1 (reglas del usuario → historial de comercios de la cuenta → lo que enseñan los renglones del mismo archivo que sí traen categoría); si nada resuelve, va a "Sin categoría" y la vista previa dice cuántos son, para moverlos después desde Gastos. Nunca se inventa una categoría en la que no se confía (§0.4) |
 | Emoji | El de la categoría | Para la categoría nueva; vacío → sugerido por el nombre. Una categoría existente con el 📥 genérico de antes lo recibe |
+| Presupuesto | Presupuesto mensual (variable) o monto fijo (fija) | Vacío → conserva el de la categoría existente; nueva: $0. Inválido → se ignora con aviso |
+| Tipo | `Fija` / `Variable` | Vacío → conserva el existente; nueva: Variable. Una fija sin monto mayor a 0 queda variable, con aviso. Nunca se infiere del nombre (regla #8) |
+| Día de cobro | Solo fijas | 1–31. Vacío → conserva el existente; nueva: 1, con aviso |
+| Necesaria / Activa | `Sí` / `No` | Vacío → conserva; nueva: No / Sí |
 | Descripción | Texto | Vacía → nombre de la categoría |
 | Medio de pago | `Tarjeta` / `Efectivo` | Vacío → Tarjeta. Otro texto → Tarjeta con aviso |
 | Estado | `Activo` / `Anulado` / `Pendiente` | Vacío → Activo. Otro texto → Activo con aviso (nunca tumba el renglón). Lo anulado se guarda anulado, sin contar en totales |
 | Cómo se registró | `Manual`, `Voz`, `Ticket`, `Recurrente`, `Importado` | Se conserva si se reconoce; si no, Importado |
 | ID | `clientId` | Si viene, es el `clientId`: reimportar en la misma cuenta no duplica (regla #2). Vacío → huella estable del archivo + renglón |
 
-Se exporta todo, también lo anulado: si no, reimportar revivía gastos que el usuario había quitado. El tipo (fija/variable) y el presupuesto de las categorías no viajan en el CSV —son del plan, no de los movimientos—; para mover la cuenta completa está el respaldo en Drive (§4.2.1). Excel en algunos idiomas guarda con `;`: la importación lo detecta.
+Se exporta todo, también lo anulado: si no, reimportar revivía gastos que el usuario había quitado. El plan de cada categoría se repite en todos sus renglones; si dos renglones lo contradicen gana el primero, con aviso. Una categoría sin gastos sale en un renglón con Fecha y Monto vacíos.
 
-**Instrucciones para la IA (2026-10-30).** La plantilla empieza con renglones `#` que le dicen a la IA del usuario cómo llenarla: archivo `.csv` UTF-8 con comas, encabezados intactos, formato de fecha y monto, valores permitidos (Tarjeta/Efectivo, Activo/Anulado) y un emoji por categoría según su nombre. La importación ignora todo renglón cuya primera celda empiece con `#`.
+**Importar reemplaza (2026-10-31, excepción a la regla #3 pedida por el usuario).** Al terminar, los gastos y categorías de la cuenta son exactamente los del archivo: lo que no viene se elimina físicamente, incluido lo que estaba anulado. La vista previa dice cuánto se elimina y hay que confirmarlo. Un gasto con el mismo ID conserva su `cicloId` (regla #5), foto y ticket; una categoría con el mismo nombre conserva su id. Con el respaldo activo, la copia de Drive se sobrescribe con el dispositivo en vez de fusionarse, porque la fusión revive lo eliminado; si no hay red, queda pendiente para la siguiente sincronización. No se tocan perfil, ingresos extra ni ciclos cerrados: sus fotos guardadas (`snapshot`) conservan los totales con que se cerraron.
+
+Para mover la cuenta completa sigue estando el respaldo en Drive (§4.2.1). Excel en algunos idiomas guarda con `;`: la importación lo detecta.
+
+**Instrucciones para la IA (2026-10-30).** La plantilla empieza con renglones `#` que le dicen a la IA del usuario cómo llenarla: archivo `.csv` UTF-8 con comas, encabezados intactos, formato de fecha y monto, valores permitidos (Tarjeta/Efectivo, Activo/Anulado, Fija/Variable), presupuesto por categoría y un emoji según su nombre. La importación ignora todo renglón cuya primera celda empiece con `#`.
 
 ---
 

@@ -9,27 +9,34 @@ import 'csv.dart';
 const instruccionesParaIA = [
   'INSTRUCCIONES PARA LA IA: convierte los gastos del usuario a este formato para importarlos en la app MAVfin.',
   'ARCHIVO: entrega un archivo .csv (texto plano) en UTF-8, separado por comas. No lo entregues como Excel (.xlsx), PDF ni tabla en el chat.',
-  'ENCABEZADOS: conserva exactamente el renglón de encabezados: mismos nombres, mismo orden y las 9 columnas. No agregues columnas. Cada gasto va en un renglón.',
+  'ENCABEZADOS: conserva exactamente el renglón de encabezados: mismos nombres, mismo orden y las 14 columnas. No agregues columnas. Cada gasto va en un renglón.',
   'VACÍOS: si un dato no se conoce, deja la celda vacía pero conserva sus comas. Nunca inventes datos.',
   'TEXTO CON COMAS: si una descripción o categoría lleva coma, enciérrala entre comillas dobles.',
   'Fecha (obligatoria): usa siempre aaaa-mm-dd, por ejemplo 2026-08-05. Si conoces la hora: aaaa-mm-dd HH:mm.',
   'Monto (obligatorio): número mayor a 0, con punto decimal, sin signo de pesos, sin comas de miles y sin negativos. Ejemplo: 1250.00. No incluyas ingresos ni depósitos.',
   'Categoría: usa siempre el mismo nombre para la misma categoría, escrito igual, sin emoji. Si no puedes deducirla, déjala vacía.',
   'Emoji: pon exactamente un emoji que corresponda al nombre de la categoría, por ejemplo 🛒 para Súper o 🚗 para Auto. Usa el mismo emoji en todos los renglones de esa categoría.',
+  'Presupuesto: cuánto planea gastar el usuario al mes en esa categoría, en el mismo formato que Monto. Repite el mismo valor en todos los renglones de la categoría. Si el usuario no lo indicó, déjalo vacío; no lo calcules ni lo inventes.',
+  'Tipo: solo se permite Fija o Variable, escrito así. Fija es un pago del mismo monto cada mes, como renta o gimnasio. Si no se sabe, déjalo vacío.',
+  'Día de cobro: solo para Fija, número del 1 al 31. En Variable déjalo vacío.',
+  'Necesaria y Activa: solo se permite Sí o No. Si no se sabe, déjalas vacías.',
+  'Categoría sin gastos: si el usuario tiene una categoría con presupuesto pero sin gastos, agrégala en un renglón con Fecha y Monto vacíos.',
+  'IMPORTANTE: al cargar este archivo, la app elimina todos los gastos y categorías que no vengan en él. Incluye todo lo que el usuario quiera conservar.',
   'Descripción: texto libre con el comercio o concepto. Puede ir vacía.',
   'Medio de pago: solo se permite Tarjeta o Efectivo, escrito así. Si no se sabe, déjalo vacío.',
   'Estado: solo se permite Activo o Anulado, escrito así. Usa Anulado solo si el gasto se canceló o devolvió; si no, Activo.',
   'Cómo se registró: déjalo vacío.',
   'ID: déjalo vacío.',
-  'Borra los dos renglones de ejemplo de abajo. Estas líneas que empiezan con el signo de número se pueden quedar o borrar; la app las ignora.',
+  'Borra los tres renglones de ejemplo de abajo. Estas líneas que empiezan con el signo de número se pueden quedar o borrar; la app las ignora.',
 ];
 
 /// Filas de ejemplo con los mismos encabezados y valores que escribe
-/// `exportarMovimientosCsv`. La segunda muestra que lo que llena la app
-/// (Cómo se registró, ID) puede ir vacío.
+/// `exportarMovimientosCsv`. La segunda muestra lo que puede ir vacío y la
+/// tercera, una categoría sin gastos.
 const _filasDeEjemplo = [
-  ['2026-08-05 13:30', '450.00', 'Súper', '🛒', 'Compra de la quincena', 'Tarjeta', 'Activo', 'Manual', ''],
-  ['2026-08-06', '85.50', 'Salidas', '🍿', 'Café', 'Efectivo', 'Activo', '', ''],
+  ['2026-08-05 13:30', '450.00', 'Súper', '🛒', '6000.00', 'Variable', '', 'Sí', 'Sí', 'Compra de la quincena', 'Tarjeta', 'Activo', 'Manual', ''],
+  ['2026-08-06', '85.50', 'Salidas', '🍿', '', '', '', '', '', 'Café', 'Efectivo', 'Activo', '', ''],
+  ['', '', 'Vivienda', '🏠', '12000.00', 'Fija', '1', 'Sí', 'Sí', '', '', '', '', ''],
 ];
 
 /// Plantilla de ejemplo para "Descargar plantilla de ejemplo" (Bloque B):
@@ -52,10 +59,15 @@ String generarPlantillaCsvDeEjemplo() {
 /// Qué va en cada columna, para la pantalla de importar y para pasárselo a
 /// una IA junto con la plantilla. Mismo orden que [encabezadosExportacion].
 const ayudaColumnasCsv = [
-  ('Fecha', 'Obligatoria. 2026-08-05, 05/08/2026 o con hora: 2026-08-05 13:30.'),
+  ('Fecha', 'Obligatoria, salvo en un renglón solo de categoría (Fecha y Monto vacíos). 2026-08-05, 05/08/2026 o con hora: 2026-08-05 13:30.'),
   ('Monto', 'Obligatorio. Mayor a 0, sin signo: 450.00 o \$1,250.'),
-  ('Categoría', 'Si no existe, se crea. Vacía: se adivina por la descripción; si no se puede, va a "Sin categoría".'),
+  ('Categoría', 'Vacía: se adivina por la descripción; si no se puede, va a "Sin categoría". Las que no vengan en el archivo se eliminan.'),
   ('Emoji', 'De la categoría nueva. Vacío: se elige uno por el nombre.'),
+  ('Presupuesto', 'Al mes, de la categoría. Vacío: se conserva el que tenga; si es nueva, \$0.'),
+  ('Tipo', 'Fija o Variable. Vacío: se conserva; si es nueva, Variable.'),
+  ('Día de cobro', 'Solo fijas, del 1 al 31.'),
+  ('Necesaria', 'Sí o No. Vacío: se conserva; si es nueva, No.'),
+  ('Activa', 'Sí o No. Vacío: se conserva; si es nueva, Sí.'),
   ('Descripción', 'Texto libre. Vacía: el nombre de la categoría.'),
   ('Medio de pago', 'Tarjeta o Efectivo. Vacío: Tarjeta.'),
   ('Estado', 'Activo o Anulado (Pendiente solo si viene de exportar). Vacío: Activo.'),

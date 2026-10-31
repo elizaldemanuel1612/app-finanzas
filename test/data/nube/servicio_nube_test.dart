@@ -153,4 +153,56 @@ void main() {
     expect(await nube.estaActiva(), isFalse);
     expect(await nube.ultimaSincronizacion(), isNull);
   });
+
+  test('tras marcarReemplazo, lo eliminado no revive y la copia queda igual al dispositivo', () async {
+    final a = _dispositivo();
+    await _escribir(a, 'movimientos.json', [_mov('m1'), _mov('m2')]);
+    await _escribir(a, 'categorias.json', [_cat('c1'), _cat('c2')]);
+    final nube = ServicioNube(almacen: a, remoto: drive);
+    await nube.activar(ModoFusion.usarDispositivo);
+
+    expect(await nube.pedirAcceso(), isTrue);
+    await nube.marcarReemplazo();
+    await _escribir(a, 'movimientos.json', [_mov('m2')]);
+    await _escribir(a, 'categorias.json', [_cat('c2')]);
+    expect(await nube.sincronizarSiActiva(), isTrue);
+
+    expect(drive.copia!['movimientos.json'], [_mov('m2')]);
+    expect(drive.copia!['categorias.json'], [_cat('c2')]);
+
+    // La sincronización normal siguiente tampoco los trae de vuelta.
+    await nube.sincronizarSiActiva();
+    expect(await _leer(a, 'movimientos.json'), [_mov('m2')]);
+    expect(await _leer(a, 'categorias.json'), [_cat('c2')]);
+    expect(drive.copia!['movimientos.json'], [_mov('m2')]);
+  });
+
+  test('sin red, el reemplazo queda pendiente para la siguiente sincronización', () async {
+    final a = _dispositivo();
+    await _escribir(a, 'movimientos.json', [_mov('m1'), _mov('m2')]);
+    final nube = ServicioNube(almacen: a, remoto: drive);
+    await nube.activar(ModoFusion.usarDispositivo);
+
+    await nube.marcarReemplazo();
+    await _escribir(a, 'movimientos.json', [_mov('m2')]);
+    drive.acceso = false;
+    expect(await nube.sincronizarSiActiva(), isFalse);
+
+    drive.acceso = true;
+    expect(await nube.sincronizarSiActiva(), isTrue);
+    expect(await _leer(a, 'movimientos.json'), [_mov('m2')]);
+    expect(drive.copia!['movimientos.json'], [_mov('m2')]);
+  });
+
+  test('desactivar olvida un reemplazo pendiente', () async {
+    final a = _dispositivo();
+    await _escribir(a, 'movimientos.json', [_mov('m1')]);
+    final nube = ServicioNube(almacen: a, remoto: drive);
+    await nube.activar(ModoFusion.usarDispositivo);
+    await nube.marcarReemplazo();
+    await nube.desactivar();
+    await _escribir(a, 'movimientos.json', const []);
+    await nube.activar(ModoFusion.combinar);
+    expect(await _leer(a, 'movimientos.json'), [_mov('m1')]);
+  });
 }

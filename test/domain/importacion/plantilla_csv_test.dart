@@ -18,7 +18,7 @@ void main() {
 
   test('las instrucciones dicen los valores permitidos, el formato y el emoji', () {
     final texto = instruccionesParaIA.join(' ');
-    for (final esperado in ['.csv', 'UTF-8', 'aaaa-mm-dd', 'Tarjeta o Efectivo', 'Activo o Anulado', 'emoji']) {
+    for (final esperado in ['.csv', 'UTF-8', 'aaaa-mm-dd', 'Tarjeta o Efectivo', 'Activo o Anulado', 'Fija o Variable', 'Presupuesto', 'elimina', 'emoji']) {
       expect(texto, contains(esperado));
     }
     for (final columna in encabezadosExportacion) {
@@ -42,7 +42,12 @@ void main() {
     expect(datos.movimientos.first.monto, const Dinero.pesos(450));
     expect(datos.movimientos.first.fecha, DateTime(2026, 8, 5, 13, 30));
     expect(datos.movimientos.last.medio, MedioPago.efectivo);
-    expect([for (final c in datos.categoriasPorCrear) '${c.emoji} ${c.nombre}'], ['🛒 Súper', '🍿 Salidas']);
+    expect(
+      [for (final c in datos.categoriasPorCrear) '${c.emoji} ${c.nombre}'],
+      ['🛒 Súper', '🍿 Salidas', '🏠 Vivienda'],
+    );
+    expect((datos.categoriasFinales.first as CategoriaVariable).presupuestoMensualCentavos, const Dinero.pesos(6000));
+    expect((datos.categoriasFinales.last as CategoriaFija).montoFijoCentavos, const Dinero.pesos(12000));
   });
 
   test('la ayuda describe cada columna, en el mismo orden', () {
@@ -145,5 +150,38 @@ void main() {
     expect(datos.anulados, 1);
     // Solo lo activo suma: 10.50 + 10.53.
     expect(datos.totalesPorCiclo.values.single, Dinero(1050 + 1053));
+  });
+
+  test('ida y vuelta: el plan de las categorías, también las sin gastos', () {
+    const categorias = <Categoria>[
+      CategoriaVariable(
+        id: 'super',
+        nombre: 'Súper',
+        emoji: '🛒',
+        activa: true,
+        esNecesaria: true,
+        presupuestoMensualCentavos: Dinero.pesos(6000),
+      ),
+      CategoriaFija(
+        id: 'renta',
+        nombre: 'Renta',
+        emoji: '🏠',
+        activa: false,
+        esNecesaria: true,
+        montoFijoCentavos: Dinero(1234567),
+        diaDelCiclo: 28,
+      ),
+    ];
+    final csv = exportarMovimientosCsv(movimientos: const [], categorias: categorias);
+    final datos = (previsualizarImportacion(
+      contenidoCsv: csv,
+      calculadoraCiclo: const CalculadoraCiclo(1),
+      categoriasExistentes: categorias,
+    ) as Exito<ResultadoImportacion>)
+        .valor;
+    expect(datos.avisos, isEmpty);
+    expect(datos.eliminaDatos, isFalse);
+    expect(datos.categoriasPorActualizar, isEmpty);
+    expect([for (final c in datos.categoriasFinales) c.toJson()], [for (final c in categorias) c.toJson()]);
   });
 }

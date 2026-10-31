@@ -100,7 +100,7 @@ void main() {
     final datos = _ok('fecha,monto,categoria\n2026-08-05,100,Mascotas\n');
     expect(datos.categoriasPorCrear, hasLength(1));
     expect(datos.categoriasPorCrear.single.nombre, 'Mascotas');
-    expect(datos.categoriasPorCrear.single.presupuestoMensualCentavos, const Dinero.cero());
+    expect((datos.categoriasPorCrear.single as CategoriaVariable).presupuestoMensualCentavos, const Dinero.cero());
     expect(datos.movimientos.single.categoriaId, datos.categoriasPorCrear.single.id);
   });
 
@@ -261,12 +261,19 @@ void main() {
       expect(datos.movimientos.map((m) => m.categoriaId), everyElement('imp-super'));
     });
 
-    test('una categoría existente con emoji propio no se toca', () {
-      final datos = _ok(
-        'fecha,monto,categoria,emoji\n2026-08-05,1,Súper,🍎\n',
-        categorias: [_categoriaExistente('super', 'Súper')],
+    test('el emoji del archivo gana; sin él, la existente conserva el suyo', () {
+      final categorias = [_categoriaExistente('super', 'Súper')];
+      expect(
+        _ok('fecha,monto,categoria,emoji\n2026-08-05,1,Súper,🍎\n', categorias: categorias)
+            .categoriasPorActualizar
+            .single
+            .emoji,
+        '🍎',
       );
-      expect(datos.categoriasPorActualizar, isEmpty);
+      expect(
+        _ok('fecha,monto,categoria\n2026-08-05,1,Súper\n', categorias: categorias).categoriasPorActualizar,
+        isEmpty,
+      );
     });
 
     test('fechas como las reescribe Excel: dd/mm/aa, guiones y con hora', () {
@@ -391,6 +398,158 @@ void main() {
         categoriasExistentes: const [],
       );
       expect(r.esFalla, isTrue);
+    });
+  });
+
+  group('el plan de cada categoría', () {
+    CategoriaVariable variable(Categoria c) => c as CategoriaVariable;
+
+    test('presupuesto, fija con día, necesaria y activa', () {
+      final datos = _ok('fecha,monto,categoria,presupuesto,tipo,dia de cobro,necesaria,activa\n'
+          '2026-08-05,1,Súper,"6,000.00",Variable,,Sí,Sí\n'
+          '2026-08-06,1,Renta,12000,Fija,5,si,no\n');
+      expect(variable(datos.categoriasFinales[0]).presupuestoMensualCentavos, const Dinero.pesos(6000));
+      expect(datos.categoriasFinales[0].esNecesaria, isTrue);
+      final renta = datos.categoriasFinales[1] as CategoriaFija;
+      expect(renta.montoFijoCentavos, const Dinero.pesos(12000));
+      expect(renta.diaDelCiclo, 5);
+      expect(renta.activa, isFalse);
+      expect(datos.avisos, isEmpty);
+    });
+
+    test('un renglón con fecha y monto vacíos solo declara la categoría', () {
+      final datos = _ok('fecha,monto,categoria,presupuesto\n,,🎁 Regalos,500\n');
+      expect(datos.movimientos, isEmpty);
+      expect(datos.renglonesConProblema, isEmpty);
+      expect(datos.categoriasFinales.single.nombre, 'Regalos');
+      expect(datos.categoriasFinales.single.emoji, '🎁');
+      expect(variable(datos.categoriasFinales.single).presupuestoMensualCentavos, const Dinero.pesos(500));
+    });
+
+    test('un renglón sin fecha, sin monto y sin categoría sigue siendo problema', () {
+      expect(_ok('fecha,monto,categoria,descripcion\n,,,algo\n').renglonesConProblema, hasLength(1));
+    });
+
+    test('vacío conserva el plan de la existente, con su id', () {
+      const renta = CategoriaFija(
+        id: 'r',
+        nombre: 'Renta',
+        emoji: '🏠',
+        activa: false,
+        esNecesaria: true,
+        montoFijoCentavos: Dinero.pesos(900),
+        diaDelCiclo: 3,
+      );
+      final datos = _ok('fecha,monto,categoria\n2026-08-05,1,renta\n', categorias: const [renta]);
+      final leida = datos.categoriasFinales.single as CategoriaFija;
+      expect(leida.id, 'r');
+      expect(leida.montoFijoCentavos, const Dinero.pesos(900));
+      expect(leida.diaDelCiclo, 3);
+      expect(leida.activa, isFalse);
+      expect(leida.esNecesaria, isTrue);
+      expect(datos.movimientos.single.categoriaId, 'r');
+    });
+
+    test('un presupuesto nuevo actualiza la existente', () {
+      final datos = _ok(
+        'fecha,monto,categoria,presupuesto\n2026-08-05,1,Súper,2500\n',
+        categorias: [_categoriaExistente('super', 'Súper')],
+      );
+      expect(variable(datos.categoriasPorActualizar.single).presupuestoMensualCentavos, const Dinero.pesos(2500));
+      expect(datos.categoriasPorCrear, isEmpty);
+    });
+
+    test('una variable existente sin presupuesto en el archivo lo conserva', () {
+      final datos = _ok(
+        'fecha,monto,categoria\n2026-08-05,1,Súper\n',
+        categorias: [_categoriaExistente('super', 'Súper')],
+      );
+      expect(variable(datos.categoriasFinales.single).presupuestoMensualCentavos, const Dinero.pesos(1000));
+    });
+
+    test('valores inválidos se ignoran con aviso, sin perder el gasto', () {
+      final datos = _ok('fecha,monto,categoria,presupuesto,tipo,dia de cobro,necesaria\n'
+          '2026-08-05,1,X,abc,otro,99,quizá\n2026-08-05,2,Y,-5,,,\n');
+      expect(datos.movimientos, hasLength(2));
+      expect(datos.avisos, hasLength(5));
+    });
+
+    test('si dos renglones se contradicen gana el primero, con aviso', () {
+      final datos = _ok('fecha,monto,categoria,presupuesto\n2026-08-05,1,X,100\n2026-08-06,1,X,200\n');
+      expect(variable(datos.categoriasFinales.single).presupuestoMensualCentavos, const Dinero.pesos(100));
+      expect(datos.avisos.single.motivo, contains('no coincide'));
+    });
+
+    test('fija sin monto queda variable; sin día usa el 1; ambos con aviso', () {
+      final datos = _ok('fecha,monto,categoria,presupuesto,tipo\n'
+          '2026-08-05,1,A,,Fija\n2026-08-05,1,B,100,Fijo\n');
+      expect(datos.categoriasFinales[0], isA<CategoriaVariable>());
+      expect((datos.categoriasFinales[1] as CategoriaFija).diaDelCiclo, 1);
+      expect(datos.avisos, hasLength(2));
+    });
+
+    test('de existente variable se pasa a fija, y necesaria acepta false', () {
+      final datos = _ok(
+        'fecha,monto,categoria,tipo,dia de cobro,necesaria,activa\n2026-08-05,1,Súper,Fija,2,false,true\n',
+        categorias: [_categoriaExistente('super', 'Súper')],
+      );
+      final c = datos.categoriasFinales.single as CategoriaFija;
+      expect(c.montoFijoCentavos, const Dinero.pesos(1000));
+      expect(c.esNecesaria, isFalse);
+      expect(c.activa, isTrue);
+    });
+  });
+
+  group('importar reemplaza', () {
+    Movimiento previo(String clientId) => Movimiento(
+          id: clientId,
+          clientId: clientId,
+          fecha: DateTime(2026, 1, 1),
+          cicloId: 'ciclo-viejo',
+          periodoNatural: '2026-01',
+          monto: const Dinero.pesos(5),
+          categoriaId: 'super',
+          medio: MedioPago.tarjeta,
+          descripcion: 'Antes',
+          estado: EstadoMovimiento.activo,
+          origenCaptura: OrigenCaptura.voz,
+          fotoUrl: 'foto',
+        );
+
+    ResultadoImportacion importar(String csv) => (previsualizarImportacion(
+          contenidoCsv: csv,
+          calculadoraCiclo: _calculadora,
+          categoriasExistentes: [_categoriaExistente('super', 'Súper'), _categoriaExistente('auto', 'Auto')],
+          movimientosExistentes: [previo('a'), previo('b')],
+        ) as Exito<ResultadoImportacion>)
+            .valor;
+
+    test('cuenta lo que se elimina: lo que no viene en el archivo', () {
+      final datos = importar('fecha,monto,categoria,id\n2026-08-05,100,Súper,a\n');
+      expect(datos.eliminaDatos, isTrue);
+      expect(datos.movimientosPorEliminar, 1);
+      expect(datos.categoriasPorEliminar.single.id, 'auto');
+      expect(datos.categoriasFinales.single.id, 'super');
+    });
+
+    test('sin nada que eliminar no pide confirmar', () {
+      final datos = importar('fecha,monto,categoria,id\n2026-08-05,1,Súper,a\n2026-08-05,1,Auto,b\n');
+      expect(datos.eliminaDatos, isFalse);
+    });
+
+    test('mismo ID: gana el archivo, conservando ciclo, foto y origen si viene vacío', () {
+      final m = importar('fecha,monto,categoria,descripcion,id\n2026-08-05,100,Auto,Nueva,a\n').movimientos.single;
+      expect(m.monto, const Dinero.pesos(100));
+      expect(m.categoriaId, 'auto');
+      expect(m.descripcion, 'Nueva');
+      expect(m.cicloId, 'ciclo-viejo');
+      expect(m.fotoUrl, 'foto');
+      expect(m.origenCaptura, OrigenCaptura.voz);
+    });
+
+    test('mismo ID con origen en el archivo: se usa el del archivo', () {
+      final m = importar('fecha,monto,como se registro,id\n2026-08-05,100,Ticket,a\n').movimientos.single;
+      expect(m.origenCaptura, OrigenCaptura.ticket);
     });
   });
 }

@@ -113,28 +113,6 @@ Resultado<CategoriaVariable> actualizarPresupuestoVariable({
   ));
 }
 
-/// Categoría que crea la importación de CSV (Bloque B) para un nombre que
-/// todavía no existe en la cuenta. Hace falta una fábrica propia porque
-/// [crearCategoriaVariable] exige presupuesto positivo, y aquí el cero es
-/// legítimo: el usuario todavía no le asignó uno. `Rollup.porcentajeUsado`
-/// ya regresa `null` con presupuesto cero, así que estas categorías no se
-/// pintan de rojo hasta que alguien las presupueste — sin validación ni
-/// `Resultado` porque no hay forma de que esto falle (a diferencia de
-/// [crearCategoriaVariable], que sí valida entrada de usuario).
-CategoriaVariable crearCategoriaImportada({
-  required String id,
-  required String nombre,
-  required String emoji,
-}) =>
-    CategoriaVariable(
-      id: id,
-      nombre: nombre,
-      emoji: emoji,
-      activa: true,
-      esNecesaria: false,
-      presupuestoMensualCentavos: const Dinero.cero(),
-    );
-
 /// Activa o desactiva cualquier categoría preservando su tipo (fija o
 /// variable) y el resto de sus campos.
 Categoria conActiva(Categoria categoria, bool activa) => switch (categoria) {
@@ -152,27 +130,6 @@ Categoria conActiva(Categoria categoria, bool activa) => switch (categoria) {
           nombre: v.nombre,
           emoji: v.emoji,
           activa: activa,
-          esNecesaria: v.esNecesaria,
-          presupuestoMensualCentavos: v.presupuestoMensualCentavos,
-        ),
-    };
-
-/// Cambia solo el emoji, preservando tipo y el resto de los campos.
-Categoria conEmoji(Categoria categoria, String emoji) => switch (categoria) {
-      CategoriaFija f => CategoriaFija(
-          id: f.id,
-          nombre: f.nombre,
-          emoji: emoji,
-          activa: f.activa,
-          esNecesaria: f.esNecesaria,
-          montoFijoCentavos: f.montoFijoCentavos,
-          diaDelCiclo: f.diaDelCiclo,
-        ),
-      CategoriaVariable v => CategoriaVariable(
-          id: v.id,
-          nombre: v.nombre,
-          emoji: emoji,
-          activa: v.activa,
           esNecesaria: v.esNecesaria,
           presupuestoMensualCentavos: v.presupuestoMensualCentavos,
         ),

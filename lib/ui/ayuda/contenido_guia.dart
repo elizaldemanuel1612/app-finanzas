@@ -281,7 +281,7 @@ const _temaTusDatos = TemaGuia(
   bloques: [
     Parrafo(
       '**Exportar mis gastos** genera un CSV con todo tu historial —incluido '
-      'lo anulado y el emoji de cada categoría—, listo para compartir, '
+      'lo anulado, y el emoji y presupuesto de cada categoría—, listo para compartir, '
       'guardar aparte o volver a importar sin perder nada.',
     ),
     Subtitulo('Importar desde CSV'),
@@ -294,10 +294,10 @@ const _temaTusDatos = TemaGuia(
     ]),
     Nota(
       tono: TonoNota.tip,
-      etiqueta: 'SIN DUPLICADOS',
-      texto: 'Si vuelves a importar el mismo archivo, o el que sacaste con '
-          'Exportar, la app reconoce lo que ya tenía y no te duplica los '
-          'movimientos.',
+      etiqueta: 'REEMPLAZA TUS DATOS',
+      texto: 'Al importar, tus gastos y categorías quedan iguales al archivo: '
+          'lo que no venga en él se elimina. La vista previa te dice cuánto '
+          'antes de confirmar. Si quieres conservarlo, exporta primero.',
     ),
     Subtitulo('Eliminar cuenta'),
     Parrafo(

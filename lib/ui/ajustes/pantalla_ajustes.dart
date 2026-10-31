@@ -143,6 +143,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
           categoriaRepositorio: widget.almacenLocal.categorias,
           movimientoRepositorio: widget.almacenLocal.movimientos,
           reglasAprendidasRepositorio: widget.almacenLocal.reglasAprendidas,
+          nube: _nube,
         ),
       ),
     );

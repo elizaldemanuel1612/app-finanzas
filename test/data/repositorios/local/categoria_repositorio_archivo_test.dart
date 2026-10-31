@@ -70,4 +70,10 @@ void main() {
     await repo.eliminar('no-existe');
     expect(await repo.listarTodas(), hasLength(1));
   });
+
+  test('reemplazarTodas deja exactamente esas', () async {
+    await repo.guardar(_fija('a'));
+    await repo.reemplazarTodas([_fija('b')]);
+    expect((await repo.listarTodas()).single.id, 'b');
+  });
 }

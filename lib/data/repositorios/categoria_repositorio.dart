@@ -14,4 +14,8 @@ abstract interface class CategoriaRepositorio {
   /// movimiento (que nunca se borra, solo se anula), una categoría sin
   /// historial no tiene nada que auditar.
   Future<void> eliminar(String id);
+
+  /// Deja exactamente [categorias]: solo para importar un archivo
+  /// (spec-app-finanzas-v2.md §7.4).
+  Future<void> reemplazarTodas(List<Categoria> categorias);
 }

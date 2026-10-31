@@ -5,6 +5,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/result.dart';
+import '../../data/nube/errores_respaldo.dart';
+import '../../data/nube/servicio_nube.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
@@ -33,12 +35,17 @@ class PantallaImportar extends StatefulWidget {
   /// de la cascada). Sin él se usa solo el historial de comercios.
   final ReglasAprendidasRepositorio? reglasAprendidasRepositorio;
 
+  /// Con el respaldo activo, importar sobrescribe la copia de Drive: la
+  /// fusión normal reviviría lo que se acaba de eliminar (spec §7.4).
+  final ServicioNube? nube;
+
   const PantallaImportar({
     super.key,
     required this.perfil,
     required this.categoriaRepositorio,
     required this.movimientoRepositorio,
     this.reglasAprendidasRepositorio,
+    this.nube,
   });
 
   @override
@@ -52,6 +59,7 @@ class _PantallaImportarState extends State<PantallaImportar> {
   bool _cargando = false;
   bool _importando = false;
   bool _importado = false;
+  bool _nubeActiva = false;
 
   Future<void> _descargarPlantilla() async {
     await FilePicker.saveFile(
@@ -84,6 +92,7 @@ class _PantallaImportarState extends State<PantallaImportar> {
     }
 
     final movimientos = await widget.movimientoRepositorio.listarTodos();
+    _nubeActiva = await widget.nube?.estaActiva() ?? false;
     final procesado = previsualizarImportacion(
       contenidoCsv: contenido,
       calculadoraCiclo: widget.perfil.calculadoraCiclo,
@@ -93,6 +102,7 @@ class _PantallaImportarState extends State<PantallaImportar> {
         for (final m in movimientos)
           if (m.estado == EstadoMovimiento.activo) ObservacionComercio(m.descripcion, m.categoriaId),
       ]),
+      movimientosExistentes: movimientos,
     );
 
     if (!mounted) return;
@@ -114,18 +124,80 @@ class _PantallaImportarState extends State<PantallaImportar> {
     final vistaPrevia = _vistaPrevia;
     if (vistaPrevia == null) return;
 
+    // Sin permiso de Drive no se toca nada: la siguiente sincronización
+    // reviviría lo eliminado. Se pide directo desde el toque (Safari), así
+    // que el diálogo de confirmación lo arranca.
+    Future<Object?> acceso = Future.value();
+    final nube = _nubeActiva ? widget.nube : null;
+    void pedirAcceso() {
+      if (nube != null) {
+        acceso = nube.pedirAcceso().then<Object?>(
+              (concedido) => concedido ? null : StateError('Sin permiso para el respaldo.'),
+              onError: (Object e) => e,
+            );
+      }
+    }
+
+    if (vistaPrevia.eliminaDatos) {
+      if (!await _confirmarReemplazo(vistaPrevia, pedirAcceso)) return;
+    } else {
+      pedirAcceso();
+    }
+
     setState(() => _importando = true);
-    for (final categoria in [...vistaPrevia.categoriasPorCrear, ...vistaPrevia.categoriasPorActualizar]) {
-      await widget.categoriaRepositorio.guardar(categoria);
+    try {
+      final error = await acceso;
+      if (error != null) throw error;
+      await nube?.marcarReemplazo();
+      await widget.categoriaRepositorio.reemplazarTodas(vistaPrevia.categoriasFinales);
+      await widget.movimientoRepositorio.reemplazarTodos(vistaPrevia.movimientos);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _importando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No se importó nada. ${describirErrorRespaldo(e)}'),
+            duration: const Duration(seconds: 8),
+          ),
+        );
+      }
+      return;
     }
-    for (final movimiento in vistaPrevia.movimientos) {
-      await widget.movimientoRepositorio.guardar(movimiento);
-    }
+    // Sin red queda pendiente: la marca sobrevive hasta poder subir.
+    await nube?.sincronizarSiActiva();
     if (!mounted) return;
     setState(() {
       _importando = false;
       _importado = true;
     });
+  }
+
+  Future<bool> _confirmarReemplazo(ResultadoImportacion vistaPrevia, VoidCallback alAceptar) async {
+    final respuesta = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Reemplazar tus datos?'),
+        content: Text(
+          'Se eliminarán ${vistaPrevia.movimientosPorEliminar} gastos y '
+          '${vistaPrevia.categoriasPorEliminar.length} categorías que no vienen en el archivo. '
+          '${vistaPrevia.renglonesConProblema.isEmpty ? '' : 'Los renglones con problema tampoco se guardan. '}'
+          'Esto no se puede deshacer. Si quieres conservarlos, cancela y usa primero '
+          '"Exportar mis gastos" en Ajustes.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: ColoresApp.coralTexto),
+            onPressed: () {
+              alAceptar();
+              Navigator.pop(context, true);
+            },
+            child: const Text('Sí, reemplazar'),
+          ),
+        ],
+      ),
+    );
+    return respuesta == true;
   }
 
   @override
@@ -140,8 +212,9 @@ class _PantallaImportarState extends State<PantallaImportar> {
             padding: const EdgeInsets.all(20),
             children: [
               Text(
-                'Importa tu historial desde un CSV: solo fecha y monto son obligatorios. '
-                'El archivo de "Exportar mis gastos" se importa tal cual, sin duplicar.',
+                'Importa tus gastos y categorías desde un CSV: solo fecha y monto son '
+                'obligatorios. Al importar, tus datos quedan iguales al archivo: lo que no '
+                'venga en él se elimina. Antes de guardar te dirá cuánto.',
                 style: TextStyle(color: ColoresApp.medio),
               ),
               const SizedBox(height: 8),
@@ -184,16 +257,21 @@ class _PantallaImportarState extends State<PantallaImportar> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Text(
-                      'Listo. Los movimientos y categorías nuevas ya están guardados.',
+                      'Listo. Tus gastos y categorías ya son los del archivo.',
                       style: TextStyle(color: ColoresApp.verdeTexto, fontWeight: FontWeight.w700),
                     ),
                   )
                 else
                   ElevatedButton(
-                    onPressed: vistaPrevia.movimientos.isEmpty || _importando
+                    onPressed: (vistaPrevia.movimientos.isEmpty && vistaPrevia.categoriasFinales.isEmpty) ||
+                            _importando
                         ? null
                         : _confirmarImportacion,
-                    child: Text(_importando ? 'Importando…' : 'Importar'),
+                    child: Text(_importando
+                        ? 'Importando…'
+                        : vistaPrevia.eliminaDatos
+                            ? 'Reemplazar mis datos'
+                            : 'Importar'),
                   ),
               ],
             ],
@@ -253,7 +331,7 @@ class _TarjetaVistaPrevia extends StatelessWidget {
             if (vistaPrevia.categoriasPorCrear.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
-                'Categorías nuevas (con presupuesto \$0, edítalas después):',
+                'Categorías nuevas (sin presupuesto en el archivo quedan en \$0):',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 6),
@@ -268,7 +346,7 @@ class _TarjetaVistaPrevia extends StatelessWidget {
             if (vistaPrevia.categoriasPorActualizar.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
-                'Estas categorías que ya tenías reciben su emoji:',
+                'Estas categorías que ya tenías cambian con el archivo:',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 6),
@@ -278,6 +356,15 @@ class _TarjetaVistaPrevia extends StatelessWidget {
                 children: vistaPrevia.categoriasPorActualizar
                     .map((c) => Chip(label: Text('${c.emoji} ${c.nombre}')))
                     .toList(),
+              ),
+            ],
+            if (vistaPrevia.eliminaDatos && !importado) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Se eliminarán ${vistaPrevia.movimientosPorEliminar} gastos y '
+                '${vistaPrevia.categoriasPorEliminar.length} categorías que no vienen en el archivo'
+                '${vistaPrevia.categoriasPorEliminar.isEmpty ? '' : ': ${vistaPrevia.categoriasPorEliminar.map((c) => c.nombre).join(', ')}'}.',
+                style: TextStyle(color: ColoresApp.coralTexto, fontWeight: FontWeight.w700),
               ),
             ],
             _ListaRenglones(

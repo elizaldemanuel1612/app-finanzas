@@ -46,7 +46,8 @@ void main() {
     final primeraLinea = csv.replaceFirst('﻿', '').split('\n').first;
     expect(
       primeraLinea,
-      'Fecha,Monto,Categoría,Emoji,Descripción,Medio de pago,Estado,Cómo se registró,ID',
+      'Fecha,Monto,Categoría,Emoji,Presupuesto,Tipo,Día de cobro,Necesaria,Activa,'
+      'Descripción,Medio de pago,Estado,Cómo se registró,ID',
     );
   });
 
@@ -112,7 +113,21 @@ void main() {
       ],
       categorias: [_super],
     );
-    expect(csv.split('\n')[1], '2026-07-16,10.00,Súper/Comida,🛒,Compra,Tarjeta,Pendiente,Ticket,a');
+    expect(csv.split('\n')[1], '2026-07-16,10.00,Súper/Comida,🛒,6000.00,Variable,,Sí,Sí,Compra,Tarjeta,Pendiente,Ticket,a');
+  });
+
+  test('una fija lleva monto y día; una categoría sin gastos, su propio renglón', () {
+    const fija = CategoriaFija(
+      id: 'renta',
+      nombre: 'Renta',
+      emoji: '🏠',
+      activa: false,
+      esNecesaria: true,
+      montoFijoCentavos: Dinero.pesos(12000),
+      diaDelCiclo: 5,
+    );
+    final csv = exportarMovimientosCsv(movimientos: const [], categorias: const [fija]);
+    expect(csv.split('\n')[1], ',,Renta,🏠,12000.00,Fija,5,Sí,No,,,,,');
   });
 
   test('la hora se conserva si la tiene', () {

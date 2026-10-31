@@ -44,6 +44,13 @@ final class CategoriaRepositorioMemoria implements CategoriaRepositorio {
 
   @override
   Future<void> eliminar(String id) => throw UnimplementedError();
+  @override
+  Future<void> reemplazarTodas(List<Categoria> categorias) async {
+    final copia = [...categorias];
+    items
+      ..clear()
+      ..addAll(copia);
+  }
 }
 
 final class MovimientoRepositorioMemoria implements MovimientoRepositorio {
@@ -68,6 +75,13 @@ final class MovimientoRepositorioMemoria implements MovimientoRepositorio {
   Future<void> actualizar(Movimiento movimiento) => throw UnimplementedError();
   @override
   Future<void> anular(String id) => throw UnimplementedError();
+  @override
+  Future<void> reemplazarTodos(List<Movimiento> movimientos) async {
+    final copia = [...movimientos];
+    items
+      ..clear()
+      ..addAll(copia);
+  }
 }
 
 final class ReglasAprendidasRepositorioMemoria implements ReglasAprendidasRepositorio {

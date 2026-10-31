@@ -69,6 +69,11 @@ final class MovimientoRepositorioArchivo implements MovimientoRepositorio {
   }
 
   @override
+  Future<void> reemplazarTodos(List<Movimiento> movimientos) => _almacen.escribir([
+        for (final m in movimientos) (m.id == null ? m.copyWith(id: m.clientId) : m).toJson(),
+      ]);
+
+  @override
   Future<List<Movimiento>> listarPorCiclo(String cicloId) async {
     final items = await _almacen.leer();
     return items

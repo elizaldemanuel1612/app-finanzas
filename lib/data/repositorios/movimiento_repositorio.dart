@@ -18,6 +18,11 @@ abstract interface class MovimientoRepositorio {
   /// #3) — nunca elimina el registro.
   Future<void> anular(String id);
 
+  /// Deja exactamente [movimientos]. Única excepción a la regla #3: solo
+  /// para importar un archivo, ya confirmado por el usuario
+  /// (spec-app-finanzas-v2.md §7.4).
+  Future<void> reemplazarTodos(List<Movimiento> movimientos);
+
   Future<List<Movimiento>> listarPorCiclo(String cicloId);
 
   /// Todos los movimientos de una categoría, sin filtrar por estado — los

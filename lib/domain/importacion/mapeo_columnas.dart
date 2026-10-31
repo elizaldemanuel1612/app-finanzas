@@ -2,13 +2,35 @@ import '../clasificacion/normalizacion_texto.dart';
 
 /// Campo del dominio al que puede corresponder una columna del CSV
 /// importado.
-enum CampoImportado { fecha, monto, emoji, categoria, descripcion, medio, estado, origen, id }
+///
+/// El orden importa: una columna ya tomada no se reusa, así que "Emoji de
+/// categoría" o "Tipo de categoría" no se confunden con la categoría.
+enum CampoImportado {
+  fecha,
+  monto,
+  emoji,
+  presupuesto,
+  tipo,
+  diaDeCobro,
+  necesaria,
+  activa,
+  categoria,
+  descripcion,
+  medio,
+  estado,
+  origen,
+  id,
+}
 
 /// Se reconoce la columna si su encabezado *contiene* el alias.
 const _aliasPorCampo = {
   CampoImportado.fecha: ['fecha', 'date', 'fec'],
   CampoImportado.monto: ['monto', 'importe', 'cantidad', 'total'],
   CampoImportado.emoji: ['emoji', 'icono'],
+  CampoImportado.presupuesto: ['presupuesto'],
+  CampoImportado.tipo: ['tipo'],
+  CampoImportado.diaDeCobro: ['dia de cobro', 'dia del ciclo'],
+  CampoImportado.necesaria: ['necesaria'],
   CampoImportado.categoria: ['categoria', 'rubro'],
   CampoImportado.descripcion: ['descripcion', 'concepto', 'comercio'],
   CampoImportado.medio: ['medio', 'forma de pago'],
@@ -20,6 +42,7 @@ const _aliasPorCampo = {
 /// aparece dentro de muchas palabras.
 const _aliasExactosPorCampo = {
   CampoImportado.id: ['id', 'clientid'],
+  CampoImportado.activa: ['activa'],
 };
 
 /// A qué índice de columna corresponde cada [CampoImportado] detectado —

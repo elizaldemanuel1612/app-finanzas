@@ -84,5 +84,6 @@ void main() {
     expect(detectarSeparador('﻿Fecha;Monto;Nota, larga\n1;2;3'), ';');
     expect(detectarSeparador('Fecha,Monto\n1;2'), ',');
     expect(detectarSeparador('Fecha'), ',');
+    expect(detectarSeparador('# solo instrucciones'), ',');
   });
 }

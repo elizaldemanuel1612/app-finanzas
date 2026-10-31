@@ -108,11 +108,24 @@ final class ServicioNube {
     await _sincronizar(ModoFusion.combinar, activar: false);
   }
 
+  /// Pide el permiso de Drive; en la web, llamar directo desde el toque.
+  Future<bool> pedirAcceso() => remoto.tieneAcceso(interactivo: true);
+
+  /// Lo que se guarde a continuación reemplaza la copia en vez de fusionarse
+  /// con ella: la fusión revive lo eliminado (importar, spec §7.4). Queda
+  /// anotado para que sobreviva a una falta de red.
+  Future<void> marcarReemplazo() async {
+    final estado = await _leerEstado();
+    estado['reemplazar'] = true;
+    await _guardarEstado(estado);
+  }
+
   /// Deja de sincronizar. La copia se conserva.
   Future<void> desactivar() async {
     final estado = await _leerEstado();
     estado['activa'] = false;
     estado.remove('base');
+    estado.remove('reemplazar');
     await _guardarEstado(estado);
   }
 
@@ -137,6 +150,10 @@ final class ServicioNube {
     _enCurso = completador.future;
     try {
       final estado = await _leerEstado();
+      if (estado['reemplazar'] == true) {
+        await _reemplazarCopia();
+        return;
+      }
       final bases = (estado['base'] as Map<String, dynamic>?) ?? {};
       final nuevasBases = <String, List<String>>{};
       final copia = await remoto.descargar();
@@ -177,6 +194,22 @@ final class ServicioNube {
       _enCurso = null;
       completador.complete();
     }
+  }
+
+  Future<void> _reemplazarCopia() async {
+    final copia = <String, List<Map<String, dynamic>>>{};
+    final bases = <String, List<String>>{};
+    for (final archivo in AlmacenLocal.nombresDeArchivo) {
+      final clave = claveDeArchivo(archivo)!;
+      copia[archivo] = await _leerLocal(archivo);
+      bases[archivo] = [for (final m in copia[archivo]!) clave(m)];
+    }
+    await remoto.subir(copia);
+    await _guardarEstado({
+      'activa': true,
+      'ultima': DateTime.now().toIso8601String(),
+      'base': bases,
+    });
   }
 
   Future<List<Map<String, dynamic>>> _leerLocal(String archivo) async {

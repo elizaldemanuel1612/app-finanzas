@@ -49,6 +49,10 @@ final class CategoriaRepositorioArchivo implements CategoriaRepositorio {
   }
 
   @override
+  Future<void> reemplazarTodas(List<Categoria> categorias) =>
+      _almacen.escribir([for (final c in categorias) c.toJson()]);
+
+  @override
   Future<void> eliminar(String id) async {
     final items = await _almacen.leer();
     items.removeWhere((item) => item['id'] == id);

@@ -191,7 +191,7 @@ Lista de verificación para quien construya. Cada una tiene su prueba automatiza
 **Dinero**
 1. Todo monto se guarda como **entero en centavos**. Prohibido `double` en cualquier operación monetaria.
 2. Toda captura lleva `clientId` generado en el dispositivo. El servidor ignora duplicados.
-3. Ningún registro financiero se elimina físicamente antes de 30 días. Se anula.
+3. Ningún registro financiero se elimina físicamente antes de 30 días. Se anula. **Única excepción (2026-10-31):** importar un archivo reemplaza gastos y categorías por los del archivo, a petición expresa del usuario y tras confirmar cuánto se elimina (`spec-app-finanzas-v2.md` §7.4).
 4. Toda edición de monto o categoría se registra en `auditoria/`.
 
 **Ciclos**

@@ -55,10 +55,13 @@ void main() {
 
   test('detecta las columnas de la exportación completa', () {
     final mapeo = detectarColumnas([
-      'Fecha', 'Monto', 'Categoría', 'Emoji', 'Descripción',
-      'Medio de pago', 'Estado', 'Cómo se registró', 'ID',
+      'Fecha', 'Monto', 'Categoría', 'Emoji', 'Presupuesto', 'Tipo', 'Día de cobro',
+      'Necesaria', 'Activa', 'Descripción', 'Medio de pago', 'Estado', 'Cómo se registró', 'ID',
     ]);
-    expect([for (final c in CampoImportado.values) mapeo[c]], [0, 1, 3, 2, 4, 5, 6, 7, 8]);
+    expect(
+      [for (final c in CampoImportado.values) mapeo[c]],
+      [0, 1, 3, 4, 5, 6, 7, 8, 2, 9, 10, 11, 12, 13],
+    );
   });
 
   test('"id" solo cuenta como encabezado completo', () {
