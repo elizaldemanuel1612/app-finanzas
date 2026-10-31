@@ -226,7 +226,9 @@ Una pestaña propia (barra inferior: Inicio · Gastos · ＋ · Análisis · Aju
 
 Todo se calcula en `domain/analisis/` (Dart puro, sin red) sobre los movimientos activos; la UI solo dibuja.
 
-**Bloques, en este orden:**
+**Básico y avanzado (2026-10-31).** Hasta arriba se elige la vista; se recuerda en el dispositivo y arranca en básico. La **básica** es para echar un vistazo: un veredicto en palabras (vas bien / vas un poco rápido / te pasaste, `domain/analisis/veredicto_ciclo.dart`), cuánto puede gastar hoy, las 2 recomendaciones más urgentes, las 3 categorías variables con más gasto y un botón al análisis completo. La **avanzada** muestra todos los bloques siguientes.
+
+**Bloques de la vista avanzada, en este orden:**
 1. **Resumen del ciclo:** gastado, "van N de M días", promedio por día de las variables y "si sigues a este ritmo, tus variables cierran en $X" (proyección lineal **solo de variables**, regla #9; siempre con su frase, regla #23).
 2. **Recomendaciones** (máximo 5, las más importantes primero), cada una con una salida concreta (regla #22) y en el tono de addendum-v3 §4.4: nunca reprender.
    - *Te pasaste* — variable con gasto > presupuesto. Si otra variable va holgada, se sugiere moverle presupuesto (el rebalanceo de siempre, desde el detalle).

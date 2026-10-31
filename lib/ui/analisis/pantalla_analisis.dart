@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/ciclo.dart';
 import '../../core/money.dart';
@@ -8,6 +9,7 @@ import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/analisis/recomendaciones.dart';
 import '../../domain/analisis/reporte_analisis.dart';
+import '../../domain/analisis/veredicto_ciclo.dart';
 import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/perfil.dart';
@@ -57,13 +59,39 @@ class _Datos {
   const _Datos(this.reporte, this.recomendaciones);
 }
 
+enum _Vista { basico, avanzado }
+
 class _PantallaAnalisisState extends State<PantallaAnalisis> {
   _Datos? _datos;
+  _Vista _vista = _Vista.basico;
+
+  static const _claveVista = 'vista_analisis';
 
   @override
   void initState() {
     super.initState();
+    _cargarVista();
     _cargar();
+  }
+
+  /// Preferencia del dispositivo, como la apariencia: no viaja en el respaldo.
+  Future<void> _cargarVista() async {
+    try {
+      final guardada = await SharedPreferencesAsync().getString(_claveVista);
+      if (!mounted) return;
+      setState(() {
+        _vista = _Vista.values.firstWhere((v) => v.name == guardada, orElse: () => _vista);
+      });
+    } catch (_) {
+      // Sin almacenamiento disponible: se queda en básico.
+    }
+  }
+
+  Future<void> _elegirVista(_Vista vista) async {
+    setState(() => _vista = vista);
+    try {
+      await SharedPreferencesAsync().setString(_claveVista, vista.name);
+    } catch (_) {}
   }
 
   Future<void> _cargar() async {
@@ -166,11 +194,54 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
     );
   }
 
+  Widget _selectorVista() => SegmentedButton<_Vista>(
+        segments: const [
+          ButtonSegment(value: _Vista.basico, label: Text('Básico')),
+          ButtonSegment(value: _Vista.avanzado, label: Text('Avanzado')),
+        ],
+        selected: {_vista},
+        onSelectionChanged: (s) => _elegirVista(s.first),
+      );
+
+  /// Para quien solo quiere echar un vistazo: cómo va, qué hacer y en qué se
+  /// le va más. Lo demás queda a un toque, en la vista avanzada.
+  Widget _contenidoBasico(BuildContext context, _Datos datos) {
+    final r = datos.reporte;
+    final variables = [
+      for (final g in r.porCategoria)
+        if (g.categoria is CategoriaVariable) g,
+    ];
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+      children: [
+        _selectorVista(),
+        const SizedBox(height: 16),
+        _TarjetaVeredicto(reporte: r, veredicto: calcularVeredicto(reporte: r, hoy: DateTime.now())),
+        if (datos.recomendaciones.isNotEmpty) ...[
+          const _Titulo('Qué te recomiendo'),
+          for (final rec in datos.recomendaciones.take(2)) _TarjetaRecomendacion(rec, alTocar: () => _accion(rec)),
+        ],
+        if (variables.isNotEmpty) ...[
+          const _Titulo('En qué se te va más', subtitulo: 'Tus gastos del día a día'),
+          _TopCategorias(gastos: variables.take(3).toList(), alVerCategoria: widget.alVerCategoria),
+        ],
+        const SizedBox(height: 16),
+        OutlinedButton(
+          onPressed: () => _elegirVista(_Vista.avanzado),
+          child: const Text('Ver análisis completo'),
+        ),
+      ],
+    );
+  }
+
   Widget _contenido(BuildContext context, _Datos datos) {
+    if (_vista == _Vista.basico) return _contenidoBasico(context, datos);
     final r = datos.reporte;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
       children: [
+        _selectorVista(),
+        const SizedBox(height: 16),
         _Resumen(reporte: r),
         if (datos.recomendaciones.isNotEmpty) ...[
           const _Titulo('Para ti', subtitulo: 'Lo más importante de tu ciclo, primero'),
@@ -227,6 +298,139 @@ class _Titulo extends StatelessWidget {
             Text(subtitulo!, style: textos.bodySmall),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// "¿Cómo voy?" en una frase, y cuánto puede gastar hoy.
+class _TarjetaVeredicto extends StatelessWidget {
+  final ReporteAnalisis reporte;
+  final VeredictoCiclo veredicto;
+
+  const _TarjetaVeredicto({required this.reporte, required this.veredicto});
+
+  @override
+  Widget build(BuildContext context) {
+    final r = reporte;
+    final v = veredicto;
+    final textos = Theme.of(context).textTheme;
+    final (icono, color, fondo, barra) = switch (v.tono) {
+      TonoVeredicto.bien => (Icons.check_circle_outline_rounded, ColoresApp.verdeTexto, ColoresApp.verdeSuave, ColoresApp.verde),
+      TonoVeredicto.atencion => (Icons.speed_rounded, ColoresApp.ambarTexto, ColoresApp.ambarSuave, ColoresApp.ambar),
+      TonoVeredicto.pasado => (Icons.error_outline_rounded, ColoresApp.coralTexto, ColoresApp.coralSuave, ColoresApp.coral),
+      TonoVeredicto.neutro => (Icons.insights_rounded, ColoresApp.azul, ColoresApp.azulSuave, ColoresApp.azul),
+    };
+    final hayPresupuesto = r.presupuestoVariables.esPositivo;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(color: fondo, shape: BoxShape.circle),
+                  child: Icon(icono, color: color, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(v.titulo, style: textos.titleMedium?.copyWith(color: color)),
+                      const SizedBox(height: 2),
+                      Text(v.detalle, style: textos.bodySmall),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (v.disponibleHoy != null) ...[
+              const SizedBox(height: 16),
+              Text('Hoy puedes gastar', style: textos.bodySmall),
+              Text(v.disponibleHoy!.formateado(), style: textos.displaySmall),
+            ],
+            if (hayPresupuesto) ...[
+              const SizedBox(height: 14),
+              BarraProporcion(
+                valor: r.gastadoVariables.centavos / r.presupuestoVariables.centavos,
+                color: barra,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${r.gastadoVariables.formateado()} de ${r.presupuestoVariables.formateado()} · '
+                'Van ${r.diaDelCiclo} de ${r.diasDelCiclo} días',
+                style: textos.labelSmall,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TopCategorias extends StatelessWidget {
+  final List<GastoCategoria> gastos;
+  final void Function(String categoriaId) alVerCategoria;
+
+  const _TopCategorias({required this.gastos, required this.alVerCategoria});
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        child: Column(
+          children: [
+            for (final g in gastos)
+              InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => alVerCategoria(g.categoria.id),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          ExcludeSemantics(child: Text(g.categoria.emoji)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              g.categoria.nombre,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          Text(
+                            g.presupuesto.esPositivo
+                                ? '${g.total.formateado()} de ${g.presupuesto.formateado()}'
+                                : g.total.formateado(),
+                            style: textos.bodySmall,
+                          ),
+                        ],
+                      ),
+                      if (g.presupuesto.esPositivo) ...[
+                        const SizedBox(height: 6),
+                        BarraProporcion(
+                          valor: g.total.centavos / g.presupuesto.centavos,
+                          color: g.total > g.presupuesto ? ColoresApp.coral : ColoresApp.azul,
+                          alto: 6,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

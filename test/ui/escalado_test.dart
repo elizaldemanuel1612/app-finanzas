@@ -158,6 +158,16 @@ void main() {
         ),
       );
 
+      // Arranca en la vista básica: un veredicto y un botón al resto.
+      expect(tester.takeException(), isNull);
+      expect(find.text('Hoy puedes gastar'), findsOneWidget);
+      expect(find.text('Llevas gastado'), findsNothing);
+      await tester.scrollUntilVisible(find.text('Ver análisis completo'), 300);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('Ver análisis completo'));
+      await tester.pumpAndSettle();
+
       expect(tester.takeException(), isNull);
       expect(find.text('Llevas gastado'), findsOneWidget);
       // Recorre la pantalla completa para que cada bloque se construya.
