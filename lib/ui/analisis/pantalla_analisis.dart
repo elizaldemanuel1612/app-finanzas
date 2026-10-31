@@ -456,6 +456,8 @@ class _Ritmo extends StatelessWidget {
     final textos = Theme.of(context).textTheme;
     final parejo = Dinero(r.presupuestoVariables.centavos * r.diaDelCiclo ~/ r.diasDelCiclo);
     final arriba = r.gastadoVariables > parejo;
+    final quedanDias = r.diaDelCiclo < r.diasDelCiclo;
+    final cierreSeRebasa = r.proyeccionVariables > r.presupuestoVariables;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -466,15 +468,23 @@ class _Ritmo extends StatelessWidget {
               acumulado: r.acumuladoVariablesPorDia,
               diasDelCiclo: r.diasDelCiclo,
               presupuesto: r.presupuestoVariables,
+              proyeccion: quedanDias ? r.proyeccionVariables : null,
               descripcion: 'Llevas ${r.gastadoVariables.formateado()} en variables; '
-                  'a ritmo parejo llevarías ${parejo.formateado()}.',
+                  'a ritmo parejo llevarías ${parejo.formateado()}.'
+                  '${quedanDias ? ' Si sigues así, cerrarías en ${r.proyeccionVariables.formateado()}.' : ''}',
             ),
             const SizedBox(height: 12),
-            Row(
+            Wrap(
+              spacing: 16,
+              runSpacing: 6,
               children: [
                 _Leyenda(color: ColoresApp.azul, texto: 'Lo que llevas'),
-                const SizedBox(width: 16),
                 _Leyenda(color: ColoresApp.oro, texto: 'Ritmo parejo'),
+                if (quedanDias)
+                  _Leyenda(
+                    color: colorPronostico(r.proyeccionVariables, r.presupuestoVariables),
+                    texto: 'Pronóstico',
+                  ),
               ],
             ),
             const SizedBox(height: 8),
@@ -484,6 +494,16 @@ class _Ritmo extends StatelessWidget {
                   : 'Vas ${(parejo - r.gastadoVariables).formateado()} abajo del ritmo parejo. Bien.',
               style: textos.bodySmall?.copyWith(color: arriba ? ColoresApp.ambarTexto : ColoresApp.verdeTexto),
             ),
+            if (quedanDias) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Si sigues así, cerrarías en ${r.proyeccionVariables.formateado()} de '
+                '${r.presupuestoVariables.formateado()}.',
+                style: textos.bodySmall?.copyWith(
+                  color: cierreSeRebasa ? ColoresApp.coralTexto : ColoresApp.verdeTexto,
+                ),
+              ),
+            ],
           ],
         ),
       ),

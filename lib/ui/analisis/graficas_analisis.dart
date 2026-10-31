@@ -120,12 +120,16 @@ class GraficaRitmo extends StatelessWidget {
   final Dinero presupuesto;
   final String descripcion;
 
+  /// Cierre pronosticado de los días restantes; `null` si ya no quedan.
+  final Dinero? proyeccion;
+
   const GraficaRitmo({
     super.key,
     required this.acumulado,
     required this.diasDelCiclo,
     required this.presupuesto,
     required this.descripcion,
+    this.proyeccion,
   });
 
   @override
@@ -136,26 +140,43 @@ class GraficaRitmo extends StatelessWidget {
         child: SizedBox(
           height: 160,
           width: double.infinity,
-          child: CustomPaint(painter: _PintorRitmo(acumulado, diasDelCiclo, presupuesto)),
+          child: CustomPaint(painter: _PintorRitmo(acumulado, diasDelCiclo, presupuesto, proyeccion)),
         ),
       ),
     );
   }
 }
 
+/// Verde si el cierre pronosticado cabe en el presupuesto; coral si lo rebasa.
+Color colorPronostico(Dinero cierre, Dinero presupuesto) =>
+    cierre <= presupuesto ? ColoresApp.verde : ColoresApp.coral;
+
 class _PintorRitmo extends CustomPainter {
   final List<Dinero> acumulado;
   final int dias;
   final Dinero presupuesto;
+  final Dinero? proyeccion;
 
   final Paleta paleta = ColoresApp.actual;
 
-  _PintorRitmo(this.acumulado, this.dias, this.presupuesto);
+  _PintorRitmo(this.acumulado, this.dias, this.presupuesto, this.proyeccion);
+
+  /// Dibuja la recta de [inicio] a [fin] con trazos de [largo] y huecos de
+  /// [hueco].
+  void _recta(Canvas canvas, Offset inicio, Offset fin, Paint pintura, double largo, double hueco) {
+    final total = (fin - inicio).distance;
+    if (total == 0) return;
+    final dir = (fin - inicio) / total;
+    for (var d = 0.0; d < total; d += largo + hueco) {
+      canvas.drawLine(inicio + dir * d, inicio + dir * math.min(d + largo, total), pintura);
+    }
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
     final ultimo = acumulado.isEmpty ? 0 : acumulado.last.centavos;
-    final maximo = math.max(math.max(presupuesto.centavos, ultimo), 1).toDouble() * 1.08;
+    final mayor = [presupuesto.centavos, ultimo, proyeccion?.centavos ?? 0, 1].reduce(math.max);
+    final maximo = mayor.toDouble() * 1.08;
     double x(int dia) => dias <= 1 ? size.width : size.width * dia / (dias - 1);
     double y(int centavos) => size.height - size.height * centavos / maximo;
 
@@ -174,14 +195,7 @@ class _PintorRitmo extends CustomPainter {
         ..color = ColoresApp.oro
         ..strokeWidth = 2
         ..style = PaintingStyle.stroke;
-      const largo = 6.0;
-      final fin = Offset(x(dias - 1), y(presupuesto.centavos));
-      final inicio = Offset(0, size.height);
-      final total = (fin - inicio).distance;
-      final dir = (fin - inicio) / total;
-      for (var d = 0.0; d < total; d += largo * 2) {
-        canvas.drawLine(inicio + dir * d, inicio + dir * math.min(d + largo, total), pareja);
-      }
+      _recta(canvas, Offset(0, size.height), Offset(x(dias - 1), y(presupuesto.centavos)), pareja, 6, 6);
     }
 
     if (acumulado.isEmpty) return;
@@ -211,6 +225,28 @@ class _PintorRitmo extends CustomPainter {
         ..strokeJoin = StrokeJoin.round,
     );
     final punta = Offset(x(acumulado.length - 1), y(ultimo));
+
+    // Pronóstico de los días restantes: puntos, para que no se confunda con
+    // lo ya gastado ni con el ritmo parejo (rayas).
+    final cierre = proyeccion;
+    if (cierre != null) {
+      final color = colorPronostico(cierre, presupuesto);
+      final fin = Offset(x(dias - 1), y(cierre.centavos));
+      _recta(
+        canvas,
+        punta,
+        fin,
+        Paint()
+          ..color = color
+          ..strokeWidth = 3
+          ..strokeCap = StrokeCap.round,
+        0.1,
+        6,
+      );
+      // Adentro del área, para que el punto final no se corte en la orilla.
+      canvas.drawCircle(fin.translate(-4, 0), 4, Paint()..color = color);
+    }
+
     canvas.drawCircle(punta, 5, Paint()..color = ColoresApp.tarjeta);
     canvas.drawCircle(
       punta,
@@ -224,7 +260,11 @@ class _PintorRitmo extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PintorRitmo old) =>
-      old.acumulado != acumulado || old.dias != dias || old.presupuesto != presupuesto || old.paleta != paleta;
+      old.acumulado != acumulado ||
+      old.dias != dias ||
+      old.presupuesto != presupuesto ||
+      old.proyeccion != proyeccion ||
+      old.paleta != paleta;
 }
 
 /// Barras verticales con etiqueta abajo; [destacada] va en oro.

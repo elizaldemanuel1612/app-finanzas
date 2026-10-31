@@ -2,7 +2,8 @@
 // la web en Safari del simulador (gestos, modo oscuro). No se publica:
 //   flutter build web --wasm -t tool/demo_web.dart -o <carpeta>
 // `?modo=oscuro` o `?modo=claro` en la URL fija la apariencia;
-// `?pantalla=importar` abre directo la importación de CSV.
+// `?pantalla=importar` abre directo la importación de CSV;
+// `?corte=15` cambia el día de corte (para ver un ciclo a la mitad).
 import 'package:app_finanzas/core/ciclo.dart';
 import 'package:app_finanzas/core/money.dart';
 import 'package:app_finanzas/data/almacenamiento/archivo_texto.dart';
@@ -24,7 +25,10 @@ Future<void> main() async {
   final almacen = AlmacenLocal.sobre({
     for (final n in AlmacenLocal.nombresDeArchivo) n: ArchivoTextoMemoria(),
   });
-  const perfil = Perfil(diaCorte: 1, ingresoBaseMensual: Dinero.pesos(38500));
+  final perfil = Perfil(
+    diaCorte: int.tryParse(Uri.base.queryParameters['corte'] ?? '') ?? 1,
+    ingresoBaseMensual: const Dinero.pesos(38500),
+  );
   await almacen.perfil.guardar(perfil);
   const categorias = [
     CategoriaFija(

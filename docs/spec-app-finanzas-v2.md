@@ -239,7 +239,7 @@ Todo se calcula en `domain/analisis/` (Dart puro, sin red) sobre los movimientos
    - *Tu meta* — apartado estimado (§5.6.1) contra la meta del ciclo: a favor, en juego (con cuánto menos al día llega) o, si los gastos pasarían lo que entra, cuánto faltaría.
    - *Vas abajo del ciclo pasado* — variables totales ≤ 85 % de lo que llevabas el ciclo anterior a los mismos días.
 3. **¿En qué se va?** — dona por categoría (fijas y variables) con lista: monto y % del gasto.
-4. **Ritmo del ciclo** — gasto acumulado de variables por día contra la línea pareja de su presupuesto.
+4. **Ritmo del ciclo** — gasto acumulado de variables por día contra la línea pareja de su presupuesto. En los días restantes, una línea punteada llega a la misma proyección lineal del resumen (punto 1): verde si cierra dentro del presupuesto, coral si lo rebasa.
 5. **Contra el ciclo pasado** — por categoría, lo de este ciclo contra lo del anterior **a los mismos días transcurridos** (addendum-v3 §2.4: comparación honesta, nunca contra el ciclo anterior completo).
 6. **Últimos ciclos** — total gastado de hasta 6 ciclos, el actual marcado como "en curso".
 7. **¿Qué día gastas más?** — promedio por día de la semana de las variables (últimos 90 días).
