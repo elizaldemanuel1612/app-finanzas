@@ -18,6 +18,7 @@ import '../../domain/reglas/creacion_movimiento.dart';
 import '../../domain/voz/monto_hablado.dart';
 import '../captura/pantalla_captura.dart';
 import '../comun/asegurar_ciclo_abierto.dart';
+import '../comun/aviso_gesto.dart';
 import '../comun/tema.dart';
 
 const _uuid = Uuid();
@@ -387,6 +388,7 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
         ],
       ),
     );
+    if (context.mounted) await avisarGestoPrimeraVez(context, GestoApp.eliminarGasto);
     if (confirmado != true) return false;
     await movimientoRepositorio.anular(m.id!);
     onCambio();
@@ -410,6 +412,9 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
       case Exito(:final valor):
         await movimientoRepositorio.guardar(valor);
         onCambio();
+        if (!context.mounted) return;
+        // La primera vez, la explicación ya dice que se duplicó.
+        if (await avisarGestoPrimeraVez(context, GestoApp.duplicarGasto)) return;
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

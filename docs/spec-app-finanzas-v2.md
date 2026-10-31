@@ -191,6 +191,8 @@ Spotify ($239), gimnasio ($658.33), plan celular ($319), vivienda ($9,910)... re
 
 **Regla:** motor de recurrencias que genera estos movimientos automáticamente al inicio del ciclo, en estado `propuesto` (§1.4). Te llega una notificación: "¿Confirmas tus 4 gastos fijos de este ciclo?" → un tap y listo.
 
+**Avisos de gestos (2026-10-31).** La primera vez que se usa un gesto que no se ve a simple vista (deslizar para duplicar o eliminar, deslizar hacia abajo para actualizar), un aviso pequeño explica qué hace. Una sola vez por gesto y por dispositivo (`lib/ui/comun/aviso_gesto.dart`).
+
 ### 5.5 [NUEVO] Captura por lote / múltiples renglones
 Un ticket de súper puede tener partidas de categorías distintas (despensa + salud + limpieza). La app permite dividir un mismo ticket en varios movimientos que comparten `ticketId`.
 

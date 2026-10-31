@@ -9,6 +9,7 @@ import '../../domain/modelos/estado_movimiento.dart';
 import '../../domain/modelos/movimiento.dart';
 import '../../domain/presupuesto/reasignacion_categoria.dart';
 import '../comun/asegurar_ciclo_abierto.dart';
+import '../comun/aviso_gesto.dart';
 import '../comun/popscope_descartar.dart';
 import '../comun/tema.dart';
 
@@ -123,6 +124,7 @@ class _PantallaReasignarMovimientosState extends State<PantallaReasignarMovimien
         ],
       ),
     );
+    if (mounted) await avisarGestoPrimeraVez(context, GestoApp.eliminarGasto);
     if (confirmado != true) return false;
 
     await widget.movimientoRepositorio.anular(m.id!);

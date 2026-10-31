@@ -13,6 +13,7 @@ import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/meta_base.dart';
+import '../comun/aviso_gesto.dart';
 import '../comun/tema.dart';
 import 'graficas_analisis.dart';
 
@@ -129,7 +130,10 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
       body: datos == null
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _cargar,
+              onRefresh: () async {
+                await _cargar();
+                if (context.mounted) await avisarGestoPrimeraVez(context, GestoApp.recargar);
+              },
               child: datos.reporte.sinMovimientos ? _vacio(context) : _contenido(context, datos),
             ),
     );

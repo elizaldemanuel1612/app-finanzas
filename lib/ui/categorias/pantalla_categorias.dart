@@ -6,6 +6,7 @@ import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/presupuesto/categorias.dart' as reglas_categoria;
+import '../comun/aviso_gesto.dart';
 import '../comun/tema.dart';
 import 'eliminar_categoria.dart';
 import 'pantalla_nueva_categoria.dart';
@@ -65,6 +66,7 @@ class _PantallaCategoriasState extends State<PantallaCategorias> {
       reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
       cicloRepositorio: widget.cicloRepositorio,
     );
+    if (mounted) await avisarGestoPrimeraVez(context, GestoApp.eliminarCategoria);
     if (!huboCambio) return false;
     await _cargar();
     if (!mounted) return false;

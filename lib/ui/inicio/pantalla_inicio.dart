@@ -31,6 +31,7 @@ import '../captura/pantalla_captura.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../categorias/pantalla_detalle_categoria.dart';
 import '../ciclo/pantalla_ciclos_anteriores.dart';
+import '../comun/aviso_gesto.dart';
 import '../comun/barra_ritmo.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/tarjeta_resumen_ciclo.dart';
@@ -516,7 +517,10 @@ class _PantallaInicioState extends State<PantallaInicio> {
     // Deslizar hacia abajo recarga (p. ej. tras registrar desde el widget
     // o desde Siri con la app ya abierta).
     return RefreshIndicator(
-      onRefresh: _cargar,
+      onRefresh: () async {
+        await _cargar();
+        if (mounted) await avisarGestoPrimeraVez(context, GestoApp.recargar);
+      },
       child: ListView(
       padding: const EdgeInsets.all(16),
       children: [

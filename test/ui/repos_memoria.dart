@@ -69,8 +69,12 @@ final class MovimientoRepositorioMemoria implements MovimientoRepositorio {
   Future<bool> existeClientId(String clientId) async =>
       items.any((m) => m.clientId == clientId);
   @override
-  Future<Movimiento> guardar(Movimiento movimiento) =>
-      throw UnimplementedError();
+  Future<Movimiento> guardar(Movimiento movimiento) async {
+    final conId = movimiento.id == null ? movimiento.copyWith(id: movimiento.clientId) : movimiento;
+    items.add(conId);
+    return conId;
+  }
+
   @override
   Future<void> actualizar(Movimiento movimiento) => throw UnimplementedError();
   @override
