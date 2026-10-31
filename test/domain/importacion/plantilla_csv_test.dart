@@ -13,7 +13,19 @@ import 'package:test/test.dart';
 void main() {
   test('los encabezados de la plantilla son los mismos que exportarMovimientosCsv', () {
     final filas = leerCsv(generarPlantillaCsvDeEjemplo());
-    expect(filas.first, encabezadosExportacion);
+    expect(filas.firstWhere((f) => !esRenglonDeInstrucciones(f)), encabezadosExportacion);
+  });
+
+  test('las instrucciones dicen los valores permitidos, el formato y el emoji', () {
+    final texto = instruccionesParaIA.join(' ');
+    for (final esperado in ['.csv', 'UTF-8', 'aaaa-mm-dd', 'Tarjeta o Efectivo', 'Activo o Anulado', 'emoji']) {
+      expect(texto, contains(esperado));
+    }
+    for (final columna in encabezadosExportacion) {
+      expect(texto, contains(columna));
+    }
+    // Una comilla suelta rompería la lectura del CSV.
+    expect(texto, isNot(contains('"')));
   });
 
   test('la plantilla se reimporta a sí misma sin renglones con problema', () {

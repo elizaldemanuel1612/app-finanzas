@@ -110,11 +110,17 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
   Map<String, String> historialComercios = const {},
 }) {
   final filas = leerCsv(contenidoCsv, separador: detectarSeparador(contenidoCsv));
-  if (filas.isEmpty) {
+  // Las instrucciones de la plantilla pueden seguir en el archivo. El número
+  // de renglón se conserva: es el que se ve al abrirlo en una hoja de cálculo.
+  final utiles = [
+    for (final (indice, renglon) in filas.indexed)
+      if (!esRenglonDeInstrucciones(renglon)) (numero: indice + 1, celdas: renglon),
+  ];
+  if (utiles.isEmpty) {
     return const Falla('El archivo está vacío.');
   }
 
-  final mapeo = detectarColumnas(filas.first);
+  final mapeo = detectarColumnas(utiles.first.celdas);
   if (!mapeo.esImportable) {
     return const Falla(
       'No encontré columnas de fecha y monto. Revisa el formato con la plantilla de ejemplo.',
@@ -139,11 +145,11 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
   // Lo que enseña el propio archivo: descripción → nombre de categoría,
   // de los renglones que traen las dos.
   final historialDelArchivo = construirHistorialComercios([
-    for (final renglon in filas.skip(1))
-      if (_campo(renglon, mapeo[CampoImportado.categoria]).isNotEmpty)
+    for (final renglon in utiles.skip(1))
+      if (_campo(renglon.celdas, mapeo[CampoImportado.categoria]).isNotEmpty)
         ObservacionComercio(
-          _campo(renglon, mapeo[CampoImportado.descripcion]),
-          separarEmojiDelNombre(_campo(renglon, mapeo[CampoImportado.categoria])).nombre,
+          _campo(renglon.celdas, mapeo[CampoImportado.descripcion]),
+          separarEmojiDelNombre(_campo(renglon.celdas, mapeo[CampoImportado.categoria])).nombre,
         ),
   ]);
 
@@ -162,9 +168,7 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
     ).categoriaId;
   }
 
-  for (var i = 1; i < filas.length; i++) {
-    final renglon = filas[i];
-    final numeroDeRenglon = i + 1;
+  for (final (numero: numeroDeRenglon, celdas: renglon) in utiles.skip(1)) {
     if (renglon.every((celda) => celda.trim().isEmpty)) continue;
     String campo(CampoImportado c) => _campo(renglon, mapeo[c]);
     void avisar(String motivo) =>

@@ -155,9 +155,8 @@ class _PantallaImportarState extends State<PantallaImportar> {
               const NotaDestacada(
                 etiqueta: 'TIP',
                 texto: 'Si tienes alguna IA, como ChatGPT, Copilot, Gemini, etc., '
-                    'descarga la plantilla, pásale también tus gastos, y dile que '
-                    'ponga todo en el formato de la plantilla, dejando vacías las '
-                    'columnas que no sepa. ¡Listo!',
+                    'descarga la plantilla y pásasela junto con tus gastos: ya trae '
+                    'las instrucciones para que te regrese el archivo listo para cargar.',
                 tono: TonoNota.tip,
               ),
               const SizedBox(height: 12),

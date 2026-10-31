@@ -75,12 +75,21 @@ List<List<String>> leerCsv(String contenido, {String separador = ','}) {
   return filas;
 }
 
+/// Un renglón cuya primera celda empieza con esto es una instrucción de la
+/// plantilla, no un dato: la importación lo ignora.
+const marcaDeInstrucciones = '#';
+
+bool esRenglonDeInstrucciones(List<String> renglon) =>
+    renglon.isNotEmpty && renglon.first.trimLeft().startsWith(marcaDeInstrucciones);
+
 /// Excel en algunos idiomas guarda el CSV con `;` en vez de `,`: si el
-/// encabezado tiene más `;` que `,`, ese es el separador.
+/// encabezado tiene más `;` que `,`, ese es el separador. Las líneas de
+/// instrucciones (`#`) de la plantilla no cuentan como encabezado.
 String detectarSeparador(String contenido) {
-  final texto = _sinBom(contenido);
-  final finDeLinea = texto.indexOf('\n');
-  final encabezado = finDeLinea < 0 ? texto : texto.substring(0, finDeLinea);
+  final encabezado = _sinBom(contenido).split('\n').firstWhere(
+        (linea) => !linea.replaceFirst('"', '').trimLeft().startsWith(marcaDeInstrucciones),
+        orElse: () => '',
+      );
   final comas = ','.allMatches(encabezado).length;
   final puntosYComa = ';'.allMatches(encabezado).length;
   return puntosYComa > comas ? ';' : ',';

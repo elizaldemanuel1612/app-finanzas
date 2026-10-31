@@ -316,6 +316,8 @@ Exportar todo a Excel/CSV cuando quieras. No quedas atrapado en la app — y te 
 
 Se exporta todo, también lo anulado: si no, reimportar revivía gastos que el usuario había quitado. El tipo (fija/variable) y el presupuesto de las categorías no viajan en el CSV —son del plan, no de los movimientos—; para mover la cuenta completa está el respaldo en Drive (§4.2.1). Excel en algunos idiomas guarda con `;`: la importación lo detecta.
 
+**Instrucciones para la IA (2026-10-30).** La plantilla empieza con renglones `#` que le dicen a la IA del usuario cómo llenarla: archivo `.csv` UTF-8 con comas, encabezados intactos, formato de fecha y monto, valores permitidos (Tarjeta/Efectivo, Activo/Anulado) y un emoji por categoría según su nombre. La importación ignora todo renglón cuya primera celda empiece con `#`.
+
 ---
 
 ## 8. Migración desde el Excel: con verificación

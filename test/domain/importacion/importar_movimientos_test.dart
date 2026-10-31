@@ -371,4 +371,26 @@ void main() {
       expect(datos.categoriasAdivinadas, 0);
     });
   });
+
+  group('renglones de instrucciones', () {
+    test('se ignoran antes y entre los datos, conservando el número de renglón', () {
+      final datos = _ok('# instrucción, con coma\nfecha,monto\n# otra\n2026-08-05,100\nmal,100\n');
+      expect(datos.movimientos, hasLength(1));
+      expect(datos.renglonesConProblema.single.numeroDeRenglon, 5);
+    });
+
+    test('el separador se detecta en el encabezado, no en las instrucciones', () {
+      final datos = _ok('# a, b, c, d\nFecha;Monto\n2026-08-05;100\n');
+      expect(datos.movimientos.single.monto, const Dinero.pesos(100));
+    });
+
+    test('solo instrucciones es un archivo vacío', () {
+      final r = previsualizarImportacion(
+        contenidoCsv: '# nada\n',
+        calculadoraCiclo: _calculadora,
+        categoriasExistentes: const [],
+      );
+      expect(r.esFalla, isTrue);
+    });
+  });
 }
