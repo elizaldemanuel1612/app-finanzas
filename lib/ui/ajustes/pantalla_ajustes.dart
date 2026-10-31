@@ -14,6 +14,7 @@ import '../../domain/ciclo_de_vida/cambio_de_corte.dart';
 import '../../domain/exportacion/exportar_csv.dart';
 import '../../domain/importacion/plantilla_csv.dart';
 import '../../domain/modelos/perfil.dart';
+import '../../data/nube/errores_respaldo.dart';
 import '../../data/nube/respaldo_drive.dart';
 import '../../data/nube/servicio_nube.dart';
 import '../../plataforma/accesos_rapidos.dart';
@@ -286,6 +287,9 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     if (primerPaso != true) return;
     if (!mounted) return;
 
+    // El error se guarda en vez de dejarlo volar: se reporta abajo, ya con
+    // el diálogo cerrado.
+    Future<Object?>? reautenticacion;
     final segundoPaso = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -295,7 +299,13 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: ColoresApp.coralTexto),
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () {
+              // Directo desde el toque, antes de cualquier espera (Safari).
+              reautenticacion = widget.servicioAuth
+                  .reautenticarParaEliminar()
+                  .then<Object?>((_) => null, onError: (Object e) => e);
+              Navigator.pop(context, true);
+            },
             child: const Text('Sí, eliminar todo'),
           ),
         ],
@@ -305,6 +315,8 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
 
     setState(() => _procesando = true);
     try {
+      final errorDeReautenticacion = await reautenticacion;
+      if (errorDeReautenticacion != null) throw errorDeReautenticacion;
       // Orden no negociable (Fase 6, Bloque 2.4): si delete() de Firebase
       // falla, los datos locales deben seguir intactos para reintentar. Al
       // revés, el usuario se queda sin datos y con cuenta.
@@ -325,7 +337,10 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo eliminar la cuenta: $e')),
+          SnackBar(
+            content: Text('No se pudo eliminar la cuenta. ${describirErrorRespaldo(e)}'),
+            duration: const Duration(seconds: 8),
+          ),
         );
       }
     } finally {

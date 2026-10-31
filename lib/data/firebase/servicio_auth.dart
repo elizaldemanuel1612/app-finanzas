@@ -106,6 +106,23 @@ class ServicioAuth {
     await FirebaseAuth.instance.signOut();
   }
 
+  /// En la web, confirma la identidad con la ventana de Google **antes** de
+  /// eliminar: deja la sesión reciente (`delete()` ya no pide reautenticar)
+  /// y un token de Drive vigente para borrar la copia. Debe llamarse directo
+  /// desde el toque de la última confirmación: tras cualquier espera, Safari
+  /// bloquea la ventana y la cuenta no se podía eliminar (2026-10-30). En
+  /// móvil no hace nada; [eliminarCuenta] reautentica si hace falta.
+  Future<void> reautenticarParaEliminar() async {
+    final usuario = FirebaseAuth.instance.currentUser;
+    if (!kIsWeb || usuario == null) return;
+    final credencial = await usuario.reauthenticateWithPopup(
+      GoogleAuthProvider()
+        ..addScope(alcanceDrive)
+        ..setCustomParameters({if (usuario.email != null) 'login_hint': usuario.email!}),
+    );
+    _guardarTokenDriveWeb(credencial);
+  }
+
   /// Borra la cuenta de Firebase Auth — el primer paso del flujo de
   /// "Eliminar cuenta" de Ajustes (Fase 6, Bloque 2.4). `currentUser.delete()`
   /// falla con `requires-recent-login` para sesiones de más de ~5 minutos
