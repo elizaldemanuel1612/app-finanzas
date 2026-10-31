@@ -22,6 +22,7 @@ import '../../domain/modelos/perfil.dart';
 import '../../domain/reglas/creacion_movimiento.dart';
 import '../../domain/reglas/fecha_movimiento.dart';
 import '../../domain/reglas/monto.dart';
+import '../../domain/rollups/orden_categorias.dart';
 import '../../plataforma/dictado_web.dart';
 import '../comun/asegurar_ciclo_abierto.dart';
 import '../comun/formato_dinero.dart';
@@ -101,7 +102,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   @override
   void initState() {
     super.initState();
-    _categorias = widget.categoriaRepositorio.listarActivas();
+    _categorias = _cargarCategorias();
     _categorias.then((categorias) {
       if (mounted) setState(() => _categoriasCache = categorias);
     });
@@ -132,6 +133,13 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
         if (mounted) _dictar();
       });
     }
+  }
+
+  /// Las más usadas primero (`ordenarPorUso`, spec §5.6).
+  Future<List<Categoria>> _cargarCategorias() async {
+    final categorias = await widget.categoriaRepositorio.listarActivas();
+    final movimientos = await widget.movimientoRepositorio.listarTodos();
+    return ordenarPorUso(categorias, movimientos);
   }
 
   /// Reglas del usuario (Nivel 1) e historial de comercios ya clasificados

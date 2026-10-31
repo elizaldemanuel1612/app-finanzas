@@ -1,5 +1,7 @@
 import 'package:app_finanzas/core/money.dart';
 import 'package:app_finanzas/domain/modelos/categoria.dart';
+import 'package:app_finanzas/domain/modelos/estado_movimiento.dart';
+import 'package:app_finanzas/domain/modelos/movimiento.dart';
 import 'package:app_finanzas/domain/rollups/orden_categorias.dart';
 import 'package:app_finanzas/domain/rollups/rollup.dart';
 import 'package:test/test.dart';
@@ -68,5 +70,58 @@ void main() {
     expect(_ids(ordenarCategorias(categorias, igual, OrdenCategorias.dineroGastado)).take(2), ['chica', 'grande']);
 
     expect(_ids(ordenarCategorias([_cat('b'), _cat('a')], const {}, OrdenCategorias.dineroGastado)), ['a', 'b']);
+  });
+
+  group('ordenarPorUso', () {
+    CategoriaVariable variable(String id, int presupuesto) => CategoriaVariable(
+          id: id,
+          nombre: id,
+          emoji: '🛒',
+          activa: true,
+          esNecesaria: false,
+          presupuestoMensualCentavos: Dinero.pesos(presupuesto),
+        );
+    const fija = CategoriaFija(
+      id: 'renta',
+      nombre: 'renta',
+      emoji: '🏠',
+      activa: true,
+      esNecesaria: true,
+      montoFijoCentavos: Dinero.pesos(500),
+      diaDelCiclo: 1,
+    );
+    Movimiento gasto(String categoriaId, int n, [EstadoMovimiento estado = EstadoMovimiento.activo]) => Movimiento(
+          clientId: '$categoriaId-$n',
+          fecha: DateTime(2026, 10, 1),
+          cicloId: 'c',
+          periodoNatural: '2026-10',
+          monto: const Dinero.pesos(1),
+          categoriaId: categoriaId,
+          medio: MedioPago.tarjeta,
+          descripcion: 'x',
+          estado: estado,
+          origenCaptura: OrigenCaptura.manual,
+        );
+    final lista = <Categoria>[variable('chica', 100), fija, variable('grande', 900)];
+
+    test('sin historial: de mayor a menor presupuesto, contando el monto de las fijas', () {
+      expect(_ids(ordenarPorUso(lista, const [])), ['grande', 'renta', 'chica']);
+    });
+
+    test('con historial: la más usada primero, aunque tenga menos presupuesto', () {
+      final usados = [gasto('chica', 1), gasto('chica', 2), gasto('renta', 1)];
+      expect(_ids(ordenarPorUso(lista, usados)), ['chica', 'renta', 'grande']);
+    });
+
+    test('lo anulado y lo pendiente no cuentan como uso', () {
+      final usados = [gasto('chica', 1, EstadoMovimiento.anulado), gasto('chica', 2, EstadoMovimiento.propuesto)];
+      expect(_ids(ordenarPorUso(lista, usados)).first, 'grande');
+    });
+
+    test('empate de uso y presupuesto: por nombre, sin tocar la lista original', () {
+      final original = <Categoria>[variable('b', 1), variable('a', 1)];
+      expect(_ids(ordenarPorUso(original, const [])), ['a', 'b']);
+      expect(_ids(original), ['b', 'a']);
+    });
   });
 }
