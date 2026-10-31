@@ -426,6 +426,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
               ajustePresupuestoCicloRepositorio:
                   widget.ajustePresupuestoCicloRepositorio,
               cicloRepositorio: widget.cicloRepositorio,
+              perfil: _perfil,
+              documentos: widget.almacenLocal.directorio,
             ),
           ),
         )

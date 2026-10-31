@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../core/ciclo.dart';
@@ -10,6 +12,7 @@ import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/estado_movimiento.dart';
 import '../../domain/modelos/movimiento.dart';
+import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/plan_de_ajuste.dart';
 import '../../domain/presupuesto/rebalanceo.dart';
@@ -17,6 +20,8 @@ import '../../domain/pronostico/historico_desde_movimientos.dart';
 import '../../domain/pronostico/pronostico_categoria.dart';
 import '../../domain/rollups/calcular_rollups.dart';
 import '../../domain/rollups/estado_ritmo.dart';
+import '../captura/pantalla_captura.dart';
+import '../comun/asegurar_ciclo_abierto.dart';
 import '../comun/barra_ritmo.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/tema.dart';
@@ -43,6 +48,10 @@ class PantallaDetalleCategoria extends StatefulWidget {
   final AjustePresupuestoCicloRepositorio ajustePresupuestoCicloRepositorio;
   final CicloRepositorio cicloRepositorio;
 
+  /// Para abrir la edición de un gasto (ver `PantallaCaptura.documentos`).
+  final Perfil perfil;
+  final Directory documentos;
+
   const PantallaDetalleCategoria({
     super.key,
     required this.categoria,
@@ -53,6 +62,8 @@ class PantallaDetalleCategoria extends StatefulWidget {
     required this.reglasAprendidasRepositorio,
     required this.ajustePresupuestoCicloRepositorio,
     required this.cicloRepositorio,
+    required this.perfil,
+    required this.documentos,
   });
 
   @override
@@ -67,6 +78,31 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
   void initState() {
     super.initState();
     _cargar();
+  }
+
+  /// La misma edición que abre "Gastos". Si se reasigna a otra categoría, al
+  /// recargar el gasto deja de aparecer aquí.
+  Future<void> _editar(Movimiento m) async {
+    final puedeModificar = await asegurarCicloAbierto(
+      context,
+      cicloId: m.cicloId,
+      cicloRepositorio: widget.cicloRepositorio,
+    );
+    if (!puedeModificar || !mounted) return;
+    final editado = await Navigator.of(context).push<Movimiento>(
+      MaterialPageRoute(
+        builder: (_) => PantallaCaptura(
+          perfil: widget.perfil,
+          categoriaRepositorio: widget.categoriaRepositorio,
+          movimientoRepositorio: widget.movimientoRepositorio,
+          reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
+          cicloRepositorio: widget.cicloRepositorio,
+          documentos: widget.documentos,
+          paraEditar: m,
+        ),
+      ),
+    );
+    if (editado != null) await _cargar();
   }
 
   Future<void> _cargar() async {
@@ -354,11 +390,19 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
             (m) => Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
+                onTap: () => _editar(m),
                 title: Text(m.descripcion),
                 subtitle: Text('${_fechaCorta(m.fecha)} · ${m.medio.name}'),
-                trailing: Text(
-                  m.monto.formateado(),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      m.monto.formateado(),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.chevron_right, color: ColoresApp.medio, semanticLabel: 'Editar'),
+                  ],
                 ),
               ),
             ),
