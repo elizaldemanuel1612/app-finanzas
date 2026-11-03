@@ -42,6 +42,7 @@ void main() {
     final r = calcularRepartoIngreso(
       reporte: _reporte(gastadoFijas: 4000, presupuestoFijas: 6000, gastadoVariables: 1000, proyeccion: 3100),
       ingreso: const Dinero.pesos(20000),
+      metaCiclo: const Dinero.pesos(4000),
     );
     expect(r.hoy.fijas, const Dinero.pesos(4000));
     expect(r.hoy.variables, const Dinero.pesos(1000));
@@ -51,12 +52,36 @@ void main() {
     expect(r.alCierre.variables, const Dinero.pesos(3100));
     expect(r.alCierre.gastos, const Dinero.pesos(9100));
     expect(r.alCierre.porcentaje(r.alCierre.fijas), 30);
+    expect(r.hoy.apartado, const Dinero.cero());
+  });
+
+  test('el plan: presupuestos del ciclo y la meta; lo demás queda sin asignar', () {
+    final r = calcularRepartoIngreso(
+      reporte: _reporte(gastadoFijas: 4000, presupuestoFijas: 6000, gastadoVariables: 1000, proyeccion: 3100),
+      ingreso: const Dinero.pesos(20000),
+      metaCiclo: const Dinero.pesos(4000),
+    );
+    expect(r.plan.fijas, const Dinero.pesos(6000));
+    expect(r.plan.variables, const Dinero.pesos(5000));
+    expect(r.plan.apartado, const Dinero.pesos(4000));
+    expect(r.plan.sobra, const Dinero.pesos(5000));
+    expect(r.plan.porcentaje(r.plan.apartado), 20);
+  });
+
+  test('un plan que no cabe en lo que entra queda en negativo', () {
+    final r = calcularRepartoIngreso(
+      reporte: _reporte(gastadoFijas: 0, presupuestoFijas: 6000, gastadoVariables: 0, proyeccion: 0),
+      ingreso: const Dinero.pesos(10000),
+      metaCiclo: const Dinero.pesos(1000),
+    );
+    expect(r.plan.sobra, const Dinero.pesos(-2000));
   });
 
   test('si ya se pagó más de lo planeado en fijas, cuenta lo pagado', () {
     final r = calcularRepartoIngreso(
       reporte: _reporte(gastadoFijas: 7000, presupuestoFijas: 6000, gastadoVariables: 3000, proyeccion: 2000),
       ingreso: const Dinero.pesos(8000),
+      metaCiclo: const Dinero.cero(),
     );
     expect(r.alCierre.fijas, const Dinero.pesos(7000));
     expect(r.alCierre.variables, const Dinero.pesos(3000));
@@ -67,6 +92,7 @@ void main() {
     final r = calcularRepartoIngreso(
       reporte: _reporte(gastadoFijas: 1, presupuestoFijas: 1, gastadoVariables: 1, proyeccion: 1),
       ingreso: const Dinero.cero(),
+      metaCiclo: const Dinero.cero(),
     );
     expect(r.hoy.porcentaje(r.hoy.fijas), 0);
   });

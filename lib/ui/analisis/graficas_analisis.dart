@@ -385,6 +385,11 @@ class BarraReparto extends StatelessWidget {
   final Dinero ingreso;
   final Dinero fijas;
   final Dinero variables;
+
+  /// Lo que se piensa apartar: solo en "Tu plan". Ahí lo que queda sin
+  /// asignar se deja en gris, no en el verde de "te sobra".
+  final Dinero apartado;
+  final bool esPlan;
   final String descripcion;
 
   const BarraReparto({
@@ -392,6 +397,8 @@ class BarraReparto extends StatelessWidget {
     required this.ingreso,
     required this.fijas,
     required this.variables,
+    this.apartado = const Dinero.cero(),
+    this.esPlan = false,
     required this.descripcion,
   });
 
@@ -403,7 +410,7 @@ class BarraReparto extends StatelessWidget {
         child: SizedBox(
           height: 22,
           width: double.infinity,
-          child: CustomPaint(painter: _PintorReparto(ingreso, fijas, variables)),
+          child: CustomPaint(painter: _PintorReparto(ingreso, fijas, variables, apartado, esPlan: esPlan)),
         ),
       ),
     );
@@ -419,17 +426,25 @@ Color get colorVariables => ColoresApp.oro;
 /// Color de lo que sobra en el reparto.
 Color get colorSobra => ColoresApp.verde.withValues(alpha: 0.45);
 
+/// Color del apartado ideal en "Tu plan".
+Color get colorApartado => ColoresApp.verde;
+
+/// Lo que queda sin asignar en "Tu plan": el fondo de la barra.
+Color get colorSinAsignar => ColoresApp.pista;
+
 class _PintorReparto extends CustomPainter {
   final Dinero ingreso;
   final Dinero fijas;
   final Dinero variables;
+  final Dinero apartado;
+  final bool esPlan;
   final Paleta paleta = ColoresApp.actual;
 
-  _PintorReparto(this.ingreso, this.fijas, this.variables);
+  _PintorReparto(this.ingreso, this.fijas, this.variables, this.apartado, {required this.esPlan});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final gastos = fijas.centavos + variables.centavos;
+    final gastos = fijas.centavos + variables.centavos + apartado.centavos;
     final escala = math.max(math.max(ingreso.centavos, gastos), 1).toDouble();
     double ancho(int centavos) => size.width * centavos / escala;
     final forma = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(8));
@@ -452,8 +467,13 @@ class _PintorReparto extends CustomPainter {
     }
     canvas.restore();
     canvas.drawRect(Rect.fromLTWH(anchoFijas, 0, anchoVariables, size.height), Paint()..color = colorVariables);
+    final anchoApartado = ancho(apartado.centavos);
+    canvas.drawRect(
+      Rect.fromLTWH(anchoFijas + anchoVariables, 0, anchoApartado, size.height),
+      Paint()..color = colorApartado,
+    );
     final sobra = ingreso.centavos - gastos;
-    if (sobra > 0) {
+    if (sobra > 0 && !esPlan) {
       canvas.drawRect(
         Rect.fromLTWH(anchoFijas + anchoVariables, 0, ancho(sobra), size.height),
         Paint()..color = colorSobra,
@@ -474,5 +494,5 @@ class _PintorReparto extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PintorReparto old) =>
-      old.ingreso != ingreso || old.fijas != fijas || old.variables != variables || old.paleta != paleta;
+      old.ingreso != ingreso || old.fijas != fijas || old.variables != variables || old.apartado != apartado || old.esPlan != esPlan || old.paleta != paleta;
 }

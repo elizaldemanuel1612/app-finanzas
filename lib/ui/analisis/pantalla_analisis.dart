@@ -75,7 +75,10 @@ class _Datos {
   /// `null` si no hay cuentas que mostrar.
   final List<ResumenCuenta>? cuentas;
 
-  const _Datos(this.reporte, this.recomendaciones, this.ingreso, this.categorias, this.cuentas);
+  /// Lo que se piensa apartar este ciclo (meta más extras a apartar).
+  final Dinero metaCiclo;
+
+  const _Datos(this.reporte, this.recomendaciones, this.ingreso, this.categorias, this.cuentas, this.metaCiclo);
 }
 
 enum _Vista { basico, avanzado, cuentas }
@@ -140,10 +143,11 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
       perfil: widget.perfil,
       categorias: [for (final c in todas) if (c.activa) c],
     );
+    final metaCiclo = calcularMetaDelCiclo(metaBase: metaBase, ingresos: ingresos);
     final recomendaciones = calcularRecomendaciones(
       reporte: reporte,
       ingresoCiclo: ingresos.total,
-      metaCiclo: calcularMetaDelCiclo(metaBase: metaBase, ingresos: ingresos),
+      metaCiclo: metaCiclo,
     );
     final repoCuentas = widget.cuentaRepositorio;
     final cuentas = repoCuentas == null
@@ -162,6 +166,7 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
           ingresos.total,
           [for (final c in efectivas) if (c.activa) c],
           cuentas,
+          metaCiclo,
         ));
   }
 
@@ -881,7 +886,7 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
     if (!datos.ingreso.esPositivo) {
       return Text('Registra lo que te entra para ver cuánto pesan tus gastos.', style: textos.bodySmall);
     }
-    final reparto = calcularRepartoIngreso(reporte: datos.reporte, ingreso: datos.ingreso);
+    final reparto = calcularRepartoIngreso(reporte: datos.reporte, ingreso: datos.ingreso, metaCiclo: datos.metaCiclo);
     final quedanDias = datos.reporte.diasRestantes > 0;
     Widget barra(String titulo, RepartoIngreso r) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -922,6 +927,8 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
       children: [
         Text('De ${datos.ingreso.formateado()} que entran este ciclo', style: textos.bodySmall),
         const SizedBox(height: 12),
+        _plan(context, reparto.plan),
+        const SizedBox(height: 16),
         barra('Hasta hoy', reparto.hoy),
         if (quedanDias) ...[
           const SizedBox(height: 16),
@@ -930,6 +937,55 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
       ],
     );
   }
+}
+
+/// Lo asignado: presupuestos del ciclo y el apartado ideal contra lo que entra.
+Widget _plan(BuildContext context, RepartoIngreso r) {
+  final textos = Theme.of(context).textTheme;
+  final pasa = r.sobra.esNegativo;
+  final exceso = Dinero(-r.sobra.centavos);
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Tu plan', style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+      const SizedBox(height: 6),
+      BarraReparto(
+        ingreso: r.ingreso,
+        fijas: r.fijas,
+        variables: r.variables,
+        apartado: r.apartado,
+        esPlan: true,
+        descripcion: 'Tu plan: fijos ${r.porcentaje(r.fijas)}%, variables ${r.porcentaje(r.variables)}%, '
+            'apartado ideal ${r.porcentaje(r.apartado)}% de lo que entra; '
+            '${pasa ? 'se pasa por ${exceso.formateado()}' : 'sin asignar ${r.sobra.formateado()}'}.',
+      ),
+      const SizedBox(height: 8),
+      _FilaReparto(color: colorFijas, rayas: true, texto: 'Fijos', monto: r.fijas, porcentaje: r.porcentaje(r.fijas)),
+      _FilaReparto(
+        color: colorVariables,
+        texto: 'Variables',
+        monto: r.variables,
+        porcentaje: r.porcentaje(r.variables),
+      ),
+      _FilaReparto(
+        color: colorApartado,
+        texto: 'Apartado ideal',
+        monto: r.apartado,
+        porcentaje: r.porcentaje(r.apartado),
+        destacado: ColoresApp.verdeTexto,
+      ),
+      if (pasa)
+        _FilaReparto(
+          color: ColoresApp.coral,
+          texto: 'Tu plan se pasa por',
+          monto: exceso,
+          porcentaje: r.porcentaje(exceso),
+          destacado: ColoresApp.coralTexto,
+        )
+      else if (r.sobra.esPositivo)
+        _FilaReparto(color: colorSinAsignar, texto: 'Sin asignar', monto: r.sobra, porcentaje: r.porcentaje(r.sobra)),
+    ],
+  );
 }
 
 class _FilaReparto extends StatelessWidget {
