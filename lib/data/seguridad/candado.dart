@@ -39,16 +39,26 @@ final class EstadoCandado {
 /// §7.3), guardados en el dispositivo dentro de la carpeta de la cuenta:
 /// nunca se suben a ningún lado. Nunca se guarda el PIN ni la contraseña:
 /// solo su huella PBKDF2-SHA256 con sal aleatoria.
+/// Calcula la huella PBKDF2-SHA256 de 32 bytes. En la web se inyecta la del
+/// navegador (WebCrypto): la de Dart congela la pantalla un momento en el
+/// iPhone y el último dígito del PIN parecía trabarse.
+typedef DerivarClave = Future<List<int>> Function(String secreto, List<int> sal, int iteraciones);
+
+Future<List<int>> _derivarEnDart(String secreto, List<int> sal, int iteraciones) async =>
+    pbkdf2Sha256(secreto, sal, iteraciones);
+
 final class Candado {
   final ArchivoTexto archivo;
   final DateTime Function() reloj;
+  final DerivarClave derivar;
 
   /// Vueltas de PBKDF2. Suficientes para que adivinar sea lento sin trabar
   /// la app en la web.
   final int iteraciones;
 
-  Candado(this.archivo, {DateTime Function()? reloj, this.iteraciones = 20000})
-      : reloj = reloj ?? DateTime.now;
+  Candado(this.archivo, {DateTime Function()? reloj, this.iteraciones = 20000, DerivarClave? derivar})
+      : reloj = reloj ?? DateTime.now,
+        derivar = derivar ?? _derivarEnDart;
 
   Future<Map<String, dynamic>> _leer() async {
     final texto = await archivo.leer();
@@ -86,7 +96,7 @@ final class Candado {
   /// haberlo usado y limpia los intentos fallidos.
   Future<void> definirPin(String pin) async {
     final d = await _leer();
-    d['pin'] = _huellaNueva(pin);
+    d['pin'] = await _huellaNueva(pin);
     d['ultimoPin'] = reloj().toIso8601String();
     d.remove('fallidos');
     d.remove('esperarHasta');
@@ -96,7 +106,7 @@ final class Candado {
   /// Crea o cambia la contraseña (ya validada con `validarContrasenaNueva`).
   Future<void> definirContrasena(String contrasena) async {
     final d = await _leer();
-    d['contrasena'] = _huellaNueva(contrasena);
+    d['contrasena'] = await _huellaNueva(contrasena);
     await _guardar(d);
   }
 
@@ -119,7 +129,7 @@ final class Candado {
     final espera = DateTime.tryParse(d['esperarHasta'] as String? ?? '');
     if (esperaTrasFallidos(fallidos) == null || (espera != null && espera.isAfter(ahora))) return false;
     final guardada = d[clave] as Map<String, dynamic>?;
-    if (guardada != null && _coincide(intento, guardada)) {
+    if (guardada != null && await _coincide(intento, guardada)) {
       d.remove('fallidos');
       d.remove('esperarHasta');
       if (esPin) d['ultimoPin'] = ahora.toIso8601String();
@@ -160,16 +170,16 @@ final class Candado {
   /// intentos, y el usuario crea un PIN nuevo.
   Future<void> reiniciar() => archivo.borrar();
 
-  Map<String, String> _huellaNueva(String secreto) {
+  Future<Map<String, String>> _huellaNueva(String secreto) async {
     final generador = Random.secure();
     final sal = Uint8List.fromList(List.generate(16, (_) => generador.nextInt(256)));
-    return {'sal': base64Encode(sal), 'huella': base64Encode(_pbkdf2(secreto, sal))};
+    return {'sal': base64Encode(sal), 'huella': base64Encode(await derivar(secreto, sal, iteraciones))};
   }
 
-  bool _coincide(String intento, Map<String, dynamic> guardada) {
+  Future<bool> _coincide(String intento, Map<String, dynamic> guardada) async {
     final sal = base64Decode(guardada['sal'] as String);
     final esperada = base64Decode(guardada['huella'] as String);
-    final obtenida = _pbkdf2(intento, sal);
+    final obtenida = await derivar(intento, sal, iteraciones);
     // Comparación en tiempo constante.
     var diferencia = esperada.length ^ obtenida.length;
     for (var i = 0; i < esperada.length && i < obtenida.length; i++) {
@@ -177,8 +187,6 @@ final class Candado {
     }
     return diferencia == 0;
   }
-
-  List<int> _pbkdf2(String secreto, List<int> sal) => pbkdf2Sha256(secreto, sal, iteraciones);
 }
 
 /// PBKDF2-HMAC-SHA256, un bloque de 32 bytes (RFC 8018). Pública para

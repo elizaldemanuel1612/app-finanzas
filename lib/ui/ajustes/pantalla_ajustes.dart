@@ -19,6 +19,7 @@ import '../../data/nube/errores_respaldo.dart';
 import '../../data/nube/respaldo_drive.dart';
 import '../../data/nube/servicio_nube.dart';
 import '../../plataforma/accesos_rapidos.dart';
+import '../../plataforma/derivar_clave.dart';
 import '../ayuda/pantalla_guia.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../seguridad/pantalla_seguridad.dart';
@@ -437,7 +438,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                   subtitulo: 'Face ID, huella, PIN o contraseña',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => PantallaSeguridad(candado: Candado(widget.almacenLocal.candado)),
+                      builder: (_) => PantallaSeguridad(candado: Candado(widget.almacenLocal.candado, derivar: derivarClave)),
                     ),
                   ),
                 ),

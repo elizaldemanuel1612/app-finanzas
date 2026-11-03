@@ -51,6 +51,10 @@ class _CapturaPinState extends State<CapturaPin> {
     if (_digitos.length < largoPin) return;
     _procesando = true;
     final pin = _digitos;
+    // Que se vea el sexto punto antes de verificar: si no, mientras se
+    // calcula la huella parece que el último dígito no entró.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
     await widget.alCompletar(pin);
     if (!mounted) return;
     setState(() {

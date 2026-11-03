@@ -20,6 +20,7 @@ import 'domain/modelos/perfil.dart';
 import 'domain/sincronizacion/fusion.dart';
 import 'firebase_options.dart';
 import 'data/seguridad/candado.dart';
+import 'plataforma/derivar_clave.dart';
 import 'domain/seguridad/politica_bloqueo.dart';
 import 'ui/seguridad/pantalla_crear_pin.dart';
 import 'ui/seguridad/pantalla_desbloqueo.dart';
@@ -241,7 +242,7 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
   }
 
   Future<void> _prepararCandado() async {
-    _candado = Candado(_almacenLocal.candado);
+    _candado = Candado(_almacenLocal.candado, derivar: derivarClave);
     _tienePin = (await _candado.estado()).tienePin;
     // Si el sistema cerró o recargó la app hace poco (Safari en el iPhone lo
     // hace al quedarse sin memoria, por ejemplo al abrir el teclado), cuenta
