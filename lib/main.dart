@@ -18,6 +18,10 @@ import 'data/repositorios/local/almacen_local.dart';
 import 'domain/modelos/perfil.dart';
 import 'domain/sincronizacion/fusion.dart';
 import 'firebase_options.dart';
+import 'data/seguridad/candado.dart';
+import 'domain/seguridad/politica_bloqueo.dart';
+import 'ui/seguridad/pantalla_crear_pin.dart';
+import 'ui/seguridad/pantalla_desbloqueo.dart';
 import 'ui/comun/apariencia.dart';
 import 'ui/comun/marca.dart';
 import 'ui/comun/pantalla_login.dart';
@@ -60,6 +64,10 @@ Future<void> main() async {
   runApp(const AppFinanzas());
 }
 
+/// Para poner la pantalla de desbloqueo encima de lo que esté abierto al
+/// volver a la app (spec §7.3).
+final llaveNavegador = GlobalKey<NavigatorState>();
+
 class AppFinanzas extends StatelessWidget {
   const AppFinanzas({super.key});
 
@@ -68,6 +76,7 @@ class AppFinanzas extends StatelessWidget {
     return ValueListenableBuilder<Apariencia>(
       valueListenable: AparienciaApp.actual,
       builder: (context, apariencia, _) => MaterialApp(
+        navigatorKey: llaveNavegador,
         title: nombreApp,
         theme: construirTema(Paleta.clara),
         darkTheme: construirTema(Paleta.oscura),
@@ -153,6 +162,14 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
   /// Avisa a Inicio que la sincronización cambió datos y debe recargar.
   final _datosCambiaron = ValueNotifier<int>(0);
 
+  /// Bloqueo de la app (spec §7.3). Arranca bloqueada; sin PIN, lo primero
+  /// es crearlo.
+  late final Candado _candado;
+  bool _tienePin = false;
+  bool _bloqueada = true;
+  bool _bloqueoEncima = false;
+  DateTime? _salioEn;
+
   @override
   void initState() {
     super.initState();
@@ -174,6 +191,43 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
     if (estado == AppLifecycleState.resumed || estado == AppLifecycleState.paused) {
       _sincronizarEnSegundoPlano();
     }
+    if ((estado == AppLifecycleState.paused || estado == AppLifecycleState.hidden) && !_bloqueada) {
+      _salioEn ??= DateTime.now();
+    }
+    if (estado == AppLifecycleState.resumed) {
+      final salio = _salioEn;
+      _salioEn = null;
+      if (salio != null && debeBloquearAlVolver(salioEn: salio, ahora: DateTime.now())) _bloquearEncima();
+    }
+  }
+
+  /// Desbloqueo encima de lo que haya abierto (una captura a medias, por
+  /// ejemplo), para que nada se pierda al volver.
+  void _bloquearEncima() {
+    final navegador = llaveNavegador.currentState;
+    if (_bloqueada || _bloqueoEncima || !_tienePin || navegador == null) return;
+    _bloqueoEncima = true;
+    navegador.push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (contexto) => PopScope(
+          canPop: false,
+          child: PantallaDesbloqueo(
+            candado: _candado,
+            servicioAuth: widget.servicioAuth,
+            alDesbloquear: () {
+              _bloqueoEncima = false;
+              Navigator.of(contexto).pop();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _prepararCandado() async {
+    _candado = Candado(_almacenLocal.candado);
+    _tienePin = (await _candado.estado()).tienePin;
   }
 
   Future<void> _sincronizarEnSegundoPlano() async {
@@ -213,6 +267,7 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
       // En la web no hay archivos: almacenamiento del navegador, separado
       // por cuenta igual que en el teléfono (spec §4.2.2).
       _almacenLocal = almacenEnNavegador(uid);
+      await _prepararCandado();
       await _prepararNube();
       return;
     }
@@ -230,6 +285,7 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
     final directorio = Directory('${base.path}/usuarios/$uid');
     await _migrarDatosDeAntesDeSepararPorCuenta(base, directorio);
     _almacenLocal = AlmacenLocal(directorio);
+    await _prepararCandado();
     await _prepararNube();
   }
 
@@ -315,6 +371,24 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
   Widget build(BuildContext context) {
     if (_perfil == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (!_tienePin) {
+      return PantallaCrearPin(
+        candado: _candado,
+        explicacion: 'Tu información financiera queda protegida aunque alguien tome tu teléfono. '
+            'Después puedes usar Face ID, huella o contraseña.',
+        alTerminar: () => setState(() {
+          _tienePin = true;
+          _bloqueada = false;
+        }),
+      );
+    }
+    if (_bloqueada) {
+      return PantallaDesbloqueo(
+        candado: _candado,
+        servicioAuth: widget.servicioAuth,
+        alDesbloquear: () => setState(() => _bloqueada = false),
+      );
     }
     return FutureBuilder<Perfil?>(
       future: _perfil,

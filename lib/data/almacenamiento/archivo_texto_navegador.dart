@@ -34,5 +34,6 @@ AlmacenLocal almacenEnNavegador(String uid) => AlmacenLocal.con(
           nombre: ArchivoTextoNavegador('usuarios/$uid/$nombre'),
       },
       estadoNube: ArchivoTextoNavegador('usuarios/$uid/nube.json'),
+      candado: ArchivoTextoNavegador('usuarios/$uid/candado.json'),
       admiteFotos: false,
     );

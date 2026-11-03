@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../data/seguridad/candado.dart';
 import '../../data/firebase/servicio_auth.dart';
 import '../../data/repositorios/local/almacen_local.dart';
 import '../../domain/ciclo_de_vida/cambio_de_corte.dart';
@@ -20,6 +21,7 @@ import '../../data/nube/servicio_nube.dart';
 import '../../plataforma/accesos_rapidos.dart';
 import '../ayuda/pantalla_guia.dart';
 import '../categorias/pantalla_categorias.dart';
+import '../seguridad/pantalla_seguridad.dart';
 import '../comun/apariencia.dart';
 import '../comun/documento_legal.dart';
 import '../comun/formato_fecha.dart';
@@ -415,6 +417,22 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                     titulo: 'Modo claro u oscuro',
                     subtitulo: apariencia.etiqueta,
                     onTap: _elegirApariencia,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            SeccionLista(
+              titulo: 'Seguridad',
+              hijos: [
+                _Renglon(
+                  icono: Icons.lock_outline,
+                  titulo: 'Bloqueo de la app',
+                  subtitulo: 'Face ID, huella, PIN o contraseña',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PantallaSeguridad(candado: Candado(widget.almacenLocal.candado)),
+                    ),
                   ),
                 ),
               ],

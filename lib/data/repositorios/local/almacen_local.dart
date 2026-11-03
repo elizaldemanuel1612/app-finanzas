@@ -43,6 +43,10 @@ final class AlmacenLocal {
   /// sincronización): no son datos de la app, así que no se sincroniza.
   final ArchivoTexto estadoNube;
 
+  /// PIN, contraseña y método de desbloqueo (spec §7.3): del dispositivo,
+  /// no se sincroniza; "Eliminar cuenta" lo borra.
+  final ArchivoTexto candado;
+
   /// `false` en la web: no hay sistema de archivos para fotos de tickets.
   final bool admiteFotos;
 
@@ -62,6 +66,7 @@ final class AlmacenLocal {
             nombre: ArchivoTextoDisco(File('${directorio.path}/$nombre')),
         },
         ArchivoTextoDisco(File('${directorio.path}/nube.json')),
+        ArchivoTextoDisco(File('${directorio.path}/candado.json')),
         admiteFotos: true,
       );
 
@@ -72,15 +77,16 @@ final class AlmacenLocal {
     required Directory directorio,
     required Map<String, ArchivoTexto> archivos,
     required ArchivoTexto estadoNube,
+    required ArchivoTexto candado,
     required bool admiteFotos,
   }) =>
-      AlmacenLocal._(directorio, archivos, estadoNube, admiteFotos: admiteFotos);
+      AlmacenLocal._(directorio, archivos, estadoNube, candado, admiteFotos: admiteFotos);
 
   /// Con los archivos que se le den (pruebas).
   factory AlmacenLocal.sobre(Map<String, ArchivoTexto> archivos) =>
-      AlmacenLocal._(Directory('memoria'), archivos, ArchivoTextoMemoria(), admiteFotos: false);
+      AlmacenLocal._(Directory('memoria'), archivos, ArchivoTextoMemoria(), ArchivoTextoMemoria(), admiteFotos: false);
 
-  AlmacenLocal._(this.directorio, this.archivos, this.estadoNube, {required this.admiteFotos})
+  AlmacenLocal._(this.directorio, this.archivos, this.estadoNube, this.candado, {required this.admiteFotos})
       : categorias = CategoriaRepositorioArchivo.sobre(archivos['categorias.json']!),
         movimientos = MovimientoRepositorioArchivo.sobre(archivos['movimientos.json']!),
         perfil = PerfilRepositorioArchivo.sobre(archivos['perfil.json']!),
@@ -99,6 +105,7 @@ final class AlmacenLocal {
       await archivo.borrar();
     }
     await estadoNube.borrar();
+    await candado.borrar();
     if (!admiteFotos) return;
     final tickets = Directory('${directorio.path}/tickets');
     if (await tickets.exists()) await tickets.delete(recursive: true);

@@ -302,6 +302,15 @@ No se deja para el final (error clásico que expone datos). Las reglas validan: 
 ### 7.3 [NUEVO] Bloqueo biométrico de la app
 Face ID / Touch ID al abrir, configurable. Tu información financiera completa no debería quedar expuesta si alguien toma tu teléfono desbloqueado.
 
+**Cómo quedó (2026-11-02):**
+- **PIN de 6 números obligatorio**, como en el iPhone: se crea al entrar (también cuentas que ya existían) y es el respaldo de todo lo demás. No se aceptan los fáciles de adivinar (111111, 123456, 654321).
+- **Método elegible** en Ajustes → Seguridad: Face ID / huella (solo en la app del teléfono, `local_auth`; en la web no hay), PIN o contraseña (6+ caracteres con letras y números).
+- **El PIN se pide al menos una vez por semana** aunque el método sea otro, para no olvidarlo.
+- Se pide al abrir y al volver tras **1 minuto** fuera de la app; el desbloqueo se pone encima de lo que estaba abierto, sin perderlo.
+- **Intentos:** del 5.º fallo en adelante, esperas de 30 s, 1, 5, 15 y 60 min; al 10.º solo se entra recuperando.
+- **Recuperación:** "¿Olvidaste tu PIN?" vuelve a confirmar la **misma cuenta de Google** con la que se entró (Firebase rechaza otra, `user-mismatch`) y deja crear un PIN nuevo; los datos no se tocan.
+- **Privacidad:** PIN y contraseña nunca se guardan: solo su huella PBKDF2-SHA256 con sal aleatoria, en la carpeta de la cuenta en el dispositivo (`candado.json`, `lib/data/seguridad/candado.dart`). No viaja en el respaldo; "Eliminar cuenta" la borra. Las reglas viven en `domain/seguridad/politica_bloqueo.dart`.
+
 ### 7.4 [NUEVO] Exportación y portabilidad
 Exportar todo a Excel/CSV cuando quieras. No quedas atrapado en la app — y te da una red de seguridad psicológica al abandonar el Excel.
 

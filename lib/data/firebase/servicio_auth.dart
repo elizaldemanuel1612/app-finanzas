@@ -123,6 +123,26 @@ class ServicioAuth {
     _guardarTokenDriveWeb(credencial);
   }
 
+  /// Vuelve a confirmar la misma cuenta de Google con la que se entró. Es
+  /// la recuperación del PIN (spec §7.3): quien la pasa es el dueño del
+  /// correo. Si elige otra cuenta, Firebase lo rechaza (`user-mismatch`). En
+  /// la web debe llamarse directo desde un toque (Safari bloquea la ventana).
+  Future<void> reautenticar() async {
+    final usuario = FirebaseAuth.instance.currentUser;
+    if (usuario == null) throw StateError('No hay sesión.');
+    if (kIsWeb) {
+      await usuario.reauthenticateWithPopup(
+        GoogleAuthProvider()
+          ..setCustomParameters({if (usuario.email != null) 'login_hint': usuario.email!}),
+      );
+      return;
+    }
+    final cuenta = await GoogleSignIn.instance.authenticate();
+    final idToken = cuenta.authentication.idToken;
+    if (idToken == null) throw StateError('Google no regresó un idToken para ${cuenta.email}.');
+    await usuario.reauthenticateWithCredential(GoogleAuthProvider.credential(idToken: idToken));
+  }
+
   /// Borra la cuenta de Firebase Auth — el primer paso del flujo de
   /// "Eliminar cuenta" de Ajustes (Fase 6, Bloque 2.4). `currentUser.delete()`
   /// falla con `requires-recent-login` para sesiones de más de ~5 minutos
