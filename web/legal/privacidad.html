@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de privacidad — MAVfin</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; color: #0B1F3B; background: #FAF8F3; line-height: 1.55; }
+  h1 { font-size: 1.6rem; } h2 { font-size: 1.2rem; margin-top: 2rem; }
+  a { color: #0B1F3B; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid #D9DEE7; padding: 8px; text-align: left; vertical-align: top; }
+  nav { margin-bottom: 24px; font-size: .9rem; }
+  @media (prefers-color-scheme: dark) { body { background: #0A1424; color: #EEF1F7; } a { color: #8DB4F2; } th, td { border-color: #26354F; } }
+</style>
+</head>
+<body>
+<nav><a href="/acerca.html">MAVfin</a> · <a href="/legal/privacidad.html">Privacidad</a> · <a href="/legal/terminos.html">Términos</a></nav>
+<h1>Política de privacidad — MAVfin</h1>
+<p><em>Última actualización: 2026-11-02.</em></p>
+<p>MAVfin es una herramienta personal de registro y pronóstico de gastos. Esta política describe, en términos llanos, qué datos usa la app, dónde se guardan y qué control tienes sobre ellos.</p>
+<h2>Qué NO hace la app</h2>
+<ul><li><strong>No da asesoría financiera.</strong> Las cifras que muestra son estimaciones basadas en lo que tú capturas, no recomendaciones de inversión ni de crédito.</li><li><strong>No se conecta a bancos ni tarjetas.</strong> No hay integración bancaria de ningún tipo.</li><li><strong>No maneja dinero real.</strong> Nunca mueve, transfiere ni retiene fondos.</li><li><strong>No guarda tus datos financieros en servidores propios.</strong> Quien hace la app no tiene acceso a tus gastos, categorías ni ingresos: viven en tu dispositivo y, solo si tú lo activas, en tu propio Google Drive.</li></ul>
+<h2>Qué datos usa la app</h2>
+<table><thead><tr><th>Dato</th><th>Para qué</th><th>Dónde se guarda</th></tr></thead><tbody>
+<tr><td>Correo y UID de tu cuenta de Google</td><td>Identificarte al iniciar sesión</td><td>Servidores de Firebase Authentication (Google)</td></tr>
+<tr><td>Movimientos, categorías, cuentas (tarjetas y efectivo, con sus saldos y abonos), ciclos, ingresos extra, metas y ajustes que capturas</td><td>El propósito completo de la app: registrar y pronosticar tus gastos</td><td><strong>En tu dispositivo</strong> (en la versión web, en el almacenamiento de tu navegador). <strong>Opcional:</strong> una copia en <strong>tu propio Google Drive</strong>, solo si activas el respaldo</td></tr>
+<tr><td>Fotos de tickets que adjuntas</td><td>Referencia visual de un gasto</td><td><strong>Solo en tu dispositivo</strong>, en una carpeta propia de la app; nunca se suben</td></tr>
+<tr><td>PIN y contraseña de la app</td><td>Bloquear la app en tu dispositivo</td><td><strong>Nunca se guardan tal cual</strong>: solo una huella cifrada (PBKDF2), <strong>en tu dispositivo</strong>. No se respaldan ni se envían a ningún lado</td></tr>
+<tr><td>Face ID o huella</td><td>Desbloquear la app, si lo eliges</td><td>Los verifica el sistema operativo de tu teléfono; <strong>la app no recibe ni guarda tus datos biométricos</strong></td></tr>
+<tr><td>Audio de dictado por voz</td><td>Convertir tu voz a texto al capturar un gasto</td><td>Procesado por el motor de reconocimiento de voz del sistema operativo (Android/iOS); <strong>la app no guarda el audio</strong></td></tr>
+</tbody></table>
+<h2>Respaldo en tu Google Drive (opcional)</h2>
+<p>Está <strong>apagado</strong> hasta que tú lo activas en Ajustes → "Respaldo en tu Google Drive". Al activarlo:</p>
+<ul><li>Google te pide permiso para que MAVfin use <strong>solo su propia carpeta privada</strong> en tu Drive (permiso <code>drive.appdata</code>). La app <strong>no puede ver, leer ni modificar ningún otro archivo</strong> de tu Drive.</li><li>La copia es un archivo (<code>respaldo.json</code>) con tus movimientos, categorías, ciclos, ingresos extra, reglas aprendidas, ajustes de presupuesto y tu perfil (día de corte, ingreso, meta). Las fotos de tickets <strong>no</strong> se suben.</li><li>Vive en tu cuenta de Google y ocupa tu espacio de Drive. <strong>Quien hace la app no tiene acceso a ella</strong>: la app la lee y la escribe directamente desde tu dispositivo, sin pasar por servidores propios.</li><li>Sirve para recuperar tus datos en otro teléfono o en la versión web, y para mantenerlos iguales entre ellos. Se sincroniza al abrir y al salir de la app, o cuando tocas "Sincronizar ahora".</li></ul>
+<p>Puedes pausarlo cuando quieras (la copia se conserva) o borrar la copia desde la misma pantalla. También puedes quitarle el permiso a MAVfin y borrar sus datos desde Google Drive → Configuración → Administrar apps, o desde <a href="https://myaccount.google.com/permissions">tu cuenta de Google</a>.</p>
+<p>Si no lo activas, tus datos viven únicamente en tu dispositivo: si desinstalas la app o usas otro dispositivo, no te acompañan automáticamente — para eso también existe "Exportar mis gastos" en Ajustes.</p>
+<h2>Versión web</h2>
+<p>En el navegador, tus datos se guardan en el almacenamiento de ese navegador y, separados por cuenta, solo en ese equipo. El navegador puede borrarlos si no usas el sitio por un tiempo o si borras los datos de navegación; por eso la web recomienda activar el respaldo en tu Drive. Al iniciar sesión en la web, la misma ventana de Google pide el permiso de Drive; puedes desmarcarlo.</p>
+<h2>Bloqueo de la app</h2>
+<p>Para entrar, la app pide tu PIN, tu contraseña de la app o Face ID / huella, según lo que elijas. Si olvidas tu PIN, lo recuperas confirmando tu cuenta de Google; tus datos no se tocan. Nada de esto sale de tu dispositivo.</p>
+<h2>Cifrado</h2>
+<ul><li><strong>En tránsito:</strong> la comunicación con Firebase Authentication y con Google Drive usa HTTPS/TLS, el estándar de la plataforma.</li><li><strong>En reposo:</strong> los datos locales quedan protegidos por el cifrado de almacenamiento del sistema operativo de tu dispositivo (el mismo que protege cualquier otro archivo de tus apps). MAVfin no aplica un cifrado adicional propio sobre esos archivos.</li><li><strong>Respaldo:</strong> la copia en tu Drive queda protegida por la seguridad de tu cuenta de Google (Google cifra los archivos de Drive en reposo).</li></ul>
+<h2>Tus controles</h2>
+<ul><li><strong>Exportar:</strong> Ajustes → "Exportar mis gastos" genera un CSV con todo tu historial que puedes compartir o guardar donde quieras.</li><li><strong>Cerrar sesión:</strong> tus datos locales permanecen en el dispositivo; puedes volver a entrar con la misma cuenta de Google.</li><li><strong>Respaldo:</strong> actívalo, páusalo o borra la copia de tu Drive en Ajustes → "Respaldo en tu Google Drive".</li><li><strong>Eliminar cuenta:</strong> Ajustes → "Eliminar cuenta" borra tu cuenta de Google Sign-In, todos los datos locales (movimientos, categorías, ciclos, ingresos extra, fotos de tickets) de ese dispositivo <strong>y</strong> la copia de respaldo en tu Drive, de forma irreversible. La app ofrece exportar tus datos antes de confirmar el borrado.</li></ul>
+<h2>Terceros involucrados</h2>
+<ul><li><strong>Google (Firebase Authentication, Google Sign-In):</strong> procesa el inicio de sesión. Firebase solo conoce tu correo y tu identificador de cuenta, nunca tus datos financieros.</li><li><strong>Google Drive (solo si activas el respaldo):</strong> guarda la copia en tu propia cuenta. El uso que MAVfin hace de la información recibida de las APIs de Google se apega a la <a href="https://developers.google.com/terms/api-services-user-data-policy">Política de datos de usuario de los servicios de API de Google</a>, incluidos los requisitos de uso limitado: los datos de tu Drive se usan únicamente para guardar y recuperar tu respaldo, no se comparten con nadie y no se usan para publicidad. Consulta la <a href="https://policies.google.com/privacy">política de privacidad de Google</a> para lo que Google hace con esos datos.</li><li><strong>Motor de reconocimiento de voz del sistema (Android/iOS):</strong> procesa el audio de dictado según la política de privacidad de tu sistema operativo. MAVfin no envía ese audio a servidores propios.</li></ul>
+<h2>Menores de edad</h2>
+<p>MAVfin no está dirigida a menores de edad y no recopila a sabiendas información de menores.</p>
+<h2>Cambios a esta política</h2>
+<p>Si esta política cambia de forma relevante, la fecha de "Última actualización" se actualiza y, cuando el cambio sea significativo, se avisa dentro de la app.</p>
+<h2>Contacto</h2>
+<p>Para preguntas sobre esta política o para solicitar la eliminación de tus datos, contacta a: elizaldemanuel1612@gmail.com.</p>
+</body>
+</html>

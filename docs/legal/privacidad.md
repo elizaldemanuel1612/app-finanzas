@@ -1,6 +1,6 @@
 # Política de privacidad — MAVfin
 
-_Última actualización: 2026-10-26._
+_Última actualización: 2026-11-02._
 
 MAVfin es una herramienta personal de registro y pronóstico de
 gastos. Esta política describe, en términos llanos, qué datos usa la app,
@@ -23,8 +23,10 @@ dónde se guardan y qué control tienes sobre ellos.
 | Dato | Para qué | Dónde se guarda |
 |---|---|---|
 | Correo y UID de tu cuenta de Google | Identificarte al iniciar sesión | Servidores de Firebase Authentication (Google) |
-| Movimientos, categorías, ciclos, ingresos extra, metas y ajustes que capturas | El propósito completo de la app: registrar y pronosticar tus gastos | **En tu dispositivo** (en la versión web, en el almacenamiento de tu navegador). **Opcional:** una copia en **tu propio Google Drive**, solo si activas el respaldo |
+| Movimientos, categorías, cuentas (tarjetas y efectivo, con sus saldos y abonos), ciclos, ingresos extra, metas y ajustes que capturas | El propósito completo de la app: registrar y pronosticar tus gastos | **En tu dispositivo** (en la versión web, en el almacenamiento de tu navegador). **Opcional:** una copia en **tu propio Google Drive**, solo si activas el respaldo |
 | Fotos de tickets que adjuntas | Referencia visual de un gasto | **Solo en tu dispositivo**, en una carpeta propia de la app; nunca se suben |
+| PIN y contraseña de la app | Bloquear la app en tu dispositivo | **Nunca se guardan tal cual**: solo una huella cifrada (PBKDF2), **en tu dispositivo**. No se respaldan ni se envían a ningún lado |
+| Face ID o huella | Desbloquear la app, si lo eliges | Los verifica el sistema operativo de tu teléfono; **la app no recibe ni guarda tus datos biométricos** |
 | Audio de dictado por voz | Convertir tu voz a texto al capturar un gasto | Procesado por el motor de reconocimiento de voz del sistema operativo (Android/iOS); **la app no guarda el audio** |
 
 ## Respaldo en tu Google Drive (opcional)
@@ -63,6 +65,12 @@ si no usas el sitio por un tiempo o si borras los datos de navegación; por
 eso la web recomienda activar el respaldo en tu Drive. Al iniciar sesión en
 la web, la misma ventana de Google pide el permiso de Drive; puedes
 desmarcarlo.
+
+## Bloqueo de la app
+
+Para entrar, la app pide tu PIN, tu contraseña de la app o Face ID / huella,
+según lo que elijas. Si olvidas tu PIN, lo recuperas confirmando tu cuenta
+de Google; tus datos no se tocan. Nada de esto sale de tu dispositivo.
 
 ## Cifrado
 

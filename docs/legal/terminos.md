@@ -1,6 +1,6 @@
 # Términos y condiciones — MAVfin
 
-_Última actualización: 2026-10-26._
+_Última actualización: 2026-11-02._
 
 Al usar MAVfin, aceptas estos términos.
 

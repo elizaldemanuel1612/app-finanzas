@@ -155,7 +155,12 @@ class ServicioAuth {
       _ => null,
     };
     final motivo = verificarAutenticacionReciente(idToken: idToken, ahora: DateTime.now());
-    if (motivo != null) throw RecuperacionNoVerificada(motivo);
+    // TEMPORAL (2026-11-02): Google solo manda `auth_time` a apps con la
+    // marca verificada, y la verificación está en trámite. Mientras no
+    // llegue, basta con confirmar la cuenta (como antes); si llega y es
+    // vieja, sí se rechaza. Al verificarse la marca y activar "Declaraciones
+    // de duración de la sesión", quitar esta excepción (spec §7.3).
+    if (motivo == MotivoNoReciente.sesionAbierta) throw RecuperacionNoVerificada(motivo!);
   }
 
   /// Borra la cuenta de Firebase Auth — el primer paso del flujo de

@@ -64,6 +64,18 @@ Al instalar la nativa (cable; comandos en "Entorno"), probar en este orden:
    antes de que otra persona use el respaldo (en "Prueba" solo entran
    usuarios de prueba y el permiso caduca a los 7 días).
 
+## Verificación de marca en Google (en trámite desde 2026-11-02)
+
+Hace falta para que Google mande `auth_time` y la recuperación del PIN
+exija la contraseña de Google (spec §7.3). Mientras tanto la recuperación
+acepta con solo confirmar la cuenta (excepción TEMPORAL en
+`ServicioAuth.reautenticarConContrasena`). Páginas para la verificación,
+dentro del dominio de la app: `https://app-finanzas-27e41.web.app/acerca.html`
+(inicio), `/legal/privacidad.html` y `/legal/terminos.html`, generadas de
+`docs/legal/*.md` con `dart run tool/legal_a_html.dart` (correrlo al cambiar
+esos documentos). Al aprobarse: activar "Declaraciones de duración de la
+sesión" en Google Auth Platform → Configuración y quitar la excepción.
+
 ## Decisiones tomadas (no reabrir sin preguntar)
 
 - Nombre visible **MAVfin**, lema "Tus finanzas, tu progreso"
