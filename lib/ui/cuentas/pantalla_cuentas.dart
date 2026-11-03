@@ -9,6 +9,7 @@ import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/perfil.dart';
 import '../comun/tema.dart';
+import 'hoja_transferencia.dart';
 import 'pantalla_detalle_cuenta.dart';
 import 'pantalla_editar_cuenta.dart';
 
@@ -36,6 +37,7 @@ class PantallaCuentas extends StatefulWidget {
 
 class _PantallaCuentasState extends State<PantallaCuentas> {
   List<(Cuenta, Dinero?)>? _cuentas;
+  Dinero _total = const Dinero.cero();
   bool _verArchivadas = false;
 
   @override
@@ -49,7 +51,19 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
     final gastos = await widget.movimientoRepositorio.listarTodos();
     final abonos = await widget.movimientoCuentaRepositorio.listarTodos();
     if (!mounted) return;
-    setState(() => _cuentas = [for (final c in cuentas) (c, saldoDe(c, gastos, abonos))]);
+    setState(() {
+      _cuentas = [for (final c in cuentas) (c, saldoDe(c, gastos, abonos))];
+      _total = sumaDeSaldos(cuentas, gastos, abonos);
+    });
+  }
+
+  Future<void> _transferir() async {
+    final hecha = await mostrarHojaTransferencia(
+      context,
+      cuentas: [for (final (c, _) in _cuentas ?? const <(Cuenta, Dinero?)>[]) c],
+      repositorio: widget.movimientoCuentaRepositorio,
+    );
+    if (hecha == true) await _cargar();
   }
 
   Future<void> _nueva() async {
@@ -93,6 +107,29 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
               children: [
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Total en tus cuentas', style: textos.bodySmall),
+                        Text(
+                          _total.formateado(),
+                          style: textos.displaySmall?.copyWith(color: _total.esNegativo ? ColoresApp.coralTexto : null),
+                        ),
+                        Text('Suma de las que llevan saldo; las de crédito no entran.', style: textos.labelSmall),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: activas.length < 2 ? null : _transferir,
+                          icon: const Icon(Icons.swap_horiz_rounded),
+                          label: const Text('Transferir o pagar tarjeta'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Text(
                   'Al registrar un gasto eliges con cuál pagaste. Las de débito llevan su saldo.',
                   style: textos.bodySmall,

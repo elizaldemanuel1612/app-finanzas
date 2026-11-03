@@ -14,14 +14,25 @@ Dinero? saldoDe(Cuenta cuenta, List<Movimiento> gastos, List<MovimientoCuenta> m
   bool cuenta_(DateTime fecha) => !fecha.isBefore(cuenta.fechaSaldoInicial);
   var centavos = cuenta.saldoInicial.centavos;
   for (final m in movimientosCuenta) {
-    if (m.cuentaId == cuenta.id && m.estado == EstadoMovimientoCuenta.activo && cuenta_(m.fecha)) {
-      centavos += m.efecto.centavos;
+    if (m.toca(cuenta.id) && m.estado == EstadoMovimientoCuenta.activo && cuenta_(m.fecha)) {
+      centavos += m.efectoEn(cuenta.id).centavos;
     }
   }
   for (final g in gastos) {
     if (cuentaDe(g) == cuenta.id && g.estado == EstadoMovimiento.activo && cuenta_(g.fecha)) {
       centavos -= g.monto.centavos;
     }
+  }
+  return Dinero(centavos);
+}
+
+/// Lo que hay en todas las cuentas que llevan saldo (las activas): el total
+/// de "Tus cuentas". Las de crédito no entran.
+Dinero sumaDeSaldos(List<Cuenta> cuentas, List<Movimiento> gastos, List<MovimientoCuenta> movimientosCuenta) {
+  var centavos = 0;
+  for (final c in cuentas) {
+    if (!c.activa) continue;
+    centavos += saldoDe(c, gastos, movimientosCuenta)?.centavos ?? 0;
   }
   return Dinero(centavos);
 }

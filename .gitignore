@@ -86,3 +86,4 @@ android/key.properties
 
 # Caché de despliegue de Firebase CLI
 .firebase/
+entregables/

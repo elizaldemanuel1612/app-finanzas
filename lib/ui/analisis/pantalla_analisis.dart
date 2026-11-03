@@ -1217,6 +1217,8 @@ class _PorDiaSemana extends StatelessWidget {
   }
 }
 
+/// Las 5 primeras; al tocar, la lista completa (lo agrupado más allá del
+/// top 5).
 class _DondeMasGastas extends StatelessWidget {
   final ReporteAnalisis reporte;
 
@@ -1224,13 +1226,63 @@ class _DondeMasGastas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
-    final lista = reporte.dondeMasGastas;
-    final maximo = lista.first.total.centavos;
+    final todas = reporte.dondeMasGastas;
+    final faltan = todas.length - 5;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => Scaffold(
+              appBar: AppBar(title: const Text('Dónde más gastas')),
+              body: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  Text(
+                    '${todas.length} lugares o conceptos este ciclo, de mayor a menor. Lo parecido va junto.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  Card(child: Padding(padding: const EdgeInsets.all(16), child: _ListaDondeMas(lista: todas))),
+                ],
+              ),
+            ),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              _ListaDondeMas(lista: todas.take(5).toList()),
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  faltan > 0 ? 'Ver los $faltan más  ›' : 'Ver detalle  ›',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: ColoresApp.azul,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ListaDondeMas extends StatelessWidget {
+  final List<GastoDescripcion> lista;
+
+  const _ListaDondeMas({required this.lista});
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final maximo = lista.first.total.centavos;
+    return Column(
           children: [
             for (var i = 0; i < lista.length; i++)
               Padding(
@@ -1282,8 +1334,6 @@ class _DondeMasGastas extends StatelessWidget {
                 ),
               ),
           ],
-        ),
-      ),
     );
   }
 }

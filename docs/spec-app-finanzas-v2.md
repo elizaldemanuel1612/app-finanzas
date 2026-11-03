@@ -246,7 +246,7 @@ Todo se calcula en `domain/analisis/` (Dart puro, sin red) sobre los movimientos
 5. **Contra el ciclo pasado** — por categoría, lo de este ciclo contra lo del anterior **a los mismos días transcurridos** (addendum-v3 §2.4: comparación honesta, nunca contra el ciclo anterior completo).
 6. **Últimos ciclos** — total gastado de hasta 6 ciclos, el actual marcado como "en curso".
 7. **¿Qué día gastas más?** — promedio por día de la semana de las variables (últimos 90 días).
-8. **Dónde más gastas** — las 5 descripciones con más gasto en **variables** del ciclo (sin descripción no entra; las fijas ya se conocen). Lo parecido se junta (2026-11-02, `agrupar_descripciones.dart`): sin acentos, signos, plurales ni palabras vacías, "café", "Cafés" y "un café" son el concepto *Café*, y una descripción más larga ("pan y café") va al concepto más frecuente que contenga; si no contiene ninguno escrito solo alguna vez, se queda como está.
+8. **Dónde más gastas** — las 5 descripciones con más gasto (al tocar el bloque, la lista completa, 2026-11-03) en **variables** del ciclo (sin descripción no entra; las fijas ya se conocen). Lo parecido se junta (2026-11-02, `agrupar_descripciones.dart`): sin acentos, signos, plurales ni palabras vacías, "café", "Cafés" y "un café" son el concepto *Café*, y una descripción más larga ("pan y café") va al concepto más frecuente que contenga; si no contiene ninguno escrito solo alguna vez, se queda como está.
 9. **Tarjeta y efectivo** — reparto del gasto del ciclo por medio de pago.
 
 Montos siempre en `Dinero`; los porcentajes y promedios se redondean en la frontera, como el MPC.
@@ -320,7 +320,9 @@ Aprobado de `docs/propuesta-cuentas.md` (fase A). Cada gasto dice de qué **cuen
 - **Captura.** Fila de cuentas, la más usada primero; por omisión, la última usada.
 - **Dónde se ve.** Ajustes → Tus cuentas (alta, edición, saldo, abonos, ajuste). Inicio: tarjeta "Tus cuentas" con los saldos. Análisis: tercera vista **Cuentas** (aparte de Básico y Avanzado): por cuenta, gastado en el ciclo, % del total, número de gastos, sus categorías principales y el saldo.
 - **CSV.** Columna **Cuenta** (nombre). Si no existe al importar, se crea (débito si el medio dice débito, efectivo si dice efectivo, si no crédito) con aviso. Importar no elimina cuentas.
-- **Segunda etapa:** transferencias (pagar la tarjeta desde el débito, retirar efectivo), corte/pago/límite de crédito, aviso de saldo bajo, cuenta por voz.
+- **Transferencias (2026-11-03).** Mover dinero entre cuentas: retirar efectivo del débito, pasar entre débitos o **pagar la tarjeta de crédito** desde el débito. Es un `MovimientoCuenta` de tipo `transferencia` con `cuentaDestinoId`: resta en el origen y suma en el destino; **no es gasto** (contarlo como gasto duplicaría lo que ya se registró con la tarjeta de crédito). Se anula como los abonos. Se hace desde Tus cuentas ("Transferir") o desde el detalle de una cuenta (en una de crédito, "Pagar esta tarjeta").
+- **Suma de tus cuentas.** Tus cuentas muestra arriba el total de las que llevan saldo (débito y efectivo con saldo); las de crédito no entran.
+- **Segunda etapa:** corte/pago/límite de crédito, aviso de saldo bajo, cuenta por voz.
 
 ### 7.4 [NUEVO] Exportación y portabilidad
 Exportar todo a Excel/CSV cuando quieras. No quedas atrapado en la app — y te da una red de seguridad psicológica al abandonar el Excel.

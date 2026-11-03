@@ -188,4 +188,44 @@ void main() {
     );
     expect(vacio.every((x) => x.porcentaje == 0), isTrue);
   });
+
+  group('transferencias', () {
+    MovimientoCuenta transferencia(int pesos, String de, String a, {EstadoMovimientoCuenta estado = EstadoMovimientoCuenta.activo}) =>
+        MovimientoCuenta(
+          clientId: 't${_n++}',
+          cuentaId: de,
+          cuentaDestinoId: a,
+          fecha: DateTime(2026, 11, 3),
+          monto: Dinero.pesos(pesos),
+          tipo: TipoMovimientoCuenta.transferencia,
+          entra: false,
+          estado: estado,
+        );
+
+    test('resta en el origen y suma en el destino; anulada no cuenta', () {
+      final efectivo = cuentasBase(_desde).last.copyWith(llevaSaldo: true, saldoInicial: const Dinero.pesos(100));
+      final movs = [
+        transferencia(300, 'bbva', 'efectivo'),
+        transferencia(50, 'bbva', 'efectivo', estado: EstadoMovimientoCuenta.anulado),
+      ];
+      expect(saldoDe(_debito(), const [], movs), const Dinero.pesos(700));
+      expect(saldoDe(efectivo, const [], movs), const Dinero.pesos(400));
+    });
+
+    test('pagar la tarjeta de crédito no es gasto: solo baja el débito', () {
+      final pago = transferencia(500, 'bbva', idCuentaTarjeta);
+      expect(saldoDe(_debito(), const [], [pago]), const Dinero.pesos(500));
+      expect(pago.efectoEn('otra'), const Dinero.cero());
+      expect(pago.toca(idCuentaTarjeta), isTrue);
+      expect(_mc(10).efectoEn('otra'), const Dinero.cero());
+      expect(MovimientoCuenta.fromJson(pago.toJson()).cuentaDestinoId, idCuentaTarjeta);
+      expect(pago.anulado().cuentaDestinoId, idCuentaTarjeta);
+    });
+
+    test('la suma de tus cuentas: solo las activas que llevan saldo', () {
+      final efectivo = cuentasBase(_desde).last.copyWith(llevaSaldo: true, saldoInicial: const Dinero.pesos(200));
+      final cuentas = [...cuentasBase(_desde), efectivo, _debito(), _debito('vieja').copyWith(activa: false)];
+      expect(sumaDeSaldos(cuentas, [_gasto(100)], const []), const Dinero.pesos(200 + 900));
+    });
+  });
 }

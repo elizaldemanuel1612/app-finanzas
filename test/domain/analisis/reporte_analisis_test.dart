@@ -193,7 +193,7 @@ void main() {
       _mov(DateTime(2026, 10, 4), 999, 'salidas'),
       _mov(DateTime(2026, 10, 1), 5000, 'vivienda', descripcion: 'Renta'),
     ]);
-    expect(r.dondeMasGastas, hasLength(5));
+    expect(r.dondeMasGastas.length, greaterThan(5), reason: 'trae todas; la pantalla corta a 5');
     expect(r.dondeMasGastas.any((d) => d.descripcion == 'Renta'), isFalse, reason: 'las fijas no entran');
     expect(r.dondeMasGastas.first.descripcion, 'Oxxo');
     expect(r.dondeMasGastas.first.total, const Dinero.pesos(150));

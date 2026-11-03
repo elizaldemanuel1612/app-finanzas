@@ -113,7 +113,8 @@ final class ReporteAnalisis {
   /// Días distintos (calendario) que cubre [promedioPorDiaSemana].
   final int diasConDatos;
 
-  /// Las 5 descripciones con más gasto en variables del ciclo.
+  /// Todas las descripciones (agrupadas) con gasto en variables del ciclo,
+  /// de mayor a menor. Análisis muestra las 5 primeras y, al tocar, todas.
   final List<GastoDescripcion> dondeMasGastas;
 
   final Dinero conTarjeta;
@@ -344,7 +345,7 @@ ReporteAnalisis calcularReporteAnalisis({
     ultimosCiclos: ultimosCiclos,
     promedioPorDiaSemana: promedioSemana,
     diasConDatos: diasConDatos,
-    dondeMasGastas: dondeMas.length > 5 ? dondeMas.sublist(0, 5) : dondeMas,
+    dondeMasGastas: dondeMas,
     conTarjeta: _suma([for (final m in delCiclo) if (m.medio == MedioPago.tarjeta) m]),
     enEfectivo: _suma([for (final m in delCiclo) if (m.medio == MedioPago.efectivo) m]),
     gastosPequenos: pequenos.length,

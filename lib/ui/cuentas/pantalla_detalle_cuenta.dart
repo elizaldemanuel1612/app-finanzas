@@ -16,6 +16,7 @@ import '../../domain/modelos/perfil.dart';
 import '../../domain/reglas/creacion_ingreso_extra.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/tema.dart';
+import 'hoja_transferencia.dart';
 import 'pantalla_editar_cuenta.dart';
 
 const _uuid = Uuid();
@@ -49,6 +50,7 @@ typedef _Renglon = ({DateTime fecha, String texto, Dinero efecto, MovimientoCuen
 
 class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
   late Cuenta _cuenta = widget.cuenta;
+  List<Cuenta> _cuentas = const [];
   Dinero? _saldo;
   Dinero _gastadoCiclo = const Dinero.cero();
   List<_Renglon>? _renglones;
@@ -69,18 +71,26 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
       for (final g in gastos)
         if (cuentaDe(g) == cuenta.id && g.estado == EstadoMovimiento.activo) g,
     ];
+    final nombres = {for (final c in cuentas) c.id: c.nombre};
+    String textoDe(MovimientoCuenta a) {
+      final nota = a.nota.isEmpty ? '' : ' · ${a.nota}';
+      return switch (a.tipo) {
+        TipoMovimientoCuenta.abono => 'Abono$nota',
+        TipoMovimientoCuenta.ajuste => 'Ajuste de saldo',
+        TipoMovimientoCuenta.transferencia when a.cuentaId == cuenta.id =>
+          'A ${nombres[a.cuentaDestinoId] ?? 'otra cuenta'}$nota',
+        TipoMovimientoCuenta.transferencia => cuenta.tipo == TipoCuenta.credito
+            ? 'Pago desde ${nombres[a.cuentaId] ?? 'otra cuenta'}$nota'
+            : 'De ${nombres[a.cuentaId] ?? 'otra cuenta'}$nota',
+      };
+    }
+
+    _cuentas = cuentas;
     final renglones = <_Renglon>[
       for (final g in suyos) (fecha: g.fecha, texto: g.descripcion, efecto: Dinero(-g.monto.centavos), deCuenta: null),
       for (final a in abonos)
-        if (a.cuentaId == cuenta.id && a.estado == EstadoMovimientoCuenta.activo)
-          (
-            fecha: a.fecha,
-            texto: a.tipo == TipoMovimientoCuenta.abono
-                ? (a.nota.isEmpty ? 'Abono' : 'Abono · ${a.nota}')
-                : 'Ajuste de saldo',
-            efecto: a.efecto,
-            deCuenta: a,
-          ),
+        if (a.toca(cuenta.id) && a.estado == EstadoMovimientoCuenta.activo)
+          (fecha: a.fecha, texto: textoDe(a), efecto: a.efectoEn(cuenta.id), deCuenta: a),
     ]..sort((a, b) => b.fecha.compareTo(a.fecha));
     if (!mounted) return;
     setState(() {
@@ -119,6 +129,19 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
     if (guardado == true) await _cargar();
   }
 
+  /// En una de crédito, pagarla; en las demás, sacar de ella.
+  Future<void> _transferir() async {
+    final esCredito = _cuenta.tipo == TipoCuenta.credito;
+    final hecha = await mostrarHojaTransferencia(
+      context,
+      cuentas: _cuentas,
+      repositorio: widget.movimientoCuentaRepositorio,
+      origenId: esCredito ? null : _cuenta.id,
+      destinoId: esCredito ? _cuenta.id : null,
+    );
+    if (hecha == true) await _cargar();
+  }
+
   Future<void> _ajustar() async {
     final texto = await showDialog<String>(
       context: context,
@@ -150,7 +173,11 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
     final si = await showDialog<bool>(
       context: context,
       builder: (contexto) => AlertDialog(
-        title: Text(m.tipo == TipoMovimientoCuenta.abono ? '¿Eliminar este abono?' : '¿Eliminar este ajuste?'),
+        title: Text(switch (m.tipo) {
+          TipoMovimientoCuenta.abono => '¿Eliminar este abono?',
+          TipoMovimientoCuenta.ajuste => '¿Eliminar este ajuste?',
+          TipoMovimientoCuenta.transferencia => '¿Eliminar esta transferencia?',
+        }),
         content: Text(
           m.ingresoExtraId == null ? m.monto.formateado() : '${m.monto.formateado()}. También se quita de tus ingresos del ciclo.',
         ),
@@ -220,6 +247,14 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                         ] else if (_cuenta.tipo == TipoCuenta.debito || _cuenta.tipo == TipoCuenta.efectivo) ...[
                           const SizedBox(height: 8),
                           TextButton(onPressed: _editar, child: const Text('Llevar su saldo')),
+                        ],
+                        if (_cuentas.where((c) => c.activa).length > 1) ...[
+                          const SizedBox(height: 8),
+                          OutlinedButton.icon(
+                            onPressed: _transferir,
+                            icon: const Icon(Icons.swap_horiz_rounded),
+                            label: Text(_cuenta.tipo == TipoCuenta.credito ? 'Pagar esta tarjeta' : 'Transferir a otra cuenta'),
+                          ),
                         ],
                       ],
                     ),
