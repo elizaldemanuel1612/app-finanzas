@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../seguridad/autenticacion_reciente.dart';
+
 /// Envuelve Google Sign-In + Firebase Auth. Vive en data/firebase/ porque
 /// domain/ no puede tocar Flutter ni Firebase (paquete-construccion-final.md
 /// §2) — esto es infraestructura, no lógica de negocio.
@@ -123,24 +125,37 @@ class ServicioAuth {
     _guardarTokenDriveWeb(credencial);
   }
 
-  /// Vuelve a confirmar la misma cuenta de Google con la que se entró. Es
-  /// la recuperación del PIN (spec §7.3): quien la pasa es el dueño del
-  /// correo. Si elige otra cuenta, Firebase lo rechaza (`user-mismatch`). En
-  /// la web debe llamarse directo desde un toque (Safari bloquea la ventana).
-  Future<void> reautenticar() async {
+  /// Recuperación del PIN (spec §7.3): vuelve a confirmar la **misma**
+  /// cuenta de Google con la que se entró (Firebase rechaza otra,
+  /// `user-mismatch`) y exige que el usuario **escriba su contraseña de
+  /// Google ahora**, aunque tenga la sesión abierta en el teléfono: se le
+  /// pide a Google que vuelva a autenticar (`max_age=0`) y luego se comprueba
+  /// en el token (`auth_time`) que de verdad lo hizo hace unos minutos. Sin
+  /// eso, quien tomara el teléfono desbloqueado podría cambiar el PIN con un
+  /// toque. Lanza [RecuperacionNoVerificada] si no se puede comprobar.
+  ///
+  /// En la web debe llamarse directo desde un toque (Safari bloquea la
+  /// ventana si no). En el teléfono usa el mismo flujo web de Google (no la
+  /// hoja de google_sign_in, que no deja pedir la contraseña de nuevo).
+  Future<void> reautenticarConContrasena() async {
     final usuario = FirebaseAuth.instance.currentUser;
     if (usuario == null) throw StateError('No hay sesión.');
-    if (kIsWeb) {
-      await usuario.reauthenticateWithPopup(
-        GoogleAuthProvider()
-          ..setCustomParameters({if (usuario.email != null) 'login_hint': usuario.email!}),
-      );
-      return;
-    }
-    final cuenta = await GoogleSignIn.instance.authenticate();
-    final idToken = cuenta.authentication.idToken;
-    if (idToken == null) throw StateError('Google no regresó un idToken para ${cuenta.email}.');
-    await usuario.reauthenticateWithCredential(GoogleAuthProvider.credential(idToken: idToken));
+    final proveedor = GoogleAuthProvider()
+      ..setCustomParameters({
+        if (usuario.email != null) 'login_hint': usuario.email!,
+        'prompt': 'select_account',
+        'max_age': '0',
+        'claims': '{"id_token":{"auth_time":{"essential":true}}}',
+      });
+    final credencial = kIsWeb
+        ? await usuario.reauthenticateWithPopup(proveedor)
+        : await usuario.reauthenticateWithProvider(proveedor);
+    final idToken = switch (credencial.credential) {
+      final OAuthCredential c => c.idToken,
+      _ => null,
+    };
+    final motivo = verificarAutenticacionReciente(idToken: idToken, ahora: DateTime.now());
+    if (motivo != null) throw RecuperacionNoVerificada(motivo);
   }
 
   /// Borra la cuenta de Firebase Auth — el primer paso del flujo de
@@ -174,4 +189,23 @@ class ServicioAuth {
       await usuario.delete();
     }
   }
+}
+
+/// Google confirmó la cuenta, pero no se pudo comprobar que el usuario
+/// escribiera su contraseña hace un momento.
+final class RecuperacionNoVerificada implements Exception {
+  final MotivoNoReciente motivo;
+
+  const RecuperacionNoVerificada(this.motivo);
+
+  String get mensaje => switch (motivo) {
+        MotivoNoReciente.sesionAbierta =>
+          'Google te dejó pasar sin pedir tu contraseña porque tu sesión ya estaba abierta '
+              'en este dispositivo. Para proteger tu información, cierra sesión de Google en '
+              'este navegador o teléfono (google.com → tu foto → Cerrar sesión) y vuelve a '
+              'intentarlo: así te pedirá tu contraseña. (sesion-abierta)',
+        MotivoNoReciente.sinHora =>
+          'No pudimos comprobar que escribiste tu contraseña de Google. Intenta de nuevo en '
+              'unos minutos. (sin-auth-time)',
+      };
 }

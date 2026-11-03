@@ -141,7 +141,7 @@ class _PantallaDesbloqueoState extends State<PantallaDesbloqueo> {
 
   /// La ventana de Google sale directo del toque (Safari la bloquea si no).
   void _recuperar() {
-    final confirmacion = widget.servicioAuth.reautenticar();
+    final confirmacion = widget.servicioAuth.reautenticarConContrasena();
     setState(() => _recuperando = true);
     confirmacion.then((_) async {
       await widget.candado.reiniciar();
@@ -162,8 +162,16 @@ class _PantallaDesbloqueoState extends State<PantallaDesbloqueo> {
     }, onError: (Object e) {
       if (!mounted) return;
       setState(() => _recuperando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo confirmar tu cuenta. ${describirErrorRespaldo(e)}')),
+      final mensaje = e is RecuperacionNoVerificada
+          ? e.mensaje
+          : 'No se pudo confirmar tu cuenta. ${describirErrorRespaldo(e)}';
+      showDialog<void>(
+        context: context,
+        builder: (contexto) => AlertDialog(
+          title: const Text('No pudimos confirmar que eres tú'),
+          content: Text(mensaje),
+          actions: [TextButton(onPressed: () => Navigator.pop(contexto), child: const Text('Entendido'))],
+        ),
       );
     });
   }
@@ -174,8 +182,8 @@ class _PantallaDesbloqueoState extends State<PantallaDesbloqueo> {
       builder: (contexto) => AlertDialog(
         title: const Text('¿Olvidaste tu PIN?'),
         content: Text(
-          'Confirma tu cuenta de Google (${widget.servicioAuth.usuarioActual?.email ?? 'tu correo'}) '
-          'y crea un PIN nuevo. Tus datos no se tocan.',
+          'Google te pedirá la contraseña de ${widget.servicioAuth.usuarioActual?.email ?? 'tu cuenta'}, '
+          'aunque ya tengas sesión abierta, y luego creas un PIN nuevo. Tus datos no se tocan.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(contexto), child: const Text('Cancelar')),
