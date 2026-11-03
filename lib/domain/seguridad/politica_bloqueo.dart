@@ -9,8 +9,9 @@ enum MetodoDesbloqueo { biometria, pin, contrasena }
 /// olvidarlo (como el iPhone).
 const pinCadaCuanto = Duration(days: 7);
 
-/// Tiempo fuera de la app tras el cual se vuelve a pedir el desbloqueo.
-const bloquearTrasSegundoPlano = Duration(minutes: 1);
+/// Tiempo sin tocar la app tras el cual, al volver a ella, se pide de nuevo
+/// el desbloqueo (spec §7.3).
+const bloquearTrasInactividad = Duration(minutes: 2);
 
 /// Intentos fallidos tras los que ya solo se entra confirmando la cuenta de
 /// Google (el correo del usuario).
@@ -22,9 +23,10 @@ const largoPin = 6;
 bool tocaPedirPin({required DateTime? ultimoPin, required DateTime ahora}) =>
     ultimoPin == null || !ahora.isBefore(ultimoPin.add(pinCadaCuanto));
 
-/// Al volver de segundo plano, ¿se vuelve a bloquear?
-bool debeBloquearAlVolver({required DateTime? salioEn, required DateTime ahora}) =>
-    salioEn == null || !ahora.isBefore(salioEn.add(bloquearTrasSegundoPlano));
+/// Al volver de segundo plano, ¿se vuelve a bloquear? Cuenta desde el último
+/// toque ([ultimaActividad]), no desde que la app se ocultó.
+bool debeBloquearAlVolver({required DateTime? ultimaActividad, required DateTime ahora}) =>
+    ultimaActividad == null || !ahora.isBefore(ultimaActividad.add(bloquearTrasInactividad));
 
 /// Cuánto esperar tras [fallidos] intentos seguidos; `null` cuando ya solo
 /// se puede recuperar con la cuenta de Google.

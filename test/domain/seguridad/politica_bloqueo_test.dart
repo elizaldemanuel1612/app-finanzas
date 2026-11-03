@@ -11,10 +11,10 @@ void main() {
     expect(tocaPedirPin(ultimoPin: ahora.subtract(const Duration(days: 7)), ahora: ahora), isTrue);
   });
 
-  test('vuelve a bloquear tras un minuto fuera', () {
-    expect(debeBloquearAlVolver(salioEn: null, ahora: ahora), isTrue);
-    expect(debeBloquearAlVolver(salioEn: ahora.subtract(const Duration(seconds: 59)), ahora: ahora), isFalse);
-    expect(debeBloquearAlVolver(salioEn: ahora.subtract(const Duration(minutes: 1)), ahora: ahora), isTrue);
+  test('vuelve a bloquear tras 2 minutos sin tocar la app', () {
+    expect(debeBloquearAlVolver(ultimaActividad: null, ahora: ahora), isTrue);
+    expect(debeBloquearAlVolver(ultimaActividad: ahora.subtract(const Duration(seconds: 119)), ahora: ahora), isFalse);
+    expect(debeBloquearAlVolver(ultimaActividad: ahora.subtract(const Duration(minutes: 2)), ahora: ahora), isTrue);
   });
 
   test('esperas crecientes y, al décimo fallo, solo recuperar', () {

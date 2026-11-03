@@ -248,6 +248,8 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
         if (g.categoria is CategoriaVariable) g,
     ];
     return ListView(
+      // Cada vista con su propio scroll: al cambiar, arranca hasta arriba.
+      key: const ValueKey('basico'),
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
       children: [
         _selectorVista(),
@@ -275,6 +277,7 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
   Widget _contenidoCuentas(BuildContext context, List<ResumenCuenta> cuentas) {
     final textos = Theme.of(context).textTheme;
     return ListView(
+      key: const ValueKey('cuentas'),
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
       children: [
         _selectorVista(),
@@ -351,6 +354,7 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
     }
     final r = datos.reporte;
     return ListView(
+      key: const ValueKey('avanzado'),
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
       children: [
         _selectorVista(),

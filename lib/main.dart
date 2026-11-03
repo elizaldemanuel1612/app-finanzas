@@ -68,6 +68,10 @@ Future<void> main() async {
 /// volver a la app (spec §7.3).
 final llaveNavegador = GlobalKey<NavigatorState>();
 
+/// Último toque en la app: el bloqueo cuenta la inactividad desde aquí, no
+/// desde que la app se ocultó (spec §7.3).
+DateTime _ultimaActividad = DateTime.now();
+
 class AppFinanzas extends StatelessWidget {
   const AppFinanzas({super.key});
 
@@ -94,10 +98,14 @@ class AppFinanzas extends StatelessWidget {
         // de un campo lo cierra, como en las apps nativas. Los toques sobre
         // botones y chips los ganan ellos, así que no se pierden.
         builder: (context, child) => SincronizarPaleta(
-          child: GestureDetector(
+          child: Listener(
             behavior: HitTestBehavior.translucent,
-            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-            child: child,
+            onPointerDown: (_) => _ultimaActividad = DateTime.now(),
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              child: child,
+            ),
           ),
         ),
         home: const _CompuertaAuth(),
@@ -168,7 +176,7 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
   bool _tienePin = false;
   bool _bloqueada = true;
   bool _bloqueoEncima = false;
-  DateTime? _salioEn;
+  bool _salio = false;
 
   @override
   void initState() {
@@ -192,12 +200,11 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
       _sincronizarEnSegundoPlano();
     }
     if ((estado == AppLifecycleState.paused || estado == AppLifecycleState.hidden) && !_bloqueada) {
-      _salioEn ??= DateTime.now();
+      _salio = true;
     }
-    if (estado == AppLifecycleState.resumed) {
-      final salio = _salioEn;
-      _salioEn = null;
-      if (salio != null && debeBloquearAlVolver(salioEn: salio, ahora: DateTime.now())) _bloquearEncima();
+    if (estado == AppLifecycleState.resumed && _salio) {
+      _salio = false;
+      if (debeBloquearAlVolver(ultimaActividad: _ultimaActividad, ahora: DateTime.now())) _bloquearEncima();
     }
   }
 
@@ -217,6 +224,7 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
             servicioAuth: widget.servicioAuth,
             alDesbloquear: () {
               _bloqueoEncima = false;
+              _ultimaActividad = DateTime.now();
               Navigator.of(contexto).pop();
             },
           ),
