@@ -9,7 +9,7 @@ import 'csv.dart';
 const instruccionesParaIA = [
   'INSTRUCCIONES PARA LA IA: convierte los gastos del usuario a este formato para importarlos en la app MAVfin.',
   'ARCHIVO: entrega un archivo .csv (texto plano) en UTF-8, separado por comas. No lo entregues como Excel (.xlsx), PDF ni tabla en el chat.',
-  'ENCABEZADOS: conserva exactamente el renglón de encabezados: mismos nombres, mismo orden y las 14 columnas. No agregues columnas. Cada gasto va en un renglón.',
+  'ENCABEZADOS: conserva exactamente el renglón de encabezados: mismos nombres, mismo orden y las 15 columnas. No agregues columnas. Cada gasto va en un renglón.',
   'VACÍOS: si un dato no se conoce, deja la celda vacía pero conserva sus comas. Nunca inventes datos.',
   'TEXTO CON COMAS: si una descripción o categoría lleva coma, enciérrala entre comillas dobles.',
   'Fecha (obligatoria): usa siempre aaaa-mm-dd, por ejemplo 2026-08-05. Si conoces la hora: aaaa-mm-dd HH:mm.',
@@ -24,6 +24,7 @@ const instruccionesParaIA = [
   'IMPORTANTE: al cargar este archivo, la app elimina todos los gastos y categorías que no vengan en él. Incluye todo lo que el usuario quiera conservar.',
   'Descripción: texto libre con el comercio o concepto. Puede ir vacía.',
   'Medio de pago: solo se permite Tarjeta o Efectivo, escrito así. Si no se sabe, déjalo vacío.',
+  'Cuenta: el nombre de la tarjeta o Efectivo con que se pagó, escrito siempre igual (por ejemplo BBVA débito). Si no se sabe, déjala vacía.',
   'Estado: solo se permite Activo o Anulado, escrito así. Usa Anulado solo si el gasto se canceló o devolvió; si no, Activo.',
   'Cómo se registró: déjalo vacío.',
   'ID: déjalo vacío.',
@@ -34,9 +35,9 @@ const instruccionesParaIA = [
 /// `exportarMovimientosCsv`. La segunda muestra lo que puede ir vacío y la
 /// tercera, una categoría sin gastos.
 const _filasDeEjemplo = [
-  ['2026-08-05 13:30', '450.00', 'Súper', '🛒', '6000.00', 'Variable', '', 'Sí', 'Sí', 'Compra de la quincena', 'Tarjeta', 'Activo', 'Manual', ''],
-  ['2026-08-06', '85.50', 'Salidas', '🍿', '', '', '', '', '', 'Café', 'Efectivo', 'Activo', '', ''],
-  ['', '', 'Vivienda', '🏠', '12000.00', 'Fija', '1', 'Sí', 'Sí', '', '', '', '', ''],
+  ['2026-08-05 13:30', '450.00', 'Súper', '🛒', '6000.00', 'Variable', '', 'Sí', 'Sí', 'Compra de la quincena', 'Tarjeta', 'BBVA débito', 'Activo', 'Manual', ''],
+  ['2026-08-06', '85.50', 'Salidas', '🍿', '', '', '', '', '', 'Café', 'Efectivo', 'Efectivo', 'Activo', '', ''],
+  ['', '', 'Vivienda', '🏠', '12000.00', 'Fija', '1', 'Sí', 'Sí', '', '', '', '', '', ''],
 ];
 
 /// Plantilla de ejemplo para "Descargar plantilla de ejemplo" (Bloque B):
@@ -70,6 +71,7 @@ const ayudaColumnasCsv = [
   ('Activa', 'Sí o No. Vacío: se conserva; si es nueva, Sí.'),
   ('Descripción', 'Texto libre. Vacía: el nombre de la categoría.'),
   ('Medio de pago', 'Tarjeta o Efectivo. Vacío: Tarjeta.'),
+  ('Cuenta', 'Con qué tarjeta o efectivo se pagó. Si no existe, se crea.'),
   ('Estado', 'Activo o Anulado (Pendiente solo si viene de exportar). Vacío: Activo.'),
   ('Cómo se registró', 'Lo llena la app al exportar. Puedes dejarlo vacío.'),
   ('ID', 'Lo llena la app al exportar; evita duplicados. Déjalo vacío en gastos nuevos.'),

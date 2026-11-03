@@ -45,6 +45,10 @@ final class Movimiento {
   /// movimientos migrados (spec-app-finanzas-v2.md §8.1).
   final String? idOrigen;
 
+  /// De qué cuenta salió (spec §7.3.1). `null` en los gastos de antes de
+  /// las cuentas: ver `cuentaDe` en `cuenta.dart`.
+  final String? cuentaId;
+
   const Movimiento({
     this.id,
     required this.clientId,
@@ -63,6 +67,7 @@ final class Movimiento {
     this.confianzaIA,
     this.granularidad,
     this.idOrigen,
+    this.cuentaId,
   });
 
   /// Copia con cambios — a propósito **no** acepta [cicloId] como
@@ -86,6 +91,7 @@ final class Movimiento {
     double? confianzaIA,
     Granularidad? granularidad,
     String? idOrigen,
+    String? cuentaId,
   }) =>
       Movimiento(
         id: id ?? this.id,
@@ -105,6 +111,7 @@ final class Movimiento {
         confianzaIA: confianzaIA ?? this.confianzaIA,
         granularidad: granularidad ?? this.granularidad,
         idOrigen: idOrigen ?? this.idOrigen,
+        cuentaId: cuentaId ?? this.cuentaId,
       );
 
   /// Nombres de campo iguales a los del documento `movimientos/{movId}`
@@ -128,6 +135,7 @@ final class Movimiento {
         if (confianzaIA != null) 'confianzaIA': confianzaIA,
         if (granularidad != null) 'granularidad': granularidad!.name,
         if (idOrigen != null) 'idOrigen': idOrigen,
+        if (cuentaId != null) 'cuentaId': cuentaId,
       };
 
   factory Movimiento.fromJson(Map<String, dynamic> json) => Movimiento(
@@ -151,6 +159,7 @@ final class Movimiento {
             ? null
             : Granularidad.values.byName(json['granularidad'] as String),
         idOrigen: json['idOrigen'] as String?,
+        cuentaId: json['cuentaId'] as String?,
       );
 
   @override
@@ -172,7 +181,8 @@ final class Movimiento {
       other.clasificadoPorIA == clasificadoPorIA &&
       other.confianzaIA == confianzaIA &&
       other.granularidad == granularidad &&
-      other.idOrigen == idOrigen;
+      other.idOrigen == idOrigen &&
+      other.cuentaId == cuentaId;
 
   @override
   int get hashCode => Object.hashAll([
@@ -193,6 +203,7 @@ final class Movimiento {
         confianzaIA,
         granularidad,
         idOrigen,
+        cuentaId,
       ]);
 
   @override

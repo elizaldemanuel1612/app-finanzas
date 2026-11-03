@@ -5,13 +5,16 @@ import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../../data/repositorios/ajuste_presupuesto_ciclo_repositorio.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
+import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
+import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/analisis/recomendaciones.dart';
 import '../../domain/analisis/reparto_ingreso.dart';
 import '../../domain/analisis/reporte_analisis.dart';
 import '../../domain/analisis/veredicto_ciclo.dart';
 import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
+import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
@@ -36,6 +39,10 @@ class PantallaAnalisis extends StatefulWidget {
   final VoidCallback alVerGastos;
   final VoidCallback alVerMeta;
 
+  /// Para la vista "Cuentas" (spec §7.3.1); sin ellos no aparece.
+  final CuentaRepositorio? cuentaRepositorio;
+  final MovimientoCuentaRepositorio? movimientoCuentaRepositorio;
+
   const PantallaAnalisis({
     super.key,
     required this.perfil,
@@ -47,6 +54,8 @@ class PantallaAnalisis extends StatefulWidget {
     required this.alVerCategoria,
     required this.alVerGastos,
     required this.alVerMeta,
+    this.cuentaRepositorio,
+    this.movimientoCuentaRepositorio,
   });
 
   @override
@@ -63,10 +72,13 @@ class _Datos {
   /// Activas, con el presupuesto del ciclo: también las que aún no tienen gasto.
   final List<Categoria> categorias;
 
-  const _Datos(this.reporte, this.recomendaciones, this.ingreso, this.categorias);
+  /// `null` si no hay cuentas que mostrar.
+  final List<ResumenCuenta>? cuentas;
+
+  const _Datos(this.reporte, this.recomendaciones, this.ingreso, this.categorias, this.cuentas);
 }
 
-enum _Vista { basico, avanzado }
+enum _Vista { basico, avanzado, cuentas }
 
 class _PantallaAnalisisState extends State<PantallaAnalisis> {
   _Datos? _datos;
@@ -133,12 +145,23 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
       ingresoCiclo: ingresos.total,
       metaCiclo: calcularMetaDelCiclo(metaBase: metaBase, ingresos: ingresos),
     );
+    final repoCuentas = widget.cuentaRepositorio;
+    final cuentas = repoCuentas == null
+        ? null
+        : resumenPorCuenta(
+            cuentas: await repoCuentas.listarTodas(),
+            categorias: todas,
+            gastos: movimientos,
+            movimientosCuenta: await widget.movimientoCuentaRepositorio?.listarTodos() ?? const [],
+            cicloId: ciclo.id,
+          );
     if (!mounted) return;
     setState(() => _datos = _Datos(
           reporte,
           recomendaciones,
           ingresos.total,
           [for (final c in efectivas) if (c.activa) c],
+          cuentas,
         ));
   }
 
@@ -207,9 +230,10 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
   }
 
   Widget _selectorVista() => SegmentedButton<_Vista>(
-        segments: const [
-          ButtonSegment(value: _Vista.basico, label: Text('Básico')),
-          ButtonSegment(value: _Vista.avanzado, label: Text('Avanzado')),
+        segments: [
+          const ButtonSegment(value: _Vista.basico, label: Text('Básico')),
+          const ButtonSegment(value: _Vista.avanzado, label: Text('Avanzado')),
+          if (_datos?.cuentas != null) const ButtonSegment(value: _Vista.cuentas, label: Text('Cuentas')),
         ],
         selected: {_vista},
         onSelectionChanged: (s) => _elegirVista(s.first),
@@ -246,8 +270,85 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
     );
   }
 
+  /// Por tarjeta y efectivo: cuánto salió de cada una en el ciclo, en qué,
+  /// y su saldo (spec §7.3.1).
+  Widget _contenidoCuentas(BuildContext context, List<ResumenCuenta> cuentas) {
+    final textos = Theme.of(context).textTheme;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+      children: [
+        _selectorVista(),
+        const _Titulo('¿Con qué pagas?', subtitulo: 'Lo que salió de cada cuenta este ciclo'),
+        for (final r in cuentas)
+          Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      ExcludeSemantics(child: Text(r.cuenta.emoji, style: textos.titleMedium)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(r.cuenta.nombre, style: textos.titleMedium),
+                            Text(r.cuenta.tipo.etiqueta, style: textos.labelSmall),
+                          ],
+                        ),
+                      ),
+                      Text(r.gastado.formateado(), style: textos.titleMedium),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  BarraProporcion(valor: r.porcentaje / 100, color: ColoresApp.azul, alto: 6),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${r.porcentaje}% de tu gasto · ${r.conteo} ${r.conteo == 1 ? 'gasto' : 'gastos'}',
+                    style: textos.bodySmall,
+                  ),
+                  if (r.principales.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    for (final p in r.principales)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Row(
+                          children: [
+                            ExcludeSemantics(child: Text(p.categoria.emoji)),
+                            const SizedBox(width: 6),
+                            Expanded(child: Text(p.categoria.nombre, style: textos.bodySmall)),
+                            Text(p.total.formateado(), style: textos.bodySmall),
+                          ],
+                        ),
+                      ),
+                  ],
+                  if (r.saldo != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Saldo: ${r.saldo!.formateado()}',
+                      style: textos.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: r.saldo!.esNegativo ? ColoresApp.coralTexto : ColoresApp.verdeTexto,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _contenido(BuildContext context, _Datos datos) {
     if (_vista == _Vista.basico) return _contenidoBasico(context, datos);
+    if (_vista == _Vista.cuentas) {
+      final cuentas = datos.cuentas;
+      if (cuentas != null) return _contenidoCuentas(context, cuentas);
+    }
     final r = datos.reporte;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),

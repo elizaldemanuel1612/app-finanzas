@@ -10,6 +10,7 @@ import 'package:app_finanzas/data/almacenamiento/archivo_texto.dart';
 import 'package:app_finanzas/data/firebase/servicio_auth.dart';
 import 'package:app_finanzas/data/repositorios/local/almacen_local.dart';
 import 'package:app_finanzas/domain/modelos/categoria.dart';
+import 'package:app_finanzas/domain/modelos/cuenta.dart';
 import 'package:app_finanzas/domain/modelos/estado_movimiento.dart';
 import 'package:app_finanzas/domain/modelos/movimiento.dart';
 import 'package:app_finanzas/domain/modelos/perfil.dart';
@@ -51,6 +52,17 @@ Future<void> main() async {
   for (final c in categorias) {
     await almacen.categorias.guardar(c);
   }
+  final inicioCiclo = perfil.calculadoraCiclo.calcularPara(DateTime.now()).fechaInicio;
+  await almacen.cuentas.listarTodas(); // crea Tarjeta y Efectivo
+  await almacen.cuentas.guardar(Cuenta(
+    id: 'bbva',
+    nombre: 'BBVA débito',
+    emoji: '🏦',
+    tipo: TipoCuenta.debito,
+    llevaSaldo: true,
+    saldoInicial: const Dinero.pesos(15000),
+    fechaSaldoInicial: inicioCiclo,
+  ));
   final hoy = DateTime.now();
   final calculadora = perfil.calculadoraCiclo;
   var n = 0;
@@ -67,6 +79,7 @@ Future<void> main() async {
       descripcion: descripcion,
       estado: EstadoMovimiento.activo,
       origenCaptura: OrigenCaptura.manual,
+      cuentaId: n % 3 == 0 ? 'bbva' : null,
     ));
   }
 

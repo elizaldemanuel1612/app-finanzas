@@ -174,7 +174,7 @@ final class ServicioNube {
           clave: clave,
           modo: modo,
           base: base,
-          anularEnVezDeBorrar: archivo == 'movimientos.json',
+          anularEnVezDeBorrar: archivo == 'movimientos.json' || archivo == 'movimientos_cuenta.json',
         );
 
         await _escribirLocal(archivo, r.local);

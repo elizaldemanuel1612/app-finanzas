@@ -7,10 +7,12 @@ import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
+import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
 import '../../domain/clasificacion/normalizacion_texto.dart';
 import '../../domain/modelos/categoria.dart';
+import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/estado_movimiento.dart';
 import '../../domain/modelos/movimiento.dart';
 import '../../domain/modelos/perfil.dart';
@@ -38,6 +40,7 @@ class PantallaGastos extends StatefulWidget {
   final MovimientoRepositorio movimientoRepositorio;
   final ReglasAprendidasRepositorio reglasAprendidasRepositorio;
   final CicloRepositorio cicloRepositorio;
+  final CuentaRepositorio? cuentaRepositorio;
 
   /// Se reenvía tal cual a `PantallaCaptura` cuando se edita un movimiento
   /// desde aquí — ver el comentario en `PantallaCaptura.documentos`.
@@ -51,6 +54,7 @@ class PantallaGastos extends StatefulWidget {
     required this.movimientoRepositorio,
     required this.reglasAprendidasRepositorio,
     required this.cicloRepositorio,
+    this.cuentaRepositorio,
     required this.documentos,
   });
 
@@ -93,7 +97,9 @@ class _PantallaGastosState extends State<PantallaGastos> {
       widget.cicloId,
     );
     final categorias = await widget.categoriaRepositorio.listarTodas();
+    final cuentas = await widget.cuentaRepositorio?.listarTodas() ?? const <Cuenta>[];
     return _DatosGastos(
+      cuentasPorId: {for (final c in cuentas) c.id: c},
       movimientos: movimientos
           .where((m) => m.estado == EstadoMovimiento.activo)
           .toList(),
@@ -309,6 +315,8 @@ class _PantallaGastosState extends State<PantallaGastos> {
                   reglasAprendidasRepositorio:
                       widget.reglasAprendidasRepositorio,
                   cicloRepositorio: widget.cicloRepositorio,
+                  cuentaRepositorio: widget.cuentaRepositorio,
+                  cuentasPorId: datos.cuentasPorId,
                   documentos: widget.documentos,
                   onCambio: _refrescar,
                 ),
@@ -326,6 +334,8 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
   final MovimientoRepositorio movimientoRepositorio;
   final ReglasAprendidasRepositorio reglasAprendidasRepositorio;
   final CicloRepositorio cicloRepositorio;
+  final CuentaRepositorio? cuentaRepositorio;
+  final Map<String, Cuenta> cuentasPorId;
   final Directory documentos;
   final VoidCallback onCambio;
 
@@ -337,6 +347,8 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
     required this.movimientoRepositorio,
     required this.reglasAprendidasRepositorio,
     required this.cicloRepositorio,
+    this.cuentaRepositorio,
+    required this.cuentasPorId,
     required this.documentos,
     required this.onCambio,
   });
@@ -358,6 +370,7 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
           cicloRepositorio: cicloRepositorio,
           documentos: documentos,
           paraEditar: m,
+          cuentaRepositorio: cuentaRepositorio,
         ),
       ),
     );
@@ -409,7 +422,9 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
     switch (resultado) {
       case Falla():
         return;
-      case Exito(:final valor):
+      case Exito(valor: final nuevo):
+        // El duplicado sale de la misma cuenta.
+        final valor = nuevo.copyWith(cuentaId: m.cuentaId);
         await movimientoRepositorio.guardar(valor);
         onCambio();
         if (!context.mounted) return;
@@ -507,7 +522,8 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
                       ),
                       title: Text(m.descripcion),
                       subtitle: Text(
-                        '${categoria?.nombre ?? m.categoriaId} · ${m.medio.name}',
+                        '${categoria?.nombre ?? m.categoriaId} · '
+                        '${cuentasPorId[cuentaDe(m)]?.nombre ?? m.medio.name}',
                       ),
                       trailing: Text(
                         m.monto.formateado(),
@@ -547,9 +563,11 @@ String _fechaLarga(DateTime f) {
 class _DatosGastos {
   final List<Movimiento> movimientos;
   final Map<String, Categoria> categoriasPorId;
+  final Map<String, Cuenta> cuentasPorId;
 
   const _DatosGastos({
     required this.movimientos,
     required this.categoriasPorId,
+    required this.cuentasPorId,
   });
 }

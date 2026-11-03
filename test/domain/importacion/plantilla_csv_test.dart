@@ -6,6 +6,7 @@ import 'package:app_finanzas/domain/importacion/csv.dart';
 import 'package:app_finanzas/domain/importacion/importar_movimientos.dart';
 import 'package:app_finanzas/domain/importacion/plantilla_csv.dart';
 import 'package:app_finanzas/domain/modelos/categoria.dart';
+import 'package:app_finanzas/domain/modelos/cuenta.dart';
 import 'package:app_finanzas/domain/modelos/estado_movimiento.dart';
 import 'package:app_finanzas/domain/modelos/movimiento.dart';
 import 'package:test/test.dart';
@@ -33,11 +34,16 @@ void main() {
       contenidoCsv: generarPlantillaCsvDeEjemplo(),
       calculadoraCiclo: const CalculadoraCiclo(1),
       categoriasExistentes: const [],
+      cuentasExistentes: cuentasBase(DateTime(2026, 8, 1)),
     );
 
     final datos = (resultado as Exito<ResultadoImportacion>).valor;
     expect(datos.renglonesConProblema, isEmpty);
-    expect(datos.avisos, isEmpty);
+    // Solo avisa que "BBVA débito" no existía y se crea, de débito.
+    expect(datos.avisos.single.motivo, contains('BBVA débito'));
+    expect(datos.cuentasPorCrear.single.tipo, TipoCuenta.debito);
+    expect(datos.movimientos.first.cuentaId, datos.cuentasPorCrear.single.id);
+    expect(datos.movimientos.last.cuentaId, idCuentaEfectivo);
     expect(datos.movimientos, hasLength(2));
     expect(datos.movimientos.first.monto, const Dinero.pesos(450));
     expect(datos.movimientos.first.fecha, DateTime(2026, 8, 5, 13, 30));
@@ -183,5 +189,59 @@ void main() {
     expect(datos.eliminaDatos, isFalse);
     expect(datos.categoriasPorActualizar, isEmpty);
     expect([for (final c in datos.categoriasFinales) c.toJson()], [for (final c in categorias) c.toJson()]);
+  });
+
+  test('ida y vuelta de la cuenta de cada gasto', () {
+    final amex = Cuenta(
+      id: 'amex',
+      nombre: 'Amex',
+      emoji: '💳',
+      tipo: TipoCuenta.credito,
+      llevaSaldo: false,
+      saldoInicial: const Dinero.cero(),
+      fechaSaldoInicial: DateTime(2026, 8, 1),
+    );
+    final cuentas = [...cuentasBase(DateTime(2026, 8, 1)), amex];
+    Movimiento gasto(String id, {String? cuenta, MedioPago medio = MedioPago.tarjeta}) => Movimiento(
+          clientId: id,
+          fecha: DateTime(2026, 8, 5),
+          cicloId: '2026-08',
+          periodoNatural: '2026-08',
+          monto: const Dinero.pesos(10),
+          categoriaId: 'x',
+          medio: medio,
+          descripcion: 'x',
+          estado: EstadoMovimiento.activo,
+          origenCaptura: OrigenCaptura.manual,
+          cuentaId: cuenta,
+        );
+    final csv = exportarMovimientosCsv(
+      movimientos: [gasto('a', cuenta: 'amex'), gasto('b', medio: MedioPago.efectivo)],
+      categorias: const [],
+      cuentas: cuentas,
+    );
+    final datos = (previsualizarImportacion(
+      contenidoCsv: csv,
+      calculadoraCiclo: const CalculadoraCiclo(1),
+      categoriasExistentes: const [],
+      cuentasExistentes: cuentas,
+    ) as Exito<ResultadoImportacion>)
+        .valor;
+    expect(datos.cuentasPorCrear, isEmpty);
+    expect([for (final m in datos.movimientos) m.cuentaId], ['amex', idCuentaEfectivo]);
+  });
+
+  test('cuentas nuevas: el tipo sale del medio, y la cuenta manda sobre el medio', () {
+    final datos = (previsualizarImportacion(
+      contenidoCsv: 'fecha,monto,medio,cuenta\n'
+          '2026-08-05,1,Débito,Nu\n2026-08-05,1,Efectivo,Cartera\n2026-08-05,1,,Amex\n2026-08-06,1,Efectivo,nu\n',
+      calculadoraCiclo: const CalculadoraCiclo(1),
+      categoriasExistentes: const [],
+    ) as Exito<ResultadoImportacion>)
+        .valor;
+    expect([for (final c in datos.cuentasPorCrear) c.tipo], [TipoCuenta.debito, TipoCuenta.efectivo, TipoCuenta.credito]);
+    expect(datos.cuentasPorCrear.first.llevaSaldo, isFalse);
+    expect(datos.movimientos.last.cuentaId, datos.cuentasPorCrear.first.id);
+    expect(datos.movimientos.last.medio, MedioPago.tarjeta);
   });
 }

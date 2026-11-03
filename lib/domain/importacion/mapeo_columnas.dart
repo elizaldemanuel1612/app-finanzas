@@ -17,6 +17,7 @@ enum CampoImportado {
   categoria,
   descripcion,
   medio,
+  cuenta,
   estado,
   origen,
   id,
@@ -34,6 +35,7 @@ const _aliasPorCampo = {
   CampoImportado.categoria: ['categoria', 'rubro'],
   CampoImportado.descripcion: ['descripcion', 'concepto', 'comercio'],
   CampoImportado.medio: ['medio', 'forma de pago'],
+  CampoImportado.cuenta: ['cuenta'],
   CampoImportado.estado: ['estado', 'estatus', 'status'],
   CampoImportado.origen: ['como se registro', 'origen'],
 };

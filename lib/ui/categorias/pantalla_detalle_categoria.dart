@@ -7,6 +7,7 @@ import '../../core/money.dart';
 import '../../data/repositorios/ajuste_presupuesto_ciclo_repositorio.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
+import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
 import '../../domain/modelos/categoria.dart';
@@ -51,6 +52,7 @@ class PantallaDetalleCategoria extends StatefulWidget {
   /// Para abrir la edición de un gasto (ver `PantallaCaptura.documentos`).
   final Perfil perfil;
   final Directory documentos;
+  final CuentaRepositorio? cuentaRepositorio;
 
   const PantallaDetalleCategoria({
     super.key,
@@ -64,6 +66,7 @@ class PantallaDetalleCategoria extends StatefulWidget {
     required this.cicloRepositorio,
     required this.perfil,
     required this.documentos,
+    this.cuentaRepositorio,
   });
 
   @override
@@ -99,6 +102,7 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
           cicloRepositorio: widget.cicloRepositorio,
           documentos: widget.documentos,
           paraEditar: m,
+          cuentaRepositorio: widget.cuentaRepositorio,
         ),
       ),
     );

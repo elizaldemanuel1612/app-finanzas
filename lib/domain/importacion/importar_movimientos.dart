@@ -10,6 +10,7 @@ import '../clasificacion/regla_aprendida.dart';
 import '../exportacion/exportar_csv.dart';
 import '../migracion/movimiento_migrado.dart';
 import '../modelos/categoria.dart';
+import '../modelos/cuenta.dart';
 import '../modelos/estado_movimiento.dart';
 import '../modelos/movimiento.dart';
 import 'csv.dart';
@@ -55,6 +56,10 @@ final class ResultadoImportacion {
 
   /// Movimientos de la cuenta que no vienen en el archivo: se eliminan.
   final int movimientosPorEliminar;
+
+  /// Cuentas nombradas en el archivo que no existían (spec §7.3.1). Las
+  /// cuentas nunca se eliminan al importar.
+  final List<Cuenta> cuentasPorCrear;
   final List<RenglonConProblema> renglonesConProblema;
   final List<RenglonConProblema> avisos;
   final Map<String, Dinero> totalesPorCiclo;
@@ -73,6 +78,7 @@ final class ResultadoImportacion {
     this.categoriasPorEliminar = const [],
     this.categoriasFinales = const [],
     this.movimientosPorEliminar = 0,
+    this.cuentasPorCrear = const [],
     required this.renglonesConProblema,
     this.avisos = const [],
     required this.totalesPorCiclo,
@@ -133,6 +139,7 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
   List<ReglaAprendida> reglasUsuario = const [],
   Map<String, String> historialComercios = const {},
   List<Movimiento> movimientosExistentes = const [],
+  List<Cuenta> cuentasExistentes = const [],
 }) {
   final filas = leerCsv(contenidoCsv, separador: detectarSeparador(contenidoCsv));
   // Las instrucciones de la plantilla pueden seguir en el archivo. El número
@@ -158,6 +165,8 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
   };
   final existentesPorClientId = {for (final m in movimientosExistentes) m.clientId: m};
   final planes = <String, _PlanCategoria>{};
+  final cuentaPorNombre = {for (final c in cuentasExistentes) normalizarTexto(c.nombre): c};
+  final cuentasNuevas = <Cuenta>[];
   final idsVistos = <String>{};
   final movimientos = <Movimiento>[];
   final problemas = <RenglonConProblema>[];
@@ -247,7 +256,20 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
     final categoriaId = existenteDelNombre?.id ?? _idNuevo(nombreCategoria);
 
     final textoMedio = campo(CampoImportado.medio);
-    final medio = _leerMedio(textoMedio);
+    var medio = _leerMedio(textoMedio);
+    final nombreCuenta = campo(CampoImportado.cuenta);
+    Cuenta? cuenta;
+    if (nombreCuenta.isNotEmpty) {
+      cuenta = cuentaPorNombre[normalizarTexto(nombreCuenta)];
+      if (cuenta == null) {
+        cuenta = _cuentaNueva(nombreCuenta, textoMedio, medio, fecha);
+        cuentaPorNombre[normalizarTexto(nombreCuenta)] = cuenta;
+        cuentasNuevas.add(cuenta);
+        avisar('La cuenta "$nombreCuenta" no existía: se creará como ${cuenta.tipo.etiqueta.toLowerCase()}.');
+      }
+      // La cuenta manda sobre el medio: una de débito siempre es tarjeta.
+      medio = cuenta.tipo.medio;
+    }
     if (medio == null) avisar('Medio de pago "$textoMedio" no reconocido; se usó Tarjeta.');
 
     final textoEstado = campo(CampoImportado.estado);
@@ -277,7 +299,8 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
     switch (resultado) {
       case Falla(:final mensaje):
         problemas.add(RenglonConProblema(numeroDeRenglon: numeroDeRenglon, motivo: mensaje));
-      case Exito(valor: final leido):
+      case Exito(valor: final sinCuenta):
+        final leido = cuenta == null ? sinCuenta : sinCuenta.copyWith(cuentaId: cuenta.id);
         final previo = existentesPorClientId[leido.clientId];
         final valor = previo == null
             ? leido
@@ -290,6 +313,7 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
                 descripcion: leido.descripcion,
                 estado: leido.estado,
                 origenCaptura: textoOrigen.isEmpty ? previo.origenCaptura : leido.origenCaptura,
+                cuentaId: cuenta?.id,
               );
         movimientos.add(valor);
         if (separado.nombre.isEmpty) adivinada != null ? adivinadas++ : sinCategoria++;
@@ -324,6 +348,7 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
         if (!planes.containsKey(normalizarTexto(c.nombre))) c,
     ],
     categoriasFinales: finales,
+    cuentasPorCrear: cuentasNuevas,
     movimientosPorEliminar:
         movimientosExistentes.where((m) => !clientIdsDelArchivo.contains(m.clientId)).length,
     renglonesConProblema: problemas,
@@ -332,6 +357,28 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
     categoriasAdivinadas: adivinadas,
     sinCategoria: sinCategoria,
   ));
+}
+
+/// Una cuenta que el archivo nombra y no existía. El tipo sale del medio de
+/// pago o del nombre ("BBVA débito"): débito si alguno lo dice, efectivo,
+/// si no crédito. Una de débito empieza sin saldo hasta que el usuario lo
+/// defina: ponerle $0 restaría todo el historial importado.
+Cuenta _cuentaNueva(String nombre, String textoMedio, MedioPago? medio, DateTime fecha) {
+  final texto = normalizarTexto('$textoMedio $nombre');
+  final tipo = medio == MedioPago.efectivo
+      ? TipoCuenta.efectivo
+      : (texto.contains('debito') || texto.contains('tdd'))
+          ? TipoCuenta.debito
+          : TipoCuenta.credito;
+  return Cuenta(
+    id: 'imp-cta-${_slug(normalizarTexto(nombre))}',
+    nombre: nombre,
+    emoji: tipo == TipoCuenta.efectivo ? '💵' : '💳',
+    tipo: tipo,
+    llevaSaldo: false,
+    saldoInicial: const Dinero.cero(),
+    fechaSaldoInicial: fecha,
+  );
 }
 
 /// Lo que el archivo dice de una categoría; `null` es "no lo dijo".

@@ -547,6 +547,12 @@ void main() {
       expect(m.origenCaptura, OrigenCaptura.voz);
     });
 
+    test('mismo ID con cuenta en el archivo: toma la cuenta', () {
+      final m = importar('fecha,monto,cuenta,id\n2026-08-05,100,Amex,a\n').movimientos.single;
+      expect(m.cuentaId, 'imp-cta-amex');
+      expect(m.cicloId, 'ciclo-viejo');
+    });
+
     test('mismo ID con origen en el archivo: se usa el del archivo', () {
       final m = importar('fecha,monto,como se registro,id\n2026-08-05,100,Ticket,a\n').movimientos.single;
       expect(m.origenCaptura, OrigenCaptura.ticket);

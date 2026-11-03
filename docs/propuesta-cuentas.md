@@ -1,6 +1,6 @@
 # Propuesta: cuentas y tarjetas (2026-11-02)
 
-> Estado: **propuesta, pendiente de aprobar**. No hay código todavía. Al aprobarla, lo que se decida pasa a `spec-app-finanzas-v2.md` y a las reglas del paquete.
+> Estado: **aprobada el 2026-11-02** (fase A, con las recomendaciones; efectivo con saldo opcional, abono puede contar como ingreso, análisis por cuenta en su propia vista, transferencias en la segunda etapa). Lo que rige está en `spec-app-finanzas-v2.md` §7.3.1.
 
 ## Qué pidió el usuario
 

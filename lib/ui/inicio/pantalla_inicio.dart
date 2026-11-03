@@ -14,7 +14,9 @@ import '../../data/repositorios/perfil_repositorio.dart';
 import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
 import '../../domain/ciclo_de_vida/alcance.dart';
 import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
+import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/categoria.dart';
+import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/apartado_estimado.dart';
@@ -28,6 +30,7 @@ import '../../plataforma/accesos_rapidos.dart';
 import '../ajustes/pantalla_ajustes.dart';
 import '../analisis/pantalla_analisis.dart';
 import '../captura/pantalla_captura.dart';
+import '../cuentas/pantalla_cuentas.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../categorias/pantalla_detalle_categoria.dart';
 import '../ciclo/pantalla_ciclos_anteriores.dart';
@@ -160,7 +163,39 @@ class _PantallaInicioState extends State<PantallaInicio> {
     _irACaptura(iniciarDictado: acceso == AccesoRapido.dictar);
   }
 
+  /// Saldos de las cuentas que lo llevan (spec §7.3.1), para la tarjeta
+  /// "Tus cuentas".
+  List<(Cuenta, Dinero)> _saldos = const [];
+
+  Future<void> _cargarSaldos() async {
+    final cuentas = await widget.almacenLocal.cuentas.listarTodas();
+    final gastos = await widget.movimientoRepositorio.listarTodos();
+    final abonos = await widget.almacenLocal.movimientosCuenta.listarTodos();
+    if (!mounted) return;
+    setState(() => _saldos = [
+          for (final c in cuentas)
+            if (c.activa)
+              if (saldoDe(c, gastos, abonos) case final saldo?) (c, saldo),
+        ]);
+  }
+
+  Future<void> _irACuentas() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaCuentas(
+          perfil: _perfil,
+          cuentaRepositorio: widget.almacenLocal.cuentas,
+          movimientoRepositorio: widget.movimientoRepositorio,
+          movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
+          ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+        ),
+      ),
+    );
+    await _cargar();
+  }
+
   Future<void> _cargar() async {
+    _cargarSaldos();
     final datos = await _cargarDatos();
     if (!mounted) return;
     final hoy = DateTime.now();
@@ -278,6 +313,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
           cicloRepositorio: widget.cicloRepositorio,
           documentos: widget.almacenLocal.directorio,
           iniciarDictado: iniciarDictado,
+          cuentaRepositorio: widget.almacenLocal.cuentas,
         ),
       ),
     );
@@ -297,6 +333,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
               reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
               cicloRepositorio: widget.cicloRepositorio,
               documentos: widget.almacenLocal.directorio,
+              cuentaRepositorio: widget.almacenLocal.cuentas,
             ),
           ),
         )
@@ -313,6 +350,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
           movimientoRepositorio: widget.movimientoRepositorio,
           ajustePresupuestoCicloRepositorio: widget.ajustePresupuestoCicloRepositorio,
           ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+          cuentaRepositorio: widget.almacenLocal.cuentas,
+          movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
           alVerCategoria: (id) {
             final categoria = _datos?.categorias.where((c) => c.id == id).firstOrNull;
             if (categoria != null) _irADetalle(categoria);
@@ -431,6 +470,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
               cicloRepositorio: widget.cicloRepositorio,
               perfil: _perfil,
               documentos: widget.almacenLocal.directorio,
+              cuentaRepositorio: widget.almacenLocal.cuentas,
             ),
           ),
         )
@@ -558,6 +598,47 @@ class _PantallaInicioState extends State<PantallaInicio> {
             trailing: Icon(Icons.chevron_right, color: ColoresApp.medio),
           ),
         ),
+        if (_saldos.isNotEmpty)
+          Card(
+            margin: const EdgeInsets.only(top: 16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: _irACuentas,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: Text('Tus cuentas', style: Theme.of(context).textTheme.titleMedium)),
+                        Icon(Icons.chevron_right, color: ColoresApp.medio),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    for (final (cuenta, saldo) in _saldos)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: Row(
+                          children: [
+                            ExcludeSemantics(child: Text(cuenta.emoji)),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(cuenta.nombre, overflow: TextOverflow.ellipsis)),
+                            Text(
+                              saldo.formateado(),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: saldo.esNegativo ? ColoresApp.coralTexto : ColoresApp.tinta,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         if (datos.variables.isNotEmpty || datos.fijas.isNotEmpty) ...[
           const SizedBox(height: 20),
           _SelectorOrden(orden: _orden, alElegir: _elegirOrden),

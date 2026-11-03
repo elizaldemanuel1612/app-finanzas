@@ -4,8 +4,10 @@ import '../../almacenamiento/archivo_texto.dart';
 import '../../almacenamiento/archivo_texto_disco.dart';
 import 'ajuste_presupuesto_ciclo_repositorio_archivo.dart';
 import 'categoria_repositorio_archivo.dart';
+import 'cuenta_repositorio_archivo.dart';
 import 'ciclo_repositorio_archivo.dart';
 import 'ingreso_extra_repositorio_archivo.dart';
+import 'movimiento_cuenta_repositorio_archivo.dart';
 import 'movimiento_repositorio_archivo.dart';
 import 'perfil_repositorio_archivo.dart';
 import 'reglas_aprendidas_repositorio_archivo.dart';
@@ -17,7 +19,7 @@ import 'reglas_aprendidas_repositorio_archivo.dart';
 /// repositorio individual, para poder probarse con `dart test` sin
 /// `path_provider` ni dispositivo.
 final class AlmacenLocal {
-  /// Los 7 nombres de archivo que son "los datos de la app" — expuesto para
+  /// Los 9 nombres de archivo que son "los datos de la app" — expuesto para
   /// que `main.dart` pueda migrar datos de antes de que el almacenamiento
   /// se separara por cuenta (ver comentario en `_ContenidoApp._inicializar`)
   /// sin tener que duplicar esta lista.
@@ -29,13 +31,15 @@ final class AlmacenLocal {
     'ciclos.json',
     'ingresos.json',
     'ajustes_presupuesto_ciclo.json',
+    'cuentas.json',
+    'movimientos_cuenta.json',
   ];
 
   /// Carpeta de la cuenta en el dispositivo (también de las fotos de
   /// tickets). En la web no existe en disco: es solo un nombre.
   final Directory directorio;
 
-  /// Los 7 "archivos" de datos por nombre — lo que sincroniza el respaldo
+  /// Los 9 "archivos" de datos por nombre — lo que sincroniza el respaldo
   /// (`data/nube/servicio_nube.dart`) y lo que borra [borrarTodo].
   final Map<String, ArchivoTexto> archivos;
 
@@ -57,6 +61,8 @@ final class AlmacenLocal {
   final CicloRepositorioArchivo ciclos;
   final IngresoExtraRepositorioArchivo ingresosExtra;
   final AjustePresupuestoCicloRepositorioArchivo ajustesPresupuestoCiclo;
+  final CuentaRepositorioArchivo cuentas;
+  final MovimientoCuentaRepositorioArchivo movimientosCuenta;
 
   /// En el teléfono: archivos dentro de [directorio].
   factory AlmacenLocal(Directory directorio) => AlmacenLocal._(
@@ -94,9 +100,11 @@ final class AlmacenLocal {
         ciclos = CicloRepositorioArchivo.sobre(archivos['ciclos.json']!),
         ingresosExtra = IngresoExtraRepositorioArchivo.sobre(archivos['ingresos.json']!),
         ajustesPresupuestoCiclo =
-            AjustePresupuestoCicloRepositorioArchivo.sobre(archivos['ajustes_presupuesto_ciclo.json']!);
+            AjustePresupuestoCicloRepositorioArchivo.sobre(archivos['ajustes_presupuesto_ciclo.json']!),
+        cuentas = CuentaRepositorioArchivo.sobre(archivos['cuentas.json']!),
+        movimientosCuenta = MovimientoCuentaRepositorioArchivo.sobre(archivos['movimientos_cuenta.json']!);
 
-  /// Borra los 7 JSON más el directorio de fotos de tickets
+  /// Borra los 9 JSON más el directorio de fotos de tickets
   /// (`data/almacenamiento/almacen_fotos.dart`) — todo lo que "eliminar
   /// cuenta" promete que desaparece. Ignora los archivos que ya no
   /// existen: borrar es idempotente, no un error si ya no había nada.

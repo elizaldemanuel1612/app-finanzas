@@ -311,6 +311,17 @@ Face ID / Touch ID al abrir, configurable. Tu información financiera completa n
 - **Recuperación:** "¿Olvidaste tu PIN?" vuelve a confirmar la **misma cuenta de Google** con la que se entró (Firebase rechaza otra, `user-mismatch`) y deja crear un PIN nuevo; los datos no se tocan.
 - **Privacidad:** PIN y contraseña nunca se guardan: solo su huella PBKDF2-SHA256 con sal aleatoria, en la carpeta de la cuenta en el dispositivo (`candado.json`, `lib/data/seguridad/candado.dart`). No viaja en el respaldo; "Eliminar cuenta" la borra. Las reglas viven en `domain/seguridad/politica_bloqueo.dart`.
 
+### 7.3.1 [NUEVO] Cuentas y tarjetas (2026-11-02)
+Aprobado de `docs/propuesta-cuentas.md` (fase A). Cada gasto dice de qué **cuenta** salió: efectivo, débito o crédito. Varias tarjetas de cada tipo.
+
+- **Modelo.** `Cuenta { id, nombre, emoji, tipo: efectivo|debito|credito, llevaSaldo, saldoInicial, fechaSaldoInicial, activa }` en `cuentas.json`, respaldada en Drive. Las cuentas se archivan, no se borran. `Movimiento.cuentaId` (opcional); `medio` sigue existiendo y se deriva del tipo (débito/crédito = tarjeta). Los gastos de antes, sin `cuentaId`, caen en las cuentas base **Tarjeta** (crédito) y **Efectivo**, que se crean solas: no se reescribe ningún dato.
+- **Saldo: se calcula, nunca se guarda.** `saldoInicial + abonos ± ajustes − gastos activos` desde `fechaSaldoInicial`. Débito siempre lleva saldo; el efectivo solo si el usuario lo activa ("traigo $800"); crédito no. Saldo negativo se permite y se avisa en coral; nunca bloquea la captura (regla #17).
+- **Abonos y ajustes.** `MovimientoCuenta { clientId, cuentaId, fecha, monto > 0, tipo: abono|ajuste, sentido (ajuste: + o −), nota, estado, ingresoExtraId }` en `movimientos_cuenta.json`. No son gastos: no tocan categorías ni presupuesto. Se anulan, no se borran (regla #3). "Ajustar saldo" registra la diferencia como ajuste, no reescribe el saldo inicial. Un abono puede marcar **"También es ingreso de este ciclo"** (apagado por omisión): crea el `IngresoExtra` ligado y anular el abono lo anula también.
+- **Captura.** Fila de cuentas, la más usada primero; por omisión, la última usada.
+- **Dónde se ve.** Ajustes → Tus cuentas (alta, edición, saldo, abonos, ajuste). Inicio: tarjeta "Tus cuentas" con los saldos. Análisis: tercera vista **Cuentas** (aparte de Básico y Avanzado): por cuenta, gastado en el ciclo, % del total, número de gastos, sus categorías principales y el saldo.
+- **CSV.** Columna **Cuenta** (nombre). Si no existe al importar, se crea (débito si el medio dice débito, efectivo si dice efectivo, si no crédito) con aviso. Importar no elimina cuentas.
+- **Segunda etapa:** transferencias (pagar la tarjeta desde el débito, retirar efectivo), corte/pago/límite de crédito, aviso de saldo bajo, cuenta por voz.
+
 ### 7.4 [NUEVO] Exportación y portabilidad
 Exportar todo a Excel/CSV cuando quieras. No quedas atrapado en la app — y te da una red de seguridad psicológica al abandonar el Excel.
 

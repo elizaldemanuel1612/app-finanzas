@@ -10,12 +10,15 @@ import '../../core/result.dart';
 import '../../data/almacenamiento/almacen_fotos.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
+import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
 import '../../domain/clasificacion/cascada_clasificacion.dart';
 import '../../domain/clasificacion/historial_comercios.dart';
 import '../../domain/clasificacion/regla_aprendida.dart';
+import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/categoria.dart';
+import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/estado_movimiento.dart';
 import '../../domain/modelos/movimiento.dart';
 import '../../domain/modelos/perfil.dart';
@@ -65,6 +68,10 @@ class PantallaCaptura extends StatefulWidget {
   /// "Listo", igual que si hubiera tocado el micrófono.
   final bool iniciarDictado;
 
+  /// Para elegir con qué tarjeta o efectivo se pagó (spec §7.3.1). Sin él,
+  /// el selector Tarjeta / Efectivo de antes.
+  final CuentaRepositorio? cuentaRepositorio;
+
   const PantallaCaptura({
     super.key,
     required this.perfil,
@@ -75,6 +82,7 @@ class PantallaCaptura extends StatefulWidget {
     required this.documentos,
     this.paraEditar,
     this.iniciarDictado = false,
+    this.cuentaRepositorio,
   });
 
   @override
@@ -87,6 +95,10 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   late Future<List<Categoria>> _categorias;
   Categoria? _seleccionada;
   MedioPago _medio = MedioPago.tarjeta;
+
+  /// Activas, la más usada primero; vacía si no hay [PantallaCaptura.cuentaRepositorio].
+  List<Cuenta> _cuentas = [];
+  String? _cuentaId;
   late DateTime _fecha;
   String? _error;
   bool _guardando = false;
@@ -107,6 +119,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
       if (mounted) setState(() => _categoriasCache = categorias);
     });
     _cargarCascada();
+    _cargarCuentas();
 
     final paraEditar = widget.paraEditar;
     _fecha = paraEditar?.fecha ?? DateTime.now();
@@ -133,6 +146,45 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
         if (mounted) _dictar();
       });
     }
+  }
+
+  /// Por omisión, la del gasto que se edita o la del último gasto.
+  Future<void> _cargarCuentas() async {
+    final repo = widget.cuentaRepositorio;
+    if (repo == null) return;
+    final cuentas = await repo.listarTodas();
+    final gastos = await widget.movimientoRepositorio.listarTodos();
+    final ordenadas = ordenarCuentasPorUso(cuentas, gastos);
+    if (!mounted || ordenadas.isEmpty) return;
+    final editar = widget.paraEditar;
+    final propuesta = editar != null ? cuentaDe(editar) : ultimaCuentaUsada(gastos);
+    final elegida = ordenadas.where((c) => c.id == propuesta).firstOrNull ??
+        ordenadas.where((c) => editar != null && c.tipo.medio == editar.medio).firstOrNull ??
+        ordenadas.first;
+    setState(() {
+      // La del gasto que se edita aparece aunque esté archivada.
+      _cuentas = [
+        ...ordenadas,
+        if (editar != null && !ordenadas.any((c) => c.id == cuentaDe(editar)))
+          ...cuentas.where((c) => c.id == cuentaDe(editar)),
+      ];
+      _elegirCuenta(_cuentas.firstWhere((c) => c.id == propuesta, orElse: () => elegida));
+    });
+  }
+
+  void _elegirCuenta(Cuenta cuenta) {
+    _cuentaId = cuenta.id;
+    _medio = cuenta.tipo.medio;
+  }
+
+  /// Lo que dijo el dictado ("en efectivo"): la cuenta elegida si ya es de
+  /// ese medio; si no, la primera que lo sea.
+  void _elegirMedio(MedioPago medio) {
+    _medio = medio;
+    final actual = _cuentas.where((c) => c.id == _cuentaId).firstOrNull;
+    if (actual == null || actual.tipo.medio == medio) return;
+    final otra = _cuentas.where((c) => c.tipo.medio == medio).firstOrNull;
+    if (otra != null) _elegirCuenta(otra);
   }
 
   /// Las más usadas primero (`ordenarPorUso`, spec §5.6).
@@ -277,6 +329,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
             categoriaId: categoria.id,
             medio: _medio,
             descripcion: descripcion,
+            cuentaId: _cuentaId,
           );
           await widget.movimientoRepositorio.actualizar(editado);
           if (!mounted) return;
@@ -304,9 +357,10 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
         });
       case Exito(:final valor):
         final fotoUrl = _fotoUrl;
+        final conCuenta = valor.copyWith(cuentaId: _cuentaId);
         final aGuardar = fotoUrl == null
-            ? valor
-            : valor.copyWith(ticketId: _uuid.v4(), fotoUrl: fotoUrl);
+            ? conCuenta
+            : conCuenta.copyWith(ticketId: _uuid.v4(), fotoUrl: fotoUrl);
         await widget.movimientoRepositorio.guardar(aGuardar);
         await _aprenderDeLaCaptura(descripcion, categoria.id);
         if (!mounted) return;
@@ -420,7 +474,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
       setState(() {
         _montoControlador.text = textoEditableDeDinero(unico.monto!);
         _descripcionControlador.text = unico.descripcion;
-        _medio = unico.medio;
+        _elegirMedio(unico.medio);
         _error = null;
         if (unico.categoriaId != null) {
           for (final c in categorias) {
@@ -584,8 +638,22 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                 ),
               ],
               const SizedBox(height: 20),
-              Text('Medio', style: TextStyle(color: ColoresApp.medio)),
+              Text(_cuentas.isEmpty ? 'Medio' : '¿Con qué pagaste?', style: TextStyle(color: ColoresApp.medio)),
               const SizedBox(height: 8),
+              if (_cuentas.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final c in _cuentas)
+                      ChoiceChip(
+                        label: Text('${c.emoji} ${c.nombre}'),
+                        selected: c.id == _cuentaId,
+                        onSelected: (_) => setState(() => _elegirCuenta(c)),
+                      ),
+                  ],
+                )
+              else
               SegmentedButton<MedioPago>(
                 segments: const [
                   ButtonSegment(

@@ -22,6 +22,7 @@ import '../../plataforma/accesos_rapidos.dart';
 import '../ayuda/pantalla_guia.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../seguridad/pantalla_seguridad.dart';
+import '../cuentas/pantalla_cuentas.dart';
 import '../comun/apariencia.dart';
 import '../comun/documento_legal.dart';
 import '../comun/formato_fecha.dart';
@@ -145,6 +146,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
           categoriaRepositorio: widget.almacenLocal.categorias,
           movimientoRepositorio: widget.almacenLocal.movimientos,
           reglasAprendidasRepositorio: widget.almacenLocal.reglasAprendidas,
+          cuentaRepositorio: widget.almacenLocal.cuentas,
           nube: _nube,
         ),
       ),
@@ -203,7 +205,11 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       await _borrarExportacionesTemporales();
       final movimientos = await widget.almacenLocal.movimientos.listarTodos();
       final categorias = await widget.almacenLocal.categorias.listarTodas();
-      final csv = exportarMovimientosCsv(movimientos: movimientos, categorias: categorias);
+      final csv = exportarMovimientosCsv(
+        movimientos: movimientos,
+        categorias: categorias,
+        cuentas: await widget.almacenLocal.cuentas.listarTodas(),
+      );
       final fecha = DateTime.now();
       final nombre = 'gastos_${fecha.year}${fecha.month.toString().padLeft(2, '0')}'
           '${fecha.day.toString().padLeft(2, '0')}.csv';
@@ -466,6 +472,22 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                   titulo: 'Categorías',
                   subtitulo: 'Crear, editar o archivar tus categorías',
                   onTap: _irACategorias,
+                ),
+                _Renglon(
+                  icono: Icons.account_balance_wallet_outlined,
+                  titulo: 'Tus cuentas',
+                  subtitulo: 'Tarjetas y efectivo, con su saldo',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PantallaCuentas(
+                        perfil: _perfil,
+                        cuentaRepositorio: widget.almacenLocal.cuentas,
+                        movimientoRepositorio: widget.almacenLocal.movimientos,
+                        movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
+                        ingresoExtraRepositorio: widget.almacenLocal.ingresosExtra,
+                      ),
+                    ),
+                  ),
                 ),
                 _Renglon(
                   icono: Icons.event_repeat,

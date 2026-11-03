@@ -1,4 +1,5 @@
 import '../modelos/categoria.dart';
+import '../modelos/cuenta.dart';
 import '../modelos/estado_movimiento.dart';
 import '../modelos/movimiento.dart';
 
@@ -19,6 +20,7 @@ const encabezadosExportacion = [
   'Activa',
   'Descripción',
   'Medio de pago',
+  'Cuenta',
   'Estado',
   'Cómo se registró',
   'ID',
@@ -63,7 +65,9 @@ const etiquetaOrigen = {
 String exportarMovimientosCsv({
   required List<Movimiento> movimientos,
   required List<Categoria> categorias,
+  List<Cuenta> cuentas = const [],
 }) {
+  final cuentaPorId = {for (final c in cuentas) c.id: c};
   final categoriasPorId = {for (final c in categorias) c.id: c};
   final conGastos = {for (final m in movimientos) m.categoriaId};
   final buffer = StringBuffer('\uFEFF');
@@ -77,6 +81,7 @@ String exportarMovimientosCsv({
       ..._columnasDeCategoria(categoria, m.categoriaId),
       _neutralizarFormula(m.descripcion),
       etiquetaMedio[m.medio]!,
+      _neutralizarFormula(cuentaPorId[cuentaDe(m)]?.nombre ?? ''),
       etiquetaEstado[m.estado]!,
       etiquetaOrigen[m.origenCaptura]!,
       _neutralizarFormula(m.clientId),
@@ -88,7 +93,7 @@ String exportarMovimientosCsv({
   // solo lo que viene en el archivo, sin este renglón se perdería.
   for (final c in categorias) {
     if (conGastos.contains(c.id)) continue;
-    final fila = ['', '', ..._columnasDeCategoria(c, c.id), '', '', '', '', ''];
+    final fila = ['', '', ..._columnasDeCategoria(c, c.id), '', '', '', '', '', ''];
     buffer.writeln(fila.map(_celda).join(','));
   }
 

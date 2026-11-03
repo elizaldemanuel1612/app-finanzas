@@ -124,10 +124,18 @@ final class IngresoExtraRepositorioMemoria implements IngresoExtraRepositorio {
   @override
   Future<List<IngresoExtra>> listarTodos() async => items;
   @override
-  Future<IngresoExtra> guardar(IngresoExtra ingreso) =>
-      throw UnimplementedError();
+  Future<IngresoExtra> guardar(IngresoExtra ingreso) async {
+    items
+      ..removeWhere((e) => e.id == ingreso.id)
+      ..add(ingreso);
+    return ingreso;
+  }
+
   @override
-  Future<void> anular(String id) => throw UnimplementedError();
+  Future<void> anular(String id) async {
+    final i = items.indexWhere((e) => e.id == id);
+    items[i] = items[i].copyWith(estado: EstadoIngreso.anulado);
+  }
 }
 
 final class AjustePresupuestoCicloRepositorioMemoria

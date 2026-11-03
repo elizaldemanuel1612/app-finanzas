@@ -8,6 +8,7 @@ import '../../core/result.dart';
 import '../../data/nube/errores_respaldo.dart';
 import '../../data/nube/servicio_nube.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
+import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
 import '../../domain/clasificacion/historial_comercios.dart';
@@ -39,6 +40,9 @@ class PantallaImportar extends StatefulWidget {
   /// fusión normal reviviría lo que se acaba de eliminar (spec §7.4).
   final ServicioNube? nube;
 
+  /// Para crear las cuentas que el archivo nombre (spec §7.3.1).
+  final CuentaRepositorio? cuentaRepositorio;
+
   const PantallaImportar({
     super.key,
     required this.perfil,
@@ -46,6 +50,7 @@ class PantallaImportar extends StatefulWidget {
     required this.movimientoRepositorio,
     this.reglasAprendidasRepositorio,
     this.nube,
+    this.cuentaRepositorio,
   });
 
   @override
@@ -103,6 +108,7 @@ class _PantallaImportarState extends State<PantallaImportar> {
           if (m.estado == EstadoMovimiento.activo) ObservacionComercio(m.descripcion, m.categoriaId),
       ]),
       movimientosExistentes: movimientos,
+      cuentasExistentes: await widget.cuentaRepositorio?.listarTodas() ?? const [],
     );
 
     if (!mounted) return;
@@ -149,6 +155,9 @@ class _PantallaImportarState extends State<PantallaImportar> {
       final error = await acceso;
       if (error != null) throw error;
       await nube?.marcarReemplazo();
+      for (final cuenta in vistaPrevia.cuentasPorCrear) {
+        await widget.cuentaRepositorio?.guardar(cuenta);
+      }
       await widget.categoriaRepositorio.reemplazarTodas(vistaPrevia.categoriasFinales);
       await widget.movimientoRepositorio.reemplazarTodos(vistaPrevia.movimientos);
     } catch (e) {
