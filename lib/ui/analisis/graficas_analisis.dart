@@ -378,18 +378,42 @@ String montoCorto(Dinero d) {
   return '\$${decimas ~/ 10}.${decimas % 10}k';
 }
 
-/// Fijas (rayadas), variables y lo que sobra, sobre lo que entra
-/// (spec-app-finanzas-v2.md §5.7). Si los gastos pasan lo que entra, la
-/// barra mide los gastos y una marca muestra dónde termina lo que entra.
+/// Cómo se lee cada barra del reparto: los tres usan los mismos colores
+/// (fijos azul, variables oro, lo libre verde) y cambia solo el trazo, de lo
+/// ideal a lo estimado (spec-app-finanzas-v2.md §5.7):
+/// - [plan]: lo asignado, con contorno y relleno tenue, como una meta.
+/// - [real]: lo que llevas hoy, sólido.
+/// - [estimado]: al cierre si sigues así, con rayas de pronóstico.
+enum EstiloReparto { plan, real, estimado }
+
+/// Color de las fijas en el reparto.
+Color get colorFijas => ColoresApp.azul;
+
+/// Color de las variables en el reparto.
+Color get colorVariables => ColoresApp.oro;
+
+/// Color de lo libre: el apartado ideal en el plan, lo que sobra en lo real
+/// y en lo estimado.
+Color get colorLibre => ColoresApp.verde;
+
+/// El color de una parte según el estilo de la barra.
+Color colorEnEstilo(Color base, EstiloReparto estilo) => switch (estilo) {
+      EstiloReparto.plan => base.withValues(alpha: 0.2),
+      EstiloReparto.real => base,
+      EstiloReparto.estimado => base.withValues(alpha: 0.8),
+    };
+
+/// Fijas, variables y lo libre sobre lo que entra (spec-app-finanzas-v2.md
+/// §5.7). En el plan, lo libre es [apartado] y lo que queda sin asignar se
+/// ve como el fondo; en lo real y lo estimado, lo libre es lo que sobra. Si
+/// lo pintado pasa lo que entra, la barra mide eso y una marca muestra dónde
+/// termina lo que entra.
 class BarraReparto extends StatelessWidget {
   final Dinero ingreso;
   final Dinero fijas;
   final Dinero variables;
-
-  /// Lo que se piensa apartar: solo en "Tu plan". Ahí lo que queda sin
-  /// asignar se deja en gris, no en el verde de "te sobra".
   final Dinero apartado;
-  final bool esPlan;
+  final EstiloReparto estilo;
   final String descripcion;
 
   const BarraReparto({
@@ -398,7 +422,7 @@ class BarraReparto extends StatelessWidget {
     required this.fijas,
     required this.variables,
     this.apartado = const Dinero.cero(),
-    this.esPlan = false,
+    required this.estilo,
     required this.descripcion,
   });
 
@@ -410,81 +434,111 @@ class BarraReparto extends StatelessWidget {
         child: SizedBox(
           height: 22,
           width: double.infinity,
-          child: CustomPaint(painter: _PintorReparto(ingreso, fijas, variables, apartado, esPlan: esPlan)),
+          child: CustomPaint(painter: _PintorReparto(ingreso, fijas, variables, apartado, estilo)),
         ),
       ),
     );
   }
 }
 
-/// Color de las fijas en el reparto; se pintan además con rayas.
-Color get colorFijas => ColoresApp.azul;
+/// Cuadrito de la leyenda, con el mismo trazo que su barra.
+class MuestraReparto extends StatelessWidget {
+  final Color color;
+  final EstiloReparto estilo;
 
-/// Color de las variables en el reparto.
-Color get colorVariables => ColoresApp.oro;
+  const MuestraReparto({super.key, required this.color, required this.estilo});
 
-/// Color de lo que sobra en el reparto.
-Color get colorSobra => ColoresApp.verde.withValues(alpha: 0.45);
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 12,
+        height: 12,
+        child: CustomPaint(painter: _PintorMuestra(color, estilo)),
+      );
+}
 
-/// Color del apartado ideal en "Tu plan".
-Color get colorApartado => ColoresApp.verde;
+/// Contorno del plan: cada parte con su color entero, dentro de su espacio.
+void _contornear(Canvas canvas, Rect parte, Color color) {
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(parte.deflate(1.5), const Radius.circular(6)),
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = color,
+  );
+}
 
-/// Lo que queda sin asignar en "Tu plan": el fondo de la barra.
-Color get colorSinAsignar => ColoresApp.pista;
+/// Rayas diagonales del pronóstico (como la línea punteada del ritmo).
+void _rayar(Canvas canvas, Rect area, double alto) {
+  canvas.save();
+  canvas.clipRect(area);
+  final raya = Paint()
+    ..color = ColoresApp.tarjeta.withValues(alpha: 0.55)
+    ..strokeWidth = 2.5;
+  for (var x = area.left - alto; x < area.right; x += 7) {
+    canvas.drawLine(Offset(x, area.bottom), Offset(x + alto, area.top), raya);
+  }
+  canvas.restore();
+}
 
 class _PintorReparto extends CustomPainter {
   final Dinero ingreso;
   final Dinero fijas;
   final Dinero variables;
   final Dinero apartado;
-  final bool esPlan;
+  final EstiloReparto estilo;
   final Paleta paleta = ColoresApp.actual;
 
-  _PintorReparto(this.ingreso, this.fijas, this.variables, this.apartado, {required this.esPlan});
+  _PintorReparto(this.ingreso, this.fijas, this.variables, this.apartado, this.estilo);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final gastos = fijas.centavos + variables.centavos + apartado.centavos;
-    final escala = math.max(math.max(ingreso.centavos, gastos), 1).toDouble();
+    final esPlan = estilo == EstiloReparto.plan;
+    final ocupado = fijas.centavos + variables.centavos + (esPlan ? apartado.centavos : 0);
+    final libre = esPlan ? apartado.centavos : math.max(ingreso.centavos - ocupado, 0);
+    final escala = math.max(math.max(ingreso.centavos, ocupado), 1).toDouble();
     double ancho(int centavos) => size.width * centavos / escala;
     final forma = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(8));
     canvas.save();
     canvas.clipRRect(forma);
     canvas.drawRect(Offset.zero & size, Paint()..color = ColoresApp.pista);
 
-    final anchoFijas = ancho(fijas.centavos);
-    final anchoVariables = ancho(variables.centavos);
-    final rectFijas = Rect.fromLTWH(0, 0, anchoFijas, size.height);
-    canvas.drawRect(rectFijas, Paint()..color = colorFijas);
-    // Rayas diagonales: las fijas se distinguen sin depender solo del color.
-    canvas.save();
-    canvas.clipRect(rectFijas);
-    final raya = Paint()
-      ..color = ColoresApp.tarjeta.withValues(alpha: 0.35)
-      ..strokeWidth = 3;
-    for (var x = -size.height; x < anchoFijas; x += 8) {
-      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), raya);
+    var x = 0.0;
+    for (final (centavos, color) in [
+      (fijas.centavos, colorFijas),
+      (variables.centavos, colorVariables),
+      (libre, colorLibre),
+    ]) {
+      final w = ancho(centavos);
+      final parte = Rect.fromLTWH(x, 0, w, size.height);
+      canvas.drawRect(parte, Paint()..color = colorEnEstilo(color, estilo));
+      if (esPlan && w > 0) _contornear(canvas, parte, color);
+      x += w;
     }
+    // En el plan cada parte ya tiene su contorno; en las otras, un hilo del
+    // fondo las separa.
+    if (!esPlan) _separar(canvas, size, ancho, x);
+    if (estilo == EstiloReparto.estimado) _rayar(canvas, Rect.fromLTWH(0, 0, x, size.height), size.height);
     canvas.restore();
-    canvas.drawRect(Rect.fromLTWH(anchoFijas, 0, anchoVariables, size.height), Paint()..color = colorVariables);
-    final anchoApartado = ancho(apartado.centavos);
-    canvas.drawRect(
-      Rect.fromLTWH(anchoFijas + anchoVariables, 0, anchoApartado, size.height),
-      Paint()..color = colorApartado,
-    );
-    final sobra = ingreso.centavos - gastos;
-    if (sobra > 0 && !esPlan) {
-      canvas.drawRect(
-        Rect.fromLTWH(anchoFijas + anchoVariables, 0, ancho(sobra), size.height),
-        Paint()..color = colorSobra,
-      );
+    _marcarIngreso(canvas, size, ancho, ocupado);
+  }
+
+  void _separar(Canvas canvas, Size size, double Function(int) ancho, double fin) {
+    final separador = Paint()
+      ..color = ColoresApp.tarjeta
+      ..strokeWidth = 2;
+    var corte = 0.0;
+    for (final centavos in [fijas.centavos, variables.centavos]) {
+      corte += ancho(centavos);
+      if (corte > 0 && corte < fin) canvas.drawLine(Offset(corte, 0), Offset(corte, size.height), separador);
     }
-    canvas.restore();
-    if (sobra < 0 && ingreso.esPositivo) {
-      final x = ancho(ingreso.centavos);
+  }
+
+  void _marcarIngreso(Canvas canvas, Size size, double Function(int) ancho, int ocupado) {
+    if (ocupado > ingreso.centavos && ingreso.esPositivo) {
+      final marca = ancho(ingreso.centavos);
       canvas.drawLine(
-        Offset(x, -3),
-        Offset(x, size.height + 3),
+        Offset(marca, -3),
+        Offset(marca, size.height + 3),
         Paint()
           ..color = ColoresApp.coralTexto
           ..strokeWidth = 2.5,
@@ -494,5 +548,33 @@ class _PintorReparto extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PintorReparto old) =>
-      old.ingreso != ingreso || old.fijas != fijas || old.variables != variables || old.apartado != apartado || old.esPlan != esPlan || old.paleta != paleta;
+      old.ingreso != ingreso ||
+      old.fijas != fijas ||
+      old.variables != variables ||
+      old.apartado != apartado ||
+      old.estilo != estilo ||
+      old.paleta != paleta;
+}
+
+class _PintorMuestra extends CustomPainter {
+  final Color color;
+  final EstiloReparto estilo;
+  final Paleta paleta = ColoresApp.actual;
+
+  _PintorMuestra(this.color, this.estilo);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final forma = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(3));
+    canvas.save();
+    canvas.clipRRect(forma);
+    canvas.drawRect(Offset.zero & size, Paint()..color = colorEnEstilo(color, estilo));
+    if (estilo == EstiloReparto.estimado) _rayar(canvas, Offset.zero & size, size.height);
+    canvas.restore();
+    if (estilo == EstiloReparto.plan) _contornear(canvas, Offset.zero & size, color);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PintorMuestra old) =>
+      old.color != color || old.estilo != estilo || old.paleta != paleta;
 }

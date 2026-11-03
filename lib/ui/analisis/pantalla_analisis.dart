@@ -886,25 +886,33 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
     }
     final reparto = calcularRepartoIngreso(reporte: datos.reporte, ingreso: datos.ingreso, metaCiclo: datos.metaCiclo);
     final quedanDias = datos.reporte.diasRestantes > 0;
-    Widget barra(String titulo, RepartoIngreso r) => Column(
+    Widget barra(String titulo, String lectura, EstiloReparto estilo, RepartoIngreso r) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(titulo, style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+            _TituloReparto(titulo: titulo, lectura: lectura),
             const SizedBox(height: 6),
             BarraReparto(
               ingreso: r.ingreso,
               fijas: r.fijas,
               variables: r.variables,
+              estilo: estilo,
               descripcion: '$titulo: fijos ${r.porcentaje(r.fijas)}%, variables '
                   '${r.porcentaje(r.variables)}% de lo que entra; '
                   '${r.sobra.esNegativo ? 'faltan ${Dinero(-r.sobra.centavos).formateado()}' : 'sobran ${r.sobra.formateado()}'}.',
             ),
             const SizedBox(height: 8),
-            _FilaReparto(color: colorFijas, rayas: true, texto: 'Fijos', monto: r.fijas, porcentaje: r.porcentaje(r.fijas)),
-            _FilaReparto(color: colorVariables, texto: 'Variables', monto: r.variables, porcentaje: r.porcentaje(r.variables)),
+            _FilaReparto(color: colorFijas, estilo: estilo, texto: 'Fijos', monto: r.fijas, porcentaje: r.porcentaje(r.fijas)),
+            _FilaReparto(
+              color: colorVariables,
+              estilo: estilo,
+              texto: 'Variables',
+              monto: r.variables,
+              porcentaje: r.porcentaje(r.variables),
+            ),
             if (r.sobra.esNegativo)
               _FilaReparto(
                 color: ColoresApp.coral,
+                estilo: EstiloReparto.real,
                 texto: 'Te faltan',
                 monto: Dinero(-r.sobra.centavos),
                 porcentaje: r.porcentaje(Dinero(-r.sobra.centavos)),
@@ -912,7 +920,8 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
               )
             else
               _FilaReparto(
-                color: colorSobra,
+                color: colorLibre,
+                estilo: estilo,
                 texto: 'Te sobra',
                 monto: r.sobra,
                 porcentaje: r.porcentaje(r.sobra),
@@ -926,11 +935,11 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
         Text('De ${datos.ingreso.formateado()} que entran este ciclo', style: textos.bodySmall),
         const SizedBox(height: 12),
         _plan(context, reparto.plan),
-        const SizedBox(height: 16),
-        barra('Hasta hoy', reparto.hoy),
+        const SizedBox(height: 18),
+        barra('Hasta hoy', 'Real', EstiloReparto.real, reparto.hoy),
         if (quedanDias) ...[
-          const SizedBox(height: 16),
-          barra('Al cierre, si sigues así', reparto.alCierre),
+          const SizedBox(height: 18),
+          barra('Al cierre, si sigues así', 'Estimado', EstiloReparto.estimado, reparto.alCierre),
         ],
       ],
     );
@@ -939,34 +948,36 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
 
 /// Lo asignado: presupuestos del ciclo y el apartado ideal contra lo que entra.
 Widget _plan(BuildContext context, RepartoIngreso r) {
-  final textos = Theme.of(context).textTheme;
+  const estilo = EstiloReparto.plan;
   final pasa = r.sobra.esNegativo;
   final exceso = Dinero(-r.sobra.centavos);
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('Tu plan', style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+      const _TituloReparto(titulo: 'Tu plan', lectura: 'Ideal'),
       const SizedBox(height: 6),
       BarraReparto(
         ingreso: r.ingreso,
         fijas: r.fijas,
         variables: r.variables,
         apartado: r.apartado,
-        esPlan: true,
+        estilo: estilo,
         descripcion: 'Tu plan: fijos ${r.porcentaje(r.fijas)}%, variables ${r.porcentaje(r.variables)}%, '
             'apartado ideal ${r.porcentaje(r.apartado)}% de lo que entra; '
             '${pasa ? 'se pasa por ${exceso.formateado()}' : 'sin asignar ${r.sobra.formateado()}'}.',
       ),
       const SizedBox(height: 8),
-      _FilaReparto(color: colorFijas, rayas: true, texto: 'Fijos', monto: r.fijas, porcentaje: r.porcentaje(r.fijas)),
+      _FilaReparto(color: colorFijas, estilo: estilo, texto: 'Fijos', monto: r.fijas, porcentaje: r.porcentaje(r.fijas)),
       _FilaReparto(
         color: colorVariables,
+        estilo: estilo,
         texto: 'Variables',
         monto: r.variables,
         porcentaje: r.porcentaje(r.variables),
       ),
       _FilaReparto(
-        color: colorApartado,
+        color: colorLibre,
+        estilo: estilo,
         texto: 'Apartado ideal',
         monto: r.apartado,
         porcentaje: r.porcentaje(r.apartado),
@@ -975,20 +986,51 @@ Widget _plan(BuildContext context, RepartoIngreso r) {
       if (pasa)
         _FilaReparto(
           color: ColoresApp.coral,
+          estilo: EstiloReparto.real,
           texto: 'Tu plan se pasa por',
           monto: exceso,
           porcentaje: r.porcentaje(exceso),
           destacado: ColoresApp.coralTexto,
         )
       else if (r.sobra.esPositivo)
-        _FilaReparto(color: colorSinAsignar, texto: 'Sin asignar', monto: r.sobra, porcentaje: r.porcentaje(r.sobra)),
+        _FilaReparto(
+          color: ColoresApp.pista,
+          estilo: EstiloReparto.real,
+          texto: 'Sin asignar',
+          monto: r.sobra,
+          porcentaje: r.porcentaje(r.sobra),
+        ),
     ],
   );
 }
 
+/// "Tu plan · Ideal": el título de cada barra y cómo leerla.
+class _TituloReparto extends StatelessWidget {
+  final String titulo;
+  final String lectura;
+
+  const _TituloReparto({required this.titulo, required this.lectura});
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        Flexible(child: Text(titulo, style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700))),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(color: ColoresApp.pista, borderRadius: BorderRadius.circular(20)),
+          child: Text(lectura, style: textos.labelSmall),
+        ),
+      ],
+    );
+  }
+}
+
 class _FilaReparto extends StatelessWidget {
   final Color color;
-  final bool rayas;
+  final EstiloReparto estilo;
   final String texto;
   final Dinero monto;
   final int porcentaje;
@@ -996,7 +1038,7 @@ class _FilaReparto extends StatelessWidget {
 
   const _FilaReparto({
     required this.color,
-    this.rayas = false,
+    required this.estilo,
     required this.texto,
     required this.monto,
     required this.porcentaje,
@@ -1006,22 +1048,15 @@ class _FilaReparto extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
-    final estilo = textos.bodySmall?.copyWith(color: destacado, fontWeight: destacado == null ? null : FontWeight.w700);
+    final estiloTexto = textos.bodySmall?.copyWith(color: destacado, fontWeight: destacado == null ? null : FontWeight.w700);
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(
         children: [
-          // El mismo rayado de la barra, para que se reconozcan las fijas.
-          SizedBox(
-            width: 12,
-            height: 12,
-            child: rayas
-                ? const BarraReparto(ingreso: Dinero(1), fijas: Dinero(1), variables: Dinero.cero(), descripcion: '')
-                : DecoratedBox(decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
-          ),
+          MuestraReparto(color: color, estilo: estilo),
           const SizedBox(width: 8),
-          Expanded(child: Text(texto, style: estilo)),
-          Text('${monto.formateado()} · $porcentaje%', style: estilo),
+          Expanded(child: Text(texto, style: estiloTexto)),
+          Text('${monto.formateado()} · $porcentaje%', style: estiloTexto),
         ],
       ),
     );
