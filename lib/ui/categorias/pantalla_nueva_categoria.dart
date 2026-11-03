@@ -202,6 +202,7 @@ class _PantallaNuevaCategoriaState extends State<PantallaNuevaCategoria> {
             children: [
               TextField(
                 controller: _nombreControlador,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(labelText: 'Nombre'),
               ),
               const SizedBox(height: 12),

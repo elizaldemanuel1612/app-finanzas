@@ -322,6 +322,7 @@ class _TarjetaItem extends StatelessWidget {
             ],
             TextField(
               controller: item.descripcion,
+              textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(labelText: 'Descripción'),
             ),
             const SizedBox(height: 10),

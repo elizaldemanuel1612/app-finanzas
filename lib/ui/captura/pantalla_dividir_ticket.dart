@@ -367,6 +367,7 @@ class _TarjetaRenglon extends StatelessWidget {
             ),
             TextField(
               controller: renglon.descripcion,
+              textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'Descripción (opcional)',
               ),

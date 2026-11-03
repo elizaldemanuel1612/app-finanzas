@@ -1,6 +1,6 @@
+import 'agrupar_descripciones.dart';
 import '../../core/ciclo.dart';
 import '../../core/money.dart';
-import '../clasificacion/normalizacion_texto.dart';
 import '../modelos/categoria.dart';
 import '../modelos/estado_movimiento.dart';
 import '../modelos/movimiento.dart';
@@ -304,16 +304,24 @@ ReporteAnalisis calcularReporteAnalisis({
   ];
 
   // Dónde más gastas: solo variables (las fijas ya se conocen).
-  final porTexto = <String, (String, int, int)>{};
+  // Lo parecido se junta ("pan y café", "cafés" → Café, agrupar_descripciones.dart).
+  final frecuencia = <String, int>{};
+  for (final m in variables) {
+    final texto = m.descripcion.trim();
+    if (texto.isNotEmpty) frecuencia[texto] = (frecuencia[texto] ?? 0) + 1;
+  }
+  final agrupar = agruparDescripciones(frecuencia);
+  final porGrupo = <String, (int, int)>{};
   for (final m in variables) {
     final texto = m.descripcion.trim();
     if (texto.isEmpty) continue;
-    final clave = normalizarTexto(texto);
-    final (original, centavos, conteo) = porTexto[clave] ?? (texto, 0, 0);
-    porTexto[clave] = (original, centavos + m.monto.centavos, conteo + 1);
+    final clave = agrupar.grupo(texto);
+    final (centavos, conteo) = porGrupo[clave] ?? (0, 0);
+    porGrupo[clave] = (centavos + m.monto.centavos, conteo + 1);
   }
   final dondeMas = [
-    for (final v in porTexto.values) GastoDescripcion(descripcion: v.$1, total: Dinero(v.$2), conteo: v.$3),
+    for (final e in porGrupo.entries)
+      GastoDescripcion(descripcion: agrupar.nombre(e.key), total: Dinero(e.value.$1), conteo: e.value.$2),
   ]..sort((a, b) => b.total.compareTo(a.total));
 
   final pequenos = [for (final m in variables) if (m.monto <= montoGastoPequeno) m];

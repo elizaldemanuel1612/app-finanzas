@@ -377,3 +377,102 @@ String montoCorto(Dinero d) {
   final decimas = (pesos + 50) ~/ 100;
   return '\$${decimas ~/ 10}.${decimas % 10}k';
 }
+
+/// Fijas (rayadas), variables y lo que sobra, sobre lo que entra
+/// (spec-app-finanzas-v2.md §5.7). Si los gastos pasan lo que entra, la
+/// barra mide los gastos y una marca muestra dónde termina lo que entra.
+class BarraReparto extends StatelessWidget {
+  final Dinero ingreso;
+  final Dinero fijas;
+  final Dinero variables;
+  final String descripcion;
+
+  const BarraReparto({
+    super.key,
+    required this.ingreso,
+    required this.fijas,
+    required this.variables,
+    required this.descripcion,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: descripcion,
+      child: ExcludeSemantics(
+        child: SizedBox(
+          height: 22,
+          width: double.infinity,
+          child: CustomPaint(painter: _PintorReparto(ingreso, fijas, variables)),
+        ),
+      ),
+    );
+  }
+}
+
+/// Color de las fijas en el reparto; se pintan además con rayas.
+Color get colorFijas => ColoresApp.azul;
+
+/// Color de las variables en el reparto.
+Color get colorVariables => ColoresApp.oro;
+
+/// Color de lo que sobra en el reparto.
+Color get colorSobra => ColoresApp.verde.withValues(alpha: 0.45);
+
+class _PintorReparto extends CustomPainter {
+  final Dinero ingreso;
+  final Dinero fijas;
+  final Dinero variables;
+  final Paleta paleta = ColoresApp.actual;
+
+  _PintorReparto(this.ingreso, this.fijas, this.variables);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final gastos = fijas.centavos + variables.centavos;
+    final escala = math.max(math.max(ingreso.centavos, gastos), 1).toDouble();
+    double ancho(int centavos) => size.width * centavos / escala;
+    final forma = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(8));
+    canvas.save();
+    canvas.clipRRect(forma);
+    canvas.drawRect(Offset.zero & size, Paint()..color = ColoresApp.pista);
+
+    final anchoFijas = ancho(fijas.centavos);
+    final anchoVariables = ancho(variables.centavos);
+    final rectFijas = Rect.fromLTWH(0, 0, anchoFijas, size.height);
+    canvas.drawRect(rectFijas, Paint()..color = colorFijas);
+    // Rayas diagonales: las fijas se distinguen sin depender solo del color.
+    canvas.save();
+    canvas.clipRect(rectFijas);
+    final raya = Paint()
+      ..color = ColoresApp.tarjeta.withValues(alpha: 0.35)
+      ..strokeWidth = 3;
+    for (var x = -size.height; x < anchoFijas; x += 8) {
+      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), raya);
+    }
+    canvas.restore();
+    canvas.drawRect(Rect.fromLTWH(anchoFijas, 0, anchoVariables, size.height), Paint()..color = colorVariables);
+    final sobra = ingreso.centavos - gastos;
+    if (sobra > 0) {
+      canvas.drawRect(
+        Rect.fromLTWH(anchoFijas + anchoVariables, 0, ancho(sobra), size.height),
+        Paint()..color = colorSobra,
+      );
+    }
+    canvas.restore();
+    if (sobra < 0 && ingreso.esPositivo) {
+      final x = ancho(ingreso.centavos);
+      canvas.drawLine(
+        Offset(x, -3),
+        Offset(x, size.height + 3),
+        Paint()
+          ..color = ColoresApp.coralTexto
+          ..strokeWidth = 2.5,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PintorReparto old) =>
+      old.ingreso != ingreso || old.fijas != fijas || old.variables != variables || old.paleta != paleta;
+}

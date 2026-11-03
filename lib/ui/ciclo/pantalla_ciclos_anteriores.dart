@@ -98,8 +98,10 @@ class _PantallaCiclosAnterioresState extends State<PantallaCiclosAnteriores> {
     return _Datos(historial: historial, evolucion: evolucion);
   }
 
-  void _irAlCierre(Ciclo ciclo) {
-    Navigator.of(context).push(
+  /// Al volver del cierre (o de reabrir) la lista y la gráfica se recalculan:
+  /// antes había que salir y volver a entrar para verlo.
+  Future<void> _irAlCierre(Ciclo ciclo) async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PantallaCierreCiclo(
           ciclo: ciclo,
@@ -111,6 +113,7 @@ class _PantallaCiclosAnterioresState extends State<PantallaCiclosAnteriores> {
         ),
       ),
     );
+    if (mounted) setState(() => _datos = _cargar());
   }
 
   @override

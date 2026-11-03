@@ -8,6 +8,7 @@ import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/analisis/recomendaciones.dart';
+import '../../domain/analisis/reparto_ingreso.dart';
 import '../../domain/analisis/reporte_analisis.dart';
 import '../../domain/analisis/veredicto_ciclo.dart';
 import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
@@ -56,7 +57,13 @@ class _Datos {
   final ReporteAnalisis reporte;
   final List<Recomendacion> recomendaciones;
 
-  const _Datos(this.reporte, this.recomendaciones);
+  /// Lo que entra este ciclo: ingreso base más extras.
+  final Dinero ingreso;
+
+  /// Activas, con el presupuesto del ciclo: también las que aún no tienen gasto.
+  final List<Categoria> categorias;
+
+  const _Datos(this.reporte, this.recomendaciones, this.ingreso, this.categorias);
 }
 
 enum _Vista { basico, avanzado }
@@ -127,7 +134,12 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
       metaCiclo: calcularMetaDelCiclo(metaBase: metaBase, ingresos: ingresos),
     );
     if (!mounted) return;
-    setState(() => _datos = _Datos(reporte, recomendaciones));
+    setState(() => _datos = _Datos(
+          reporte,
+          recomendaciones,
+          ingresos.total,
+          [for (final c in efectivas) if (c.activa) c],
+        ));
   }
 
   void _accion(Recomendacion r) {
@@ -249,6 +261,8 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
         ],
         const _Titulo('¿En qué se va?'),
         _EnQueSeVa(reporte: r, alVerCategoria: widget.alVerCategoria),
+        const _Titulo('¿Cuánto pesa cada parte?'),
+        _PesoDeCadaParte(datos: datos, alVerCategoria: widget.alVerCategoria),
         if (r.presupuestoVariables.esPositivo) ...[
           const _Titulo('Ritmo del ciclo', subtitulo: 'Tus gastos variables, día a día'),
           _Ritmo(reporte: r),
@@ -644,6 +658,212 @@ class _EnQueSeVa extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+enum _Parte { variables, fijos, total }
+
+/// Variables y fijos: cada categoría contra su presupuesto. Total: cuánto de
+/// lo que entra se llevan unas y otras, y cuánto sobra.
+class _PesoDeCadaParte extends StatefulWidget {
+  final _Datos datos;
+  final void Function(String categoriaId) alVerCategoria;
+
+  const _PesoDeCadaParte({required this.datos, required this.alVerCategoria});
+
+  @override
+  State<_PesoDeCadaParte> createState() => _PesoDeCadaParteState();
+}
+
+class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
+  _Parte _parte = _Parte.total;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SegmentedButton<_Parte>(
+              segments: const [
+                ButtonSegment(value: _Parte.variables, label: Text('Variables')),
+                ButtonSegment(value: _Parte.fijos, label: Text('Fijos')),
+                ButtonSegment(value: _Parte.total, label: Text('Total')),
+              ],
+              selected: {_parte},
+              onSelectionChanged: (s) => setState(() => _parte = s.first),
+            ),
+            const SizedBox(height: 16),
+            switch (_parte) {
+              _Parte.variables => _porCategoria<CategoriaVariable>(context, 'Aún no tienes categorías variables.'),
+              _Parte.fijos => _porCategoria<CategoriaFija>(context, 'Aún no tienes gastos fijos.'),
+              _Parte.total => _total(context),
+            },
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _porCategoria<T extends Categoria>(BuildContext context, String vacio) {
+    final textos = Theme.of(context).textTheme;
+    final gastado = {for (final g in widget.datos.reporte.porCategoria) g.categoria.id: g.total};
+    final filas = [
+      for (final c in widget.datos.categorias.whereType<T>())
+        (categoria: c, gastado: gastado[c.id] ?? const Dinero.cero(), presupuesto: presupuestoDe(c)),
+    ];
+    double usado(({Categoria categoria, Dinero gastado, Dinero presupuesto}) f) =>
+        f.presupuesto.esPositivo ? f.gastado.centavos / f.presupuesto.centavos : (f.gastado.esPositivo ? 9 : 0);
+    filas.sort((a, b) => usado(b).compareTo(usado(a)));
+    if (filas.isEmpty) return Text(vacio, style: textos.bodySmall);
+    return Column(
+      children: [
+        for (final f in filas)
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => widget.alVerCategoria(f.categoria.id),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      ExcludeSemantics(child: Text(f.categoria.emoji)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          f.categoria.nombre,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      Text(
+                        f.presupuesto.esPositivo ? '${(usado(f) * 100).round()}%' : 'Sin presupuesto',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: f.gastado > f.presupuesto ? ColoresApp.coralTexto : ColoresApp.tinta,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  BarraProporcion(
+                    valor: usado(f),
+                    color: f.gastado > f.presupuesto ? ColoresApp.coral : ColoresApp.azul,
+                    alto: 6,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${f.gastado.formateado()} de ${f.presupuesto.formateado()}',
+                    style: textos.labelSmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _total(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final datos = widget.datos;
+    if (!datos.ingreso.esPositivo) {
+      return Text('Registra lo que te entra para ver cuánto pesan tus gastos.', style: textos.bodySmall);
+    }
+    final reparto = calcularRepartoIngreso(reporte: datos.reporte, ingreso: datos.ingreso);
+    final quedanDias = datos.reporte.diasRestantes > 0;
+    Widget barra(String titulo, RepartoIngreso r) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(titulo, style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            BarraReparto(
+              ingreso: r.ingreso,
+              fijas: r.fijas,
+              variables: r.variables,
+              descripcion: '$titulo: fijos ${r.porcentaje(r.fijas)}%, variables '
+                  '${r.porcentaje(r.variables)}% de lo que entra; '
+                  '${r.sobra.esNegativo ? 'faltan ${Dinero(-r.sobra.centavos).formateado()}' : 'sobran ${r.sobra.formateado()}'}.',
+            ),
+            const SizedBox(height: 8),
+            _FilaReparto(color: colorFijas, rayas: true, texto: 'Fijos', monto: r.fijas, porcentaje: r.porcentaje(r.fijas)),
+            _FilaReparto(color: colorVariables, texto: 'Variables', monto: r.variables, porcentaje: r.porcentaje(r.variables)),
+            if (r.sobra.esNegativo)
+              _FilaReparto(
+                color: ColoresApp.coral,
+                texto: 'Te faltan',
+                monto: Dinero(-r.sobra.centavos),
+                porcentaje: r.porcentaje(Dinero(-r.sobra.centavos)),
+                destacado: ColoresApp.coralTexto,
+              )
+            else
+              _FilaReparto(
+                color: colorSobra,
+                texto: 'Te sobra',
+                monto: r.sobra,
+                porcentaje: r.porcentaje(r.sobra),
+                destacado: ColoresApp.verdeTexto,
+              ),
+          ],
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('De ${datos.ingreso.formateado()} que entran este ciclo', style: textos.bodySmall),
+        const SizedBox(height: 12),
+        barra('Hasta hoy', reparto.hoy),
+        if (quedanDias) ...[
+          const SizedBox(height: 16),
+          barra('Al cierre, si sigues así', reparto.alCierre),
+        ],
+      ],
+    );
+  }
+}
+
+class _FilaReparto extends StatelessWidget {
+  final Color color;
+  final bool rayas;
+  final String texto;
+  final Dinero monto;
+  final int porcentaje;
+  final Color? destacado;
+
+  const _FilaReparto({
+    required this.color,
+    this.rayas = false,
+    required this.texto,
+    required this.monto,
+    required this.porcentaje,
+    this.destacado,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final estilo = textos.bodySmall?.copyWith(color: destacado, fontWeight: destacado == null ? null : FontWeight.w700);
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          // El mismo rayado de la barra, para que se reconozcan las fijas.
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: rayas
+                ? const BarraReparto(ingreso: Dinero(1), fijas: Dinero(1), variables: Dinero.cero(), descripcion: '')
+                : DecoratedBox(decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(texto, style: estilo)),
+          Text('${monto.formateado()} · $porcentaje%', style: estilo),
+        ],
       ),
     );
   }

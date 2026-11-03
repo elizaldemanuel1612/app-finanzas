@@ -339,8 +339,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
     await _cargar();
   }
 
-  void _irACiclosAnteriores() {
-    Navigator.of(context).push(
+  Future<void> _irACiclosAnteriores() async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PantallaCiclosAnteriores(
           perfil: _perfil,
@@ -352,6 +352,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
         ),
       ),
     );
+    // Cerrar o reabrir un ciclo cambia lo que muestra Inicio.
+    await _cargar();
   }
 
   Future<void> _irAIngresos() async {

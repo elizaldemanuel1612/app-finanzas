@@ -241,11 +241,12 @@ Todo se calcula en `domain/analisis/` (Dart puro, sin red) sobre los movimientos
    - *Tu meta* — apartado estimado (§5.6.1) contra la meta del ciclo: a favor, en juego (con cuánto menos al día llega) o, si los gastos pasarían lo que entra, cuánto faltaría.
    - *Vas abajo del ciclo pasado* — variables totales ≤ 85 % de lo que llevabas el ciclo anterior a los mismos días.
 3. **¿En qué se va?** — dona por categoría (fijas y variables) con lista: monto y % del gasto.
+   - **¿Cuánto pesa cada parte?** (2026-11-02) — selector *Variables / Fijos / Total*. Variables y Fijos: cada categoría activa (también las que aún no tienen gasto) con su % usado de su presupuesto, de mayor a menor. Total (por omisión): una barra sobre lo que entra en el ciclo (ingreso base + extras) con fijos rayados, variables y lo que sobra —o la marca de cuánto falta—, hasta hoy y al cierre si sigue así (fijas completas, variables a su proyección; `domain/analisis/reparto_ingreso.dart`).
 4. **Ritmo del ciclo** — gasto acumulado de variables por día contra la línea pareja de su presupuesto. En los días restantes, una línea punteada llega a la misma proyección lineal del resumen (punto 1): verde si cierra dentro del presupuesto, coral si lo rebasa.
 5. **Contra el ciclo pasado** — por categoría, lo de este ciclo contra lo del anterior **a los mismos días transcurridos** (addendum-v3 §2.4: comparación honesta, nunca contra el ciclo anterior completo).
 6. **Últimos ciclos** — total gastado de hasta 6 ciclos, el actual marcado como "en curso".
 7. **¿Qué día gastas más?** — promedio por día de la semana de las variables (últimos 90 días).
-8. **Dónde más gastas** — las 5 descripciones con más gasto en **variables** del ciclo (texto normalizado; sin descripción no entra; las fijas ya se conocen).
+8. **Dónde más gastas** — las 5 descripciones con más gasto en **variables** del ciclo (sin descripción no entra; las fijas ya se conocen). Lo parecido se junta (2026-11-02, `agrupar_descripciones.dart`): sin acentos, signos, plurales ni palabras vacías, "café", "Cafés" y "un café" son el concepto *Café*, y una descripción más larga ("pan y café") va al concepto más frecuente que contenga; si no contiene ninguno escrito solo alguna vez, se queda como está.
 9. **Tarjeta y efectivo** — reparto del gasto del ciclo por medio de pago.
 
 Montos siempre en `Dinero`; los porcentajes y promedios se redondean en la frontera, como el MPC.

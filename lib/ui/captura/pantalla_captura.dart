@@ -611,6 +611,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                 // importar en qué posición de la lista termine.
                 key: const ValueKey('campo_descripcion'),
                 controller: _descripcionControlador,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
                   labelText: 'Descripción (opcional)',
                 ),
