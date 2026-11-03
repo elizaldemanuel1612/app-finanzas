@@ -87,6 +87,10 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
   _Datos? _datos;
   _Vista _vista = _Vista.basico;
 
+  /// Variables, Fijos o Total: lo comparten "¿Cuánto pesa cada parte?" y la
+  /// dona de "¿En qué se va?".
+  _Parte _parte = _Parte.total;
+
   static const _claveVista = 'vista_analisis';
 
   @override
@@ -369,10 +373,22 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
           const _Titulo('Para ti', subtitulo: 'Lo más importante de tu ciclo, primero'),
           for (final rec in datos.recomendaciones) _TarjetaRecomendacion(rec, alTocar: () => _accion(rec)),
         ],
-        const _Titulo('¿En qué se va?'),
-        _EnQueSeVa(reporte: r, alVerCategoria: widget.alVerCategoria),
         const _Titulo('¿Cuánto pesa cada parte?'),
-        _PesoDeCadaParte(datos: datos, alVerCategoria: widget.alVerCategoria),
+        _PesoDeCadaParte(
+          datos: datos,
+          parte: _parte,
+          alCambiar: (p) => setState(() => _parte = p),
+          alVerCategoria: widget.alVerCategoria,
+        ),
+        _Titulo(
+          '¿En qué se va?',
+          subtitulo: switch (_parte) {
+            _Parte.variables => 'Solo tus gastos variables',
+            _Parte.fijos => 'Solo tus gastos fijos',
+            _Parte.total => null,
+          },
+        ),
+        _EnQueSeVa(reporte: r, parte: _parte, alVerCategoria: widget.alVerCategoria),
         if (r.presupuestoVariables.esPositivo) ...[
           const _Titulo('Ritmo del ciclo', subtitulo: 'Tus gastos variables, día a día'),
           _Ritmo(reporte: r),
@@ -712,16 +728,40 @@ class _TarjetaRecomendacion extends StatelessWidget {
 
 class _EnQueSeVa extends StatelessWidget {
   final ReporteAnalisis reporte;
+  final _Parte parte;
   final void Function(String categoriaId) alVerCategoria;
 
-  const _EnQueSeVa({required this.reporte, required this.alVerCategoria});
+  const _EnQueSeVa({required this.reporte, required this.parte, required this.alVerCategoria});
 
   @override
   Widget build(BuildContext context) {
-    final r = reporte;
     final textos = Theme.of(context).textTheme;
-    final cats = r.porCategoria;
-    final lectura = [for (final g in cats) '${g.categoria.nombre} ${g.porcentaje}%'].join(', ');
+    // Sigue al selector de "¿Cuánto pesa cada parte?": los porcentajes son
+    // sobre lo que se ve.
+    final cats = [
+      for (final g in reporte.porCategoria)
+        if (switch (parte) {
+          _Parte.variables => g.categoria is CategoriaVariable,
+          _Parte.fijos => g.categoria is CategoriaFija,
+          _Parte.total => true,
+        })
+          g,
+    ];
+    final total = Dinero.suma([for (final g in cats) g.total]);
+    int porcentaje(Dinero d) =>
+        total.esPositivo ? (d.centavos * 100 + total.centavos ~/ 2) ~/ total.centavos : 0;
+    if (cats.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            parte == _Parte.fijos ? 'Aún no hay gastos fijos este ciclo.' : 'Aún no hay gastos variables este ciclo.',
+            style: textos.bodySmall,
+          ),
+        ),
+      );
+    }
+    final lectura = [for (final g in cats) '${g.categoria.nombre} ${porcentaje(g.total)}%'].join(', ');
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -729,8 +769,12 @@ class _EnQueSeVa extends StatelessWidget {
           children: [
             GraficaDona(
               valores: [for (final g in cats) g.total],
-              centroTitulo: 'Total',
-              centroValor: r.gastado.formateado(),
+              centroTitulo: switch (parte) {
+                _Parte.variables => 'Variables',
+                _Parte.fijos => 'Fijos',
+                _Parte.total => 'Total',
+              },
+              centroValor: total.formateado(),
               descripcion: 'Gasto por categoría: $lectura',
             ),
             const SizedBox(height: 16),
@@ -753,14 +797,14 @@ class _EnQueSeVa extends StatelessWidget {
                       Expanded(
                         child: Text(
                           cats[i].categoria.nombre +
-                              (cats[i].categoria is CategoriaFija ? ' · fija' : ''),
+                              (parte == _Parte.total && cats[i].categoria is CategoriaFija ? ' · fija' : ''),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Text(cats[i].total.formateado(), style: const TextStyle(fontWeight: FontWeight.w700)),
                       SizedBox(
                         width: 48,
-                        child: Text('${cats[i].porcentaje}%', textAlign: TextAlign.end, style: textos.bodySmall),
+                        child: Text('${porcentaje(cats[i].total)}%', textAlign: TextAlign.end, style: textos.bodySmall),
                       ),
                     ],
                   ),
@@ -779,17 +823,22 @@ enum _Parte { variables, fijos, total }
 /// lo que entra se llevan unas y otras, y cuánto sobra.
 class _PesoDeCadaParte extends StatefulWidget {
   final _Datos datos;
+  final _Parte parte;
+  final ValueChanged<_Parte> alCambiar;
   final void Function(String categoriaId) alVerCategoria;
 
-  const _PesoDeCadaParte({required this.datos, required this.alVerCategoria});
+  const _PesoDeCadaParte({
+    required this.datos,
+    required this.parte,
+    required this.alCambiar,
+    required this.alVerCategoria,
+  });
 
   @override
   State<_PesoDeCadaParte> createState() => _PesoDeCadaParteState();
 }
 
 class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
-  _Parte _parte = _Parte.total;
-
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -806,11 +855,11 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
                 ButtonSegment(value: _Parte.fijos, label: Text('Fijos')),
                 ButtonSegment(value: _Parte.total, label: Text('Total')),
               ],
-              selected: {_parte},
-              onSelectionChanged: (s) => setState(() => _parte = s.first),
+              selected: {widget.parte},
+              onSelectionChanged: (s) => widget.alCambiar(s.first),
             ),
             const SizedBox(height: 16),
-            switch (_parte) {
+            switch (widget.parte) {
               _Parte.variables => _porCategoria<CategoriaVariable>(context, 'Aún no tienes categorías variables.', 'variables'),
               _Parte.fijos => _porCategoria<CategoriaFija>(context, 'Aún no tienes gastos fijos.', 'fijos'),
               _Parte.total => _total(context),
