@@ -144,6 +144,18 @@ final class Candado {
     await _guardar(d);
   }
 
+  /// Último toque con la app desbloqueada. Sobrevive a que el sistema
+  /// cierre o recargue la app (la web en el iPhone lo hace al quedarse sin
+  /// memoria), para que un arranque dentro del margen no vuelva a pedir el
+  /// desbloqueo (spec §7.3).
+  Future<void> anotarActividad(DateTime cuando) async {
+    final d = await _leer();
+    d['ultimaActividad'] = cuando.toIso8601String();
+    await _guardar(d);
+  }
+
+  Future<DateTime?> ultimaActividad() async => DateTime.tryParse((await _leer())['ultimaActividad'] as String? ?? '');
+
   /// Tras confirmar la cuenta de Google: se olvida PIN, contraseña e
   /// intentos, y el usuario crea un PIN nuevo.
   Future<void> reiniciar() => archivo.borrar();

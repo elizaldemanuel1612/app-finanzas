@@ -101,6 +101,14 @@ void main() {
     expect((await candado.estado()).fallidos, 0);
   });
 
+  test('recuerda el último toque, y reiniciar lo olvida', () async {
+    expect(await candado.ultimaActividad(), isNull);
+    await candado.anotarActividad(ahora);
+    expect(await candado.ultimaActividad(), ahora);
+    await candado.reiniciar();
+    expect(await candado.ultimaActividad(), isNull);
+  });
+
   test('sin PIN definido, probar falla sin romper', () async {
     expect(await candado.probarPin('482915'), isFalse);
   });

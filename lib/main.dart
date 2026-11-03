@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -177,17 +178,22 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
   bool _bloqueada = true;
   bool _bloqueoEncima = false;
   bool _salio = false;
+  bool _candadoListo = false;
+  DateTime? _actividadAnotada;
+  Timer? _anotador;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _anotador = Timer.periodic(const Duration(seconds: 15), (_) => _anotarActividad());
     _inicializar();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _anotador?.cancel();
     _datosCambiaron.dispose();
     super.dispose();
   }
@@ -201,6 +207,7 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
     }
     if ((estado == AppLifecycleState.paused || estado == AppLifecycleState.hidden) && !_bloqueada) {
       _salio = true;
+      _anotarActividad();
     }
     if (estado == AppLifecycleState.resumed && _salio) {
       _salio = false;
@@ -224,7 +231,7 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
             servicioAuth: widget.servicioAuth,
             alDesbloquear: () {
               _bloqueoEncima = false;
-              _ultimaActividad = DateTime.now();
+              _alDesbloquear();
               Navigator.of(contexto).pop();
             },
           ),
@@ -236,6 +243,31 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
   Future<void> _prepararCandado() async {
     _candado = Candado(_almacenLocal.candado);
     _tienePin = (await _candado.estado()).tienePin;
+    // Si el sistema cerró o recargó la app hace poco (Safari en el iPhone lo
+    // hace al quedarse sin memoria, por ejemplo al abrir el teclado), cuenta
+    // como volver a ella: no se pide el desbloqueo antes de 2 minutos.
+    final ultima = await _candado.ultimaActividad();
+    if (_tienePin && ultima != null && !debeBloquearAlVolver(ultimaActividad: ultima, ahora: DateTime.now())) {
+      _bloqueada = false;
+      _ultimaActividad = ultima;
+    }
+    _actividadAnotada = ultima;
+    _candadoListo = true;
+  }
+
+  void _alDesbloquear() {
+    _ultimaActividad = DateTime.now();
+    _anotarActividad();
+  }
+
+  /// Guarda el último toque (a lo más cada 15 s y al salir), solo con la app
+  /// desbloqueada: tocar la pantalla del PIN no cuenta.
+  void _anotarActividad() {
+    if (!_candadoListo || _bloqueada || _bloqueoEncima || !_tienePin) return;
+    final ultima = _ultimaActividad;
+    if (ultima == _actividadAnotada) return;
+    _actividadAnotada = ultima;
+    _candado.anotarActividad(ultima).catchError((_) {});
   }
 
   Future<void> _sincronizarEnSegundoPlano() async {
@@ -385,17 +417,23 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
         candado: _candado,
         explicacion: 'Tu información financiera queda protegida aunque alguien tome tu teléfono. '
             'Después puedes usar Face ID, huella o contraseña.',
-        alTerminar: () => setState(() {
-          _tienePin = true;
-          _bloqueada = false;
-        }),
+        alTerminar: () {
+          setState(() {
+            _tienePin = true;
+            _bloqueada = false;
+          });
+          _alDesbloquear();
+        },
       );
     }
     if (_bloqueada) {
       return PantallaDesbloqueo(
         candado: _candado,
         servicioAuth: widget.servicioAuth,
-        alDesbloquear: () => setState(() => _bloqueada = false),
+        alDesbloquear: () {
+          setState(() => _bloqueada = false);
+          _alDesbloquear();
+        },
       );
     }
     return FutureBuilder<Perfil?>(
