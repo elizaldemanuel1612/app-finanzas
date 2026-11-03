@@ -799,6 +799,8 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SegmentedButton<_Parte>(
+              // Sin la palomita: con ella "Variables" no cabe en un teléfono angosto.
+              showSelectedIcon: false,
               segments: const [
                 ButtonSegment(value: _Parte.variables, label: Text('Variables')),
                 ButtonSegment(value: _Parte.fijos, label: Text('Fijos')),
@@ -809,8 +811,8 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
             ),
             const SizedBox(height: 16),
             switch (_parte) {
-              _Parte.variables => _porCategoria<CategoriaVariable>(context, 'Aún no tienes categorías variables.'),
-              _Parte.fijos => _porCategoria<CategoriaFija>(context, 'Aún no tienes gastos fijos.'),
+              _Parte.variables => _porCategoria<CategoriaVariable>(context, 'Aún no tienes categorías variables.', 'variables'),
+              _Parte.fijos => _porCategoria<CategoriaFija>(context, 'Aún no tienes gastos fijos.', 'fijos'),
               _Parte.total => _total(context),
             },
           ],
@@ -819,19 +821,21 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
     );
   }
 
-  Widget _porCategoria<T extends Categoria>(BuildContext context, String vacio) {
+  /// Cómo está dividido el presupuesto de variables (o de fijos): cada
+  /// categoría con su parte del total asignado (spec §5.7).
+  Widget _porCategoria<T extends Categoria>(BuildContext context, String vacio, String tipo) {
     final textos = Theme.of(context).textTheme;
-    final gastado = {for (final g in widget.datos.reporte.porCategoria) g.categoria.id: g.total};
     final filas = [
-      for (final c in widget.datos.categorias.whereType<T>())
-        (categoria: c, gastado: gastado[c.id] ?? const Dinero.cero(), presupuesto: presupuestoDe(c)),
-    ];
-    double usado(({Categoria categoria, Dinero gastado, Dinero presupuesto}) f) =>
-        f.presupuesto.esPositivo ? f.gastado.centavos / f.presupuesto.centavos : (f.gastado.esPositivo ? 9 : 0);
-    filas.sort((a, b) => usado(b).compareTo(usado(a)));
+      for (final c in widget.datos.categorias.whereType<T>()) (categoria: c, presupuesto: presupuestoDe(c)),
+    ]..sort((a, b) => b.presupuesto.compareTo(a.presupuesto));
     if (filas.isEmpty) return Text(vacio, style: textos.bodySmall);
+    final total = Dinero.suma([for (final f in filas) f.presupuesto]);
+    double parte(Dinero d) => total.esPositivo ? d.centavos / total.centavos : 0;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text('De ${total.formateado()} asignados a $tipo', style: textos.bodySmall),
+        const SizedBox(height: 8),
         for (final f in filas)
           InkWell(
             borderRadius: BorderRadius.circular(12),
@@ -853,25 +857,19 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
                         ),
                       ),
                       Text(
-                        f.presupuesto.esPositivo ? '${(usado(f) * 100).round()}%' : 'Sin presupuesto',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: f.gastado > f.presupuesto ? ColoresApp.coralTexto : ColoresApp.tinta,
-                        ),
+                        '${(parte(f.presupuesto) * 100).round()}%',
+                        style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   BarraProporcion(
-                    valor: usado(f),
-                    color: f.gastado > f.presupuesto ? ColoresApp.coral : ColoresApp.azul,
+                    valor: parte(f.presupuesto),
+                    color: T == CategoriaFija ? colorFijas : colorVariables,
                     alto: 6,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '${f.gastado.formateado()} de ${f.presupuesto.formateado()}',
-                    style: textos.labelSmall,
-                  ),
+                  Text(f.presupuesto.formateado(), style: textos.labelSmall),
                 ],
               ),
             ),
