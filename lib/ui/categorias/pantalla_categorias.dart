@@ -7,6 +7,7 @@ import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/presupuesto/categorias.dart' as reglas_categoria;
 import '../comun/aviso_gesto.dart';
+import '../comun/guia_rapida.dart';
 import '../comun/tema.dart';
 import 'eliminar_categoria.dart';
 import 'pantalla_nueva_categoria.dart';
@@ -36,6 +37,7 @@ class _PantallaCategoriasState extends State<PantallaCategorias> {
   void initState() {
     super.initState();
     _cargar();
+    WidgetsBinding.instance.addPostFrameCallback((_) => mostrarGuiaRapidaPrimeraVez(context, GuiaRapida.categorias));
   }
 
   Future<void> _cargar() async {

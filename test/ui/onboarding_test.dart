@@ -16,7 +16,7 @@ import 'repos_memoria.dart';
 // TextField del árbol (SelectorMeta trae el suyo en el paso de meta), de
 // ahí el finder por hintText en vez de find.byType(TextField).
 final _campoIngreso = find.byWidgetPredicate(
-  (w) => w is TextField && w.decoration?.hintText == 'Ej. \$20,000',
+  (w) => w is TextField && w.decoration?.hintText == 'Ej. 20,000',
 );
 
 Widget _app({required VoidCallback alTerminar}) {
@@ -155,12 +155,12 @@ void main() {
     final montos = find.byWidgetPredicate((w) => w is TextField && w.decoration?.prefixText == r'$');
     String monto(int i) => tester.widget<TextField>(montos.at(i)).controller!.text;
 
-    expect(monto(0), '26100', reason: 'Vivienda: 30 % del ingreso');
-    expect(monto(1), '17400', reason: 'Súper: 20 % del ingreso');
+    expect(monto(0), '26,100', reason: 'Vivienda: 30 % del ingreso');
+    expect(monto(1), '17,400', reason: 'Súper: 20 % del ingreso');
 
     await tester.enterText(montos.at(0), '5000');
     await tester.pumpAndSettle();
-    expect(monto(1), '17400', reason: 'editar Vivienda no reparte su diferencia en las demás');
+    expect(monto(1), '17,400', reason: 'editar Vivienda no reparte su diferencia en las demás');
     // 87,000 − 8,700 de meta = 78,300; categorías 5,000 + 17,400 + 8,700 + 8,700 + 4,350 = 44,150.
     expect(find.text(r'Sin asignar: $34,150.00'), findsOneWidget);
   });

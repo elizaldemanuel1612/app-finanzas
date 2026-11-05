@@ -240,7 +240,7 @@ class _PantallaRegistrarIngresoExtraState
                   decimal: true,
                 ),
                 inputFormatters: formateadoresDeMonto,
-                decoration: const InputDecoration(labelText: 'Monto'),
+                decoration: const InputDecoration(labelText: 'Monto', prefixText: r'$ '),
                 onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 20),

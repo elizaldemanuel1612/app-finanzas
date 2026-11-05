@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
@@ -16,7 +17,9 @@ import '../ayuda/modelo_guia.dart';
 import '../ayuda/pantalla_guia.dart';
 import '../comun/barra_ritmo.dart';
 import '../comun/formato_dinero.dart';
+import '../comun/formato_fecha.dart';
 import '../comun/marca.dart';
+import '../comun/nota_destacada.dart';
 import '../comun/tema.dart';
 import '../importacion/pantalla_importar.dart';
 import '../meta/selector_meta.dart';
@@ -356,6 +359,8 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
   Widget _paginaCiclo() {
     void elegir(_TipoCiclo t) => setState(() => _tipoCiclo = t);
     void cambiarDia(int delta) => setState(() => _diaCorte = (_diaCorte + delta).clamp(1, 31));
+    final textos = Theme.of(context).textTheme;
+    final ejemplo = CalculadoraCiclo(_diaEfectivo).calcularPara(DateTime.now());
 
     return _Paso(
       titulo: '¿Cuándo empieza tu mes?',
@@ -364,6 +369,15 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Quien acaba de descargar la app no sabe qué es un ciclo
+          // (spec-app-finanzas-v2.md §2.4).
+          const NotaDestacada(
+            etiqueta: '¿Para qué sirve?',
+            texto: 'La app no mide por mes de calendario, sino por ciclo: el periodo en que se renueva '
+                'tu presupuesto. Al empezar cada ciclo tus categorías vuelven a cero y ves si apartaste '
+                'lo que querías.',
+          ),
+          const SizedBox(height: 20),
           SegmentedButton<_TipoCiclo>(
             segments: const [
               ButtonSegment(value: _TipoCiclo.corte, label: Text('Corte de tarjeta')),
@@ -394,6 +408,24 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
                 ),
               ),
           ],
+          const SizedBox(height: 12),
+          Text(
+            switch (_tipoCiclo) {
+              _TipoCiclo.corte => 'Pon el día de corte de tu tarjeta de crédito principal: así cada ciclo '
+                  'coincide con tu estado de cuenta.',
+              _TipoCiclo.mesNatural => 'Del día 1 al último de cada mes. Buena opción si no usas tarjeta de '
+                  'crédito o te pagan a principio de mes.',
+              _TipoCiclo.otroDia => 'Por ejemplo, el día que te pagan: tu ciclo empieza cuando entra tu dinero.',
+            },
+            textAlign: TextAlign.center,
+            style: textos.bodySmall,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Tu ciclo de ahora iría del ${fechaCorta(ejemplo.fechaInicio)} al ${fechaCorta(ejemplo.fechaFin)}.',
+            textAlign: TextAlign.center,
+            style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
         ],
       ),
     );
@@ -410,7 +442,7 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
             controller: _ingresoControlador,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: formateadoresDeMonto,
-            decoration: const InputDecoration(hintText: 'Ej. \$20,000'),
+            decoration: const InputDecoration(hintText: 'Ej. 20,000', prefixText: r'$ '),
             onChanged: (_) {
               if (_errorIngreso != null) setState(() => _errorIngreso = null);
             },
@@ -449,7 +481,7 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
     for (final c in _categoriasSugeridas) {
       if (!_seleccionadas.contains(c.id)) continue;
       if (_montoFocos[c.id]!.hasFocus) continue;
-      final texto = ((montos[c.id] ?? const Dinero.cero()).centavos ~/ 100).toString();
+      final texto = conComasDeMiles(((montos[c.id] ?? const Dinero.cero()).centavos ~/ 100).toString());
       if (_montoControladores[c.id]!.text != texto) _montoControladores[c.id]!.text = texto;
     }
 

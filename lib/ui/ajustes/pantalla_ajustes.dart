@@ -27,6 +27,7 @@ import '../cuentas/pantalla_cuentas.dart';
 import '../comun/apariencia.dart';
 import '../comun/documento_legal.dart';
 import '../comun/formato_fecha.dart';
+import '../comun/guia_rapida.dart';
 import '../comun/seccion_lista.dart';
 import '../comun/tema.dart';
 import '../importacion/pantalla_importar.dart';
@@ -453,6 +454,18 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                   titulo: 'Cómo funciona la app',
                   subtitulo: 'Guía por temas: categorías, movimientos, registrar un gasto…',
                   onTap: _irAComoFunciona,
+                ),
+                _Renglon(
+                  icono: Icons.replay,
+                  titulo: 'Ver de nuevo las guías rápidas',
+                  subtitulo: 'Vuelven a salir al entrar a cada apartado',
+                  onTap: () async {
+                    await reiniciarGuiasRapidas();
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Listo: verás la guía de cada apartado al volver a entrar.')),
+                    );
+                  },
                 ),
               ],
             ),

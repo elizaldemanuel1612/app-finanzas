@@ -193,7 +193,7 @@ class _SelectorMetaState extends State<SelectorMeta> {
       controller: _montoControlador,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: formateadoresDeMonto,
-      decoration: const InputDecoration(labelText: 'Cuánto quieres apartar cada ciclo'),
+      decoration: const InputDecoration(labelText: 'Cuánto quieres apartar cada ciclo', prefixText: r'$ '),
       onChanged: (_) => _notificar(),
     );
   }

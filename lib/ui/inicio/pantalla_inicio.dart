@@ -38,6 +38,7 @@ import '../comun/aviso_gesto.dart';
 import '../comun/barra_ritmo.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/tarjeta_resumen_ciclo.dart';
+import '../comun/guia_rapida.dart';
 import '../comun/tema.dart';
 import '../gastos/pantalla_gastos.dart';
 import '../ingresos/pantalla_ingresos_del_ciclo.dart';
@@ -121,6 +122,19 @@ class _PantallaInicioState extends State<PantallaInicio> {
     _cargar();
     AccesosRapidos.escuchar(_abrirAccesoRapido);
     widget.recargar?.addListener(_alSincronizar);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _guiaDeRegistrar());
+  }
+
+  /// La primera vez, obligatoria: registrar gastos es la base de todo lo
+  /// demás (guia_rapida.dart).
+  Future<void> _guiaDeRegistrar() async {
+    final registrar = await mostrarGuiaRapidaPrimeraVez(
+      context,
+      GuiaRapida.registrarGasto,
+      obligatoria: true,
+      accionFinal: 'Registrar mi primer gasto',
+    );
+    if (registrar && mounted && !_capturaAbierta) await _irACaptura();
   }
 
   Future<void> _alSincronizar() async {

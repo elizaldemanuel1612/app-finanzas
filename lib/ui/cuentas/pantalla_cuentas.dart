@@ -8,6 +8,7 @@ import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/perfil.dart';
+import '../comun/guia_rapida.dart';
 import '../comun/tema.dart';
 import 'hoja_transferencia.dart';
 import 'pantalla_detalle_cuenta.dart';
@@ -44,6 +45,7 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
   void initState() {
     super.initState();
     _cargar();
+    WidgetsBinding.instance.addPostFrameCallback((_) => mostrarGuiaRapidaPrimeraVez(context, GuiaRapida.cuentas));
   }
 
   Future<void> _cargar() async {

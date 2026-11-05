@@ -106,6 +106,12 @@ Cada texto de la app dice **qué significa para el usuario**, no qué hizo el si
 ### 3.4 Regla de los dos taps
 Registrar un gasto: monto → categoría → hecho. Foto y voz viven dentro del mismo teclado, no en menús aparte. Si capturar cuesta trabajo, no hay datos; sin datos, nada de lo demás sirve.
 
+### 3.5 Guías rápidas de primera vez (2026-11-04)
+La primera vez que se entra a un apartado sale una guía de 3 a 5 pasos con lo básico (`lib/ui/comun/guia_rapida.dart`): Inicio → **cómo registrar un gasto**, obligatoria (sin "Omitir" ni cerrar tocando fuera, porque es la base de todo) y terminando en "Registrar mi primer gasto" o "Lo haré después"; Gastos, Análisis, Tus cuentas y Categorías, que se pueden omitir. Se recuerda por dispositivo, como los avisos de gestos; Ajustes → "Ver de nuevo las guías rápidas" las vuelve a activar. El manual completo sigue siendo la guía por temas.
+
+### 3.6 Montos al teclear (2026-11-04)
+Todo campo de monto lleva el "$" al inicio y pone las comas de miles mientras se escribe ("17000" → "$ 17,000"); borrar una coma borra el dígito de su izquierda. Lo hace `formateadoresDeMonto` (`lib/ui/comun/formato_dinero.dart`), y `Dinero.intentarDesdeTexto` ya ignora las comas.
+
 ---
 
 ## 4. Motivación (sin volverla un juego tonto)

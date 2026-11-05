@@ -85,6 +85,8 @@ Al terminar un ciclo se congela un snapshot inmutable (presupuesto vs. real por 
 Tu Excel ya alterna entre ambas bases. La app mantiene ambos ejes: `periodoNatural` (AAAA-MM) y `cicloId`, precalculados en cada movimiento. Cambiar de vista es instantáneo, sin recalcular nada.
 
 ### 2.4 [NUEVO] Cambiar el día de corte
+
+> **Al elegirlo en el onboarding (2026-11-04):** quien acaba de descargar la app no sabe qué es un ciclo. El paso "¿Cuándo empieza tu mes?" explica para qué sirve (el periodo en que se renueva el presupuesto), qué significa cada opción (corte de tarjeta, mes natural, otro día) y muestra con fechas cómo quedaría el ciclo de hoy.
 El usuario puede cambiar su día de corte después del onboarding (cambió de tarjeta, o prefiere otro día). El cambio **nunca reescribe el historial**: los ciclos cerrados no cambian (regla #6) y cada movimiento conserva el `cicloId` con que se creó (regla #5).
 
 **Historial de cortes.** El perfil guarda cada cambio (`cambiosDeCorte`: día anterior, día nuevo, inicio de la transición y fecha desde la que rige el nuevo). La calculadora de ciclos usa ese historial, así que un gasto con fecha pasada —capturado tarde o importado— cae en el ciclo que le tocaba con el corte vigente en esa fecha.

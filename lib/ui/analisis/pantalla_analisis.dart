@@ -20,6 +20,7 @@ import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/meta_base.dart';
 import '../comun/aviso_gesto.dart';
+import '../comun/guia_rapida.dart';
 import '../comun/tema.dart';
 import 'graficas_analisis.dart';
 
@@ -97,6 +98,7 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
   void initState() {
     super.initState();
     _cargarVista();
+    WidgetsBinding.instance.addPostFrameCallback((_) => mostrarGuiaRapidaPrimeraVez(context, GuiaRapida.analisis));
     _cargar();
   }
 

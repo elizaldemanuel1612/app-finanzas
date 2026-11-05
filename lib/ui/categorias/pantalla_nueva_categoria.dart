@@ -61,11 +61,8 @@ class _PantallaNuevaCategoriaState extends State<PantallaNuevaCategoria> {
   String? _montoInicial() {
     final e = _existente;
     return switch (e) {
-      CategoriaFija f => (f.montoFijoCentavos.centavos / 100).toStringAsFixed(
-        2,
-      ),
-      CategoriaVariable v =>
-        (v.presupuestoMensualCentavos.centavos / 100).toStringAsFixed(2),
+      CategoriaFija f => textoEditableDeDinero(f.montoFijoCentavos),
+      CategoriaVariable v => textoEditableDeDinero(v.presupuestoMensualCentavos),
       null => null,
     };
   }
@@ -233,6 +230,7 @@ class _PantallaNuevaCategoriaState extends State<PantallaNuevaCategoria> {
                 inputFormatters: formateadoresDeMonto,
                 decoration: InputDecoration(
                   labelText: _esFija ? 'Cuánto' : 'Presupuesto al mes',
+                  prefixText: r'$ ',
                 ),
               ),
               if (_esFija) ...[

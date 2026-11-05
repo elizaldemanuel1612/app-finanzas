@@ -21,6 +21,7 @@ import '../../domain/voz/monto_hablado.dart';
 import '../captura/pantalla_captura.dart';
 import '../comun/asegurar_ciclo_abierto.dart';
 import '../comun/aviso_gesto.dart';
+import '../comun/guia_rapida.dart';
 import '../comun/tema.dart';
 
 const _uuid = Uuid();
@@ -73,6 +74,7 @@ class _PantallaGastosState extends State<PantallaGastos> {
   void initState() {
     super.initState();
     _refrescar();
+    WidgetsBinding.instance.addPostFrameCallback((_) => mostrarGuiaRapidaPrimeraVez(context, GuiaRapida.gastos));
     _busquedaControlador.addListener(() {
       setState(
         () => _busqueda = normalizarTexto(_busquedaControlador.text),
