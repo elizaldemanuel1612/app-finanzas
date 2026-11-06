@@ -89,8 +89,8 @@ enum GuiaRapida {
     PasoGuiaRapida(
       Icons.account_balance_outlined,
       'El saldo se calcula solo',
-      'En débito pones cuánto tienes hoy y cada gasto lo descuenta. Si el banco dice otra cifra, usa '
-          '"Ajustar saldo".',
+      'En débito pones cuánto tienes hoy y cada gasto lo descuenta. En crédito, si quieres, cuánto debes '
+          'y tu límite. Si el banco dice otra cifra, ajústala.',
     ),
     PasoGuiaRapida(
       Icons.sync_alt,

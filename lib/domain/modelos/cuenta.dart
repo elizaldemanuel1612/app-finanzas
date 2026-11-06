@@ -28,15 +28,19 @@ final class Cuenta {
   final String emoji;
   final TipoCuenta tipo;
 
-  /// Si se le lleva saldo. Débito siempre; efectivo, si el usuario quiere;
-  /// crédito, nunca (lo que debe no es un saldo disponible).
+  /// Si se le lleva saldo. Débito siempre; efectivo y crédito, si el
+  /// usuario quiere. En crédito el saldo es negativo mientras se debe: cada
+  /// gasto lo baja y cada pago o devolución lo sube (ver `deudaDe`).
   final bool llevaSaldo;
 
   /// Lo que había el día [fechaSaldoInicial]; los movimientos de antes no
-  /// cuentan para el saldo.
+  /// cuentan para el saldo. En crédito, menos lo que se debía ese día.
   final Dinero saldoInicial;
   final DateTime fechaSaldoInicial;
   final bool activa;
+
+  /// Límite de crédito, si el usuario lo dio. Solo crédito.
+  final Dinero? limite;
 
   const Cuenta({
     required this.id,
@@ -47,6 +51,7 @@ final class Cuenta {
     required this.saldoInicial,
     required this.fechaSaldoInicial,
     this.activa = true,
+    this.limite,
   });
 
   Cuenta copyWith({
@@ -57,6 +62,7 @@ final class Cuenta {
     Dinero? saldoInicial,
     DateTime? fechaSaldoInicial,
     bool? activa,
+    Dinero? Function()? limite,
   }) {
     final nuevoTipo = tipo ?? this.tipo;
     return Cuenta(
@@ -66,12 +72,12 @@ final class Cuenta {
       tipo: nuevoTipo,
       llevaSaldo: switch (nuevoTipo) {
         TipoCuenta.debito => true,
-        TipoCuenta.credito => false,
-        TipoCuenta.efectivo => llevaSaldo ?? this.llevaSaldo,
+        TipoCuenta.credito || TipoCuenta.efectivo => llevaSaldo ?? this.llevaSaldo,
       },
       saldoInicial: saldoInicial ?? this.saldoInicial,
       fechaSaldoInicial: fechaSaldoInicial ?? this.fechaSaldoInicial,
       activa: activa ?? this.activa,
+      limite: nuevoTipo != TipoCuenta.credito ? null : (limite != null ? limite() : this.limite),
     );
   }
 
@@ -84,6 +90,7 @@ final class Cuenta {
         'saldoInicialCentavos': saldoInicial.centavos,
         'fechaSaldoInicial': fechaSaldoInicial.toIso8601String(),
         'activa': activa,
+        if (limite != null) 'limiteCentavos': limite!.centavos,
       };
 
   factory Cuenta.fromJson(Map<String, dynamic> json) => Cuenta(
@@ -95,6 +102,7 @@ final class Cuenta {
         saldoInicial: Dinero(json['saldoInicialCentavos'] as int),
         fechaSaldoInicial: DateTime.parse(json['fechaSaldoInicial'] as String),
         activa: json['activa'] as bool? ?? true,
+        limite: json['limiteCentavos'] == null ? null : Dinero(json['limiteCentavos'] as int),
       );
 }
 

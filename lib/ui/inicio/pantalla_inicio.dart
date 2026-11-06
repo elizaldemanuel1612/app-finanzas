@@ -638,13 +638,17 @@ class _PantallaInicioState extends State<PantallaInicio> {
                             ExcludeSemantics(child: Text(cuenta.emoji)),
                             const SizedBox(width: 8),
                             Expanded(child: Text(cuenta.nombre, overflow: TextOverflow.ellipsis)),
-                            Text(
-                              saldo.formateado(),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: saldo.esNegativo ? ColoresApp.coralTexto : ColoresApp.tinta,
+                            if (lecturaDeSaldo(cuenta, saldo) case final l) ...[
+                              if (l.etiqueta != 'Saldo')
+                                Text('${l.etiqueta} ', style: Theme.of(context).textTheme.bodySmall),
+                              Text(
+                                l.monto.formateado(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: l.alerta ? ColoresApp.coralTexto : ColoresApp.tinta,
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),

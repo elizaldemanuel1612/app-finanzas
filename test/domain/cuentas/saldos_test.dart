@@ -119,7 +119,9 @@ void main() {
 
   test('copyWith: el tipo manda sobre si lleva saldo', () {
     final c = _debito();
-    expect(c.copyWith(tipo: TipoCuenta.credito).llevaSaldo, isFalse);
+    // Crédito lo elige el usuario: al pasar de débito se queda como estaba.
+    expect(c.copyWith(tipo: TipoCuenta.credito).llevaSaldo, isTrue);
+    expect(c.copyWith(tipo: TipoCuenta.credito, llevaSaldo: false).llevaSaldo, isFalse);
     expect(c.copyWith(tipo: TipoCuenta.efectivo, llevaSaldo: false).llevaSaldo, isFalse);
     expect(cuentasBase(_desde).first.copyWith(tipo: TipoCuenta.debito).llevaSaldo, isTrue);
     expect(TipoCuenta.debito.medio, MedioPago.tarjeta);
@@ -226,6 +228,67 @@ void main() {
       final efectivo = cuentasBase(_desde).last.copyWith(llevaSaldo: true, saldoInicial: const Dinero.pesos(200));
       final cuentas = [...cuentasBase(_desde), efectivo, _debito(), _debito('vieja').copyWith(activa: false)];
       expect(sumaDeSaldos(cuentas, [_gasto(100)], const []), const Dinero.pesos(200 + 900));
+    });
+  });
+
+  group('tarjeta de crédito', () {
+    Cuenta amex({int debe = 3000, int? limite}) => Cuenta(
+          id: 'bbva',
+          nombre: 'Amex',
+          emoji: '💳',
+          tipo: TipoCuenta.credito,
+          llevaSaldo: true,
+          saldoInicial: Dinero.pesos(-debe),
+          fechaSaldoInicial: _desde,
+          limite: limite == null ? null : Dinero.pesos(limite),
+        );
+
+    test('cada gasto sube lo que debes; pagos y devoluciones lo bajan', () {
+      final c = amex(limite: 10000);
+      final pago = MovimientoCuenta(
+        clientId: 'pago',
+        cuentaId: 'debito',
+        cuentaDestinoId: 'bbva',
+        fecha: DateTime(2026, 11, 5),
+        monto: const Dinero.pesos(2000),
+        tipo: TipoMovimientoCuenta.transferencia,
+        entra: false,
+      );
+      final deuda = deudaDe(c, [_gasto(500)], [pago, _mc(100)]);
+      expect(deuda, const Dinero.pesos(3000 + 500 - 2000 - 100));
+      final lectura = lecturaDeSaldo(c, saldoDe(c, [_gasto(500)], [pago, _mc(100)])!);
+      expect(lectura.etiqueta, 'Debes');
+      expect(lectura.monto, const Dinero.pesos(1400));
+      expect(lectura.disponible, const Dinero.pesos(8600));
+      expect(lectura.alerta, isFalse);
+    });
+
+    test('pasado del límite se marca; pagado de más queda a tu favor', () {
+      final c = amex(debe: 9900, limite: 10000);
+      final pasada = lecturaDeSaldo(c, saldoDe(c, [_gasto(200)], const [])!);
+      expect(pasada.disponible, const Dinero.pesos(-100));
+      expect(pasada.alerta, isTrue);
+      final aFavor = lecturaDeSaldo(amex(debe: 0), const Dinero.pesos(50));
+      expect(aFavor.etiqueta, 'A tu favor');
+      expect(aFavor.monto, const Dinero.pesos(50));
+      expect(lecturaDeSaldo(_debito(), const Dinero.pesos(-5)).alerta, isTrue);
+    });
+
+    test('lo que debes va aparte del total de tus cuentas', () {
+      final cuentas = [_debito('debito'), amex(), amex(debe: 0).copyWith(activa: false)];
+      final gastos = [_gasto(100, cuenta: 'debito')];
+      expect(sumaDeSaldos(cuentas, gastos, const []), const Dinero.pesos(900));
+      expect(sumaDeDeudas(cuentas, gastos, const []), const Dinero.pesos(3000));
+      expect(deudaDe(_debito(), const [], const []), isNull);
+      expect(deudaDe(cuentasBase(_desde).first, const [], const []), isNull);
+    });
+
+    test('el límite viaja en el JSON y se quita si deja de ser crédito', () {
+      final c = amex(limite: 10000);
+      expect(Cuenta.fromJson(c.toJson()).limite, const Dinero.pesos(10000));
+      expect(c.copyWith(limite: () => null).limite, isNull);
+      expect(c.copyWith(nombre: 'Otra').limite, const Dinero.pesos(10000));
+      expect(c.copyWith(tipo: TipoCuenta.debito).limite, isNull);
     });
   });
 }

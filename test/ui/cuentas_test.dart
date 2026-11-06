@@ -110,4 +110,51 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Pagar esta tarjeta'), findsOneWidget);
   });
+
+  testWidgets('tarjeta de crédito: lo que debes, disponible, devolución y ajuste', (tester) async {
+    final cuentas = CuentaRepositorioArchivo.sobre(ArchivoTextoMemoria());
+    final movimientosCuenta = MovimientoCuentaRepositorioArchivo.sobre(ArchivoTextoMemoria());
+    final amex = Cuenta(
+      id: 'amex',
+      nombre: 'Amex',
+      emoji: '💳',
+      tipo: TipoCuenta.credito,
+      llevaSaldo: true,
+      saldoInicial: const Dinero.pesos(-3000),
+      fechaSaldoInicial: DateTime(2026, 1, 1),
+      limite: const Dinero.pesos(10000),
+    );
+    await cuentas.guardar(amex);
+
+    await tester.pumpWidget(MaterialApp(
+      home: PantallaDetalleCuenta(
+        cuenta: amex,
+        perfil: const Perfil(diaCorte: 1, ingresoBaseMensual: Dinero.pesos(20000)),
+        cuentaRepositorio: cuentas,
+        movimientoRepositorio: MovimientoRepositorioMemoria([]),
+        movimientoCuentaRepositorio: movimientosCuenta,
+        ingresoExtraRepositorio: IngresoExtraRepositorioMemoria([]),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Debes'), findsOneWidget);
+    expect(find.text(r'$3,000.00'), findsOneWidget);
+    expect(find.text(r'Disponible: $7,000.00 de $10,000.00'), findsOneWidget);
+
+    await tester.tap(find.text('Abono o devolución'));
+    await tester.pumpAndSettle();
+    expect(find.text('También es ingreso de este ciclo'), findsNothing);
+    await tester.enterText(find.widgetWithText(TextField, '¿Cuánto bajó tu deuda?'), '500');
+    await tester.tap(find.text('Guardar abono'));
+    await tester.pumpAndSettle();
+    expect(find.text(r'$2,500.00'), findsOneWidget);
+
+    await tester.tap(find.text('Ajustar deuda'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '2800');
+    await tester.tap(find.text('Ajustar'));
+    await tester.pumpAndSettle();
+    expect(find.text(r'$2,800.00'), findsOneWidget);
+    expect(find.text(r'Disponible: $7,200.00 de $10,000.00'), findsOneWidget);
+  });
 }

@@ -27,14 +27,53 @@ Dinero? saldoDe(Cuenta cuenta, List<Movimiento> gastos, List<MovimientoCuenta> m
 }
 
 /// Lo que hay en todas las cuentas que llevan saldo (las activas): el total
-/// de "Tus cuentas". Las de crédito no entran.
+/// de "Tus cuentas". Las de crédito no entran: lo que se debe va aparte, en
+/// [sumaDeDeudas].
 Dinero sumaDeSaldos(List<Cuenta> cuentas, List<Movimiento> gastos, List<MovimientoCuenta> movimientosCuenta) {
   var centavos = 0;
   for (final c in cuentas) {
-    if (!c.activa) continue;
+    if (!c.activa || c.tipo == TipoCuenta.credito) continue;
     centavos += saldoDe(c, gastos, movimientosCuenta)?.centavos ?? 0;
   }
   return Dinero(centavos);
+}
+
+/// Lo que se debe en una tarjeta de crédito que lleva saldo: positivo
+/// mientras se debe; negativo si se pagó de más (saldo a favor). `null` si
+/// no es de crédito o no lleva saldo.
+Dinero? deudaDe(Cuenta cuenta, List<Movimiento> gastos, List<MovimientoCuenta> movimientosCuenta) {
+  if (cuenta.tipo != TipoCuenta.credito) return null;
+  final saldo = saldoDe(cuenta, gastos, movimientosCuenta);
+  return saldo == null ? null : Dinero(-saldo.centavos);
+}
+
+/// Lo que se debe en todas las tarjetas de crédito activas (sin contar los
+/// saldos a favor).
+Dinero sumaDeDeudas(List<Cuenta> cuentas, List<Movimiento> gastos, List<MovimientoCuenta> movimientosCuenta) {
+  var centavos = 0;
+  for (final c in cuentas) {
+    if (!c.activa) continue;
+    final deuda = deudaDe(c, gastos, movimientosCuenta);
+    if (deuda != null && deuda.esPositivo) centavos += deuda.centavos;
+  }
+  return Dinero(centavos);
+}
+
+/// Cómo se lee el saldo de [cuenta] en pantalla: en crédito, "Debes" (o
+/// "A tu favor"), con lo disponible si hay límite; en las demás, "Saldo".
+/// [alerta] marca lo que va en coral: saldo negativo o crédito pasado del
+/// límite.
+({String etiqueta, Dinero monto, bool alerta, Dinero? disponible}) lecturaDeSaldo(Cuenta cuenta, Dinero saldo) {
+  if (cuenta.tipo != TipoCuenta.credito) {
+    return (etiqueta: 'Saldo', monto: saldo, alerta: saldo.esNegativo, disponible: null);
+  }
+  final deuda = Dinero(-saldo.centavos);
+  final limite = cuenta.limite;
+  final disponible = limite == null ? null : limite - deuda;
+  if (deuda.esNegativo) {
+    return (etiqueta: 'A tu favor', monto: saldo, alerta: false, disponible: disponible);
+  }
+  return (etiqueta: 'Debes', monto: deuda, alerta: disponible != null && disponible.esNegativo, disponible: disponible);
 }
 
 /// El ajuste que deja el saldo en [deseado]; `null` si ya cuadra.

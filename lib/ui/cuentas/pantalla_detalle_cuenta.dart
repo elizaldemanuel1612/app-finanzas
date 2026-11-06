@@ -143,18 +143,22 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
   }
 
   Future<void> _ajustar() async {
+    final esCredito = _cuenta.tipo == TipoCuenta.credito;
+    final actual = _saldo ?? const Dinero.cero();
     final texto = await showDialog<String>(
       context: context,
-      builder: (_) => _DialogoAjuste(saldo: _saldo ?? const Dinero.cero()),
+      builder: (_) => _DialogoAjuste(saldo: esCredito ? Dinero(-actual.centavos) : actual, esCredito: esCredito),
     );
     if (texto == null) return;
     final limpio = texto.replaceAll(RegExp(r'[\$\s]'), '');
     final negativo = limpio.startsWith('-');
     final deseado = Dinero.intentarDesdeTexto(negativo ? limpio.substring(1) : limpio);
     if (deseado == null) return;
+    final escrito = negativo ? Dinero(-deseado.centavos) : deseado;
     final ajuste = ajusteParaSaldo(
-      actual: _saldo ?? const Dinero.cero(),
-      deseado: negativo ? Dinero(-deseado.centavos) : deseado,
+      actual: actual,
+      // En crédito se escribe lo que se debe: el saldo es lo contrario.
+      deseado: esCredito ? Dinero(-escrito.centavos) : escrito,
     );
     if (ajuste == null) return;
     await widget.movimientoCuentaRepositorio.guardar(MovimientoCuenta(
@@ -200,6 +204,8 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
     final renglones = _renglones;
     final saldo = _saldo;
     final esEfectivoBase = _cuenta.id == idCuentaEfectivo;
+    final esCredito = _cuenta.tipo == TipoCuenta.credito;
+    final lectura = saldo == null ? null : lecturaDeSaldo(_cuenta, saldo);
     return Scaffold(
       appBar: AppBar(
         title: Text('${_cuenta.emoji} ${_cuenta.nombre}'),
@@ -224,14 +230,21 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(saldo != null ? 'Saldo' : 'Gastado este ciclo', style: textos.bodySmall),
+                        Text(lectura?.etiqueta ?? 'Gastado este ciclo', style: textos.bodySmall),
                         Text(
-                          (saldo ?? _gastadoCiclo).formateado(),
+                          (lectura?.monto ?? _gastadoCiclo).formateado(),
                           style: textos.displaySmall?.copyWith(
-                            color: saldo != null && saldo.esNegativo ? ColoresApp.coralTexto : null,
+                            color: lectura != null && lectura.alerta ? ColoresApp.coralTexto : null,
                           ),
                         ),
-                        if (saldo != null && saldo.esNegativo)
+                        if (lectura?.disponible case final disponible?)
+                          Text(
+                            disponible.esNegativo
+                                ? 'Te pasaste ${Dinero(-disponible.centavos).formateado()} de tu límite de ${_cuenta.limite!.formateado()}.'
+                                : 'Disponible: ${disponible.formateado()} de ${_cuenta.limite!.formateado()}',
+                            style: textos.bodySmall?.copyWith(color: disponible.esNegativo ? ColoresApp.coralTexto : null),
+                          ),
+                        if (saldo != null && saldo.esNegativo && !esCredito)
                           Text('Gastaste más de lo que tenías.', style: textos.bodySmall?.copyWith(color: ColoresApp.coralTexto)),
                         if (saldo != null) ...[
                           const SizedBox(height: 4),
@@ -239,14 +252,24 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                           const SizedBox(height: 12),
                           Row(
                             children: [
-                              Expanded(child: ElevatedButton(onPressed: _abonar, child: const Text('Registrar abono'))),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: _abonar,
+                                  child: Text(esCredito ? 'Abono o devolución' : 'Registrar abono'),
+                                ),
+                              ),
                               const SizedBox(width: 8),
-                              Expanded(child: OutlinedButton(onPressed: _ajustar, child: const Text('Ajustar saldo'))),
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: _ajustar,
+                                  child: Text(esCredito ? 'Ajustar deuda' : 'Ajustar saldo'),
+                                ),
+                              ),
                             ],
                           ),
-                        ] else if (_cuenta.tipo == TipoCuenta.debito || _cuenta.tipo == TipoCuenta.efectivo) ...[
+                        ] else ...[
                           const SizedBox(height: 8),
-                          TextButton(onPressed: _editar, child: const Text('Llevar su saldo')),
+                          TextButton(onPressed: _editar, child: Text(esCredito ? 'Llevar lo que debes' : 'Llevar su saldo')),
                         ],
                         if (_cuentas.where((c) => c.activa).length > 1) ...[
                           const SizedBox(height: 8),
@@ -303,6 +326,8 @@ class _HojaAbono extends StatefulWidget {
 }
 
 class _HojaAbonoState extends State<_HojaAbono> {
+  bool get _esCredito => widget.cuenta.tipo == TipoCuenta.credito;
+
   final _monto = TextEditingController();
   final _nota = TextEditingController();
   bool _esIngreso = false;
@@ -361,28 +386,31 @@ class _HojaAbonoState extends State<_HojaAbono> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Abono a ${widget.cuenta.nombre}', style: Theme.of(context).textTheme.titleMedium),
+          Text('${_esCredito ? 'Abono o devolución a' : 'Abono a'} ${widget.cuenta.nombre}', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
           TextField(
             controller: _monto,
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: formateadoresDeMonto,
-            decoration: InputDecoration(labelText: '¿Cuánto entró?', prefixText: '\$ ', errorText: _error),
+            decoration: InputDecoration(labelText: _esCredito ? '¿Cuánto bajó tu deuda?' : '¿Cuánto entró?', prefixText: '\$ ', errorText: _error),
           ),
           const SizedBox(height: 8),
           TextField(
             controller: _nota,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(labelText: 'Nota (opcional)', hintText: 'Quincena'),
+            decoration: InputDecoration(labelText: 'Nota (opcional)', hintText: _esCredito ? 'Devolución de Liverpool' : 'Quincena'),
           ),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _esIngreso,
-            onChanged: (v) => setState(() => _esIngreso = v ?? false),
-            title: const Text('También es ingreso de este ciclo'),
-            subtitle: const Text('Se suma a lo que te entra, como un ingreso extra.'),
-          ),
+          // Un abono a la tarjeta de crédito baja la deuda, no es dinero
+          // que te entra.
+          if (!_esCredito)
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _esIngreso,
+              onChanged: (v) => setState(() => _esIngreso = v ?? false),
+              title: const Text('También es ingreso de este ciclo'),
+              subtitle: const Text('Se suma a lo que te entra, como un ingreso extra.'),
+            ),
           const SizedBox(height: 8),
           ElevatedButton(onPressed: _guardando ? null : _guardar, child: const Text('Guardar abono')),
         ],
@@ -396,7 +424,9 @@ class _HojaAbonoState extends State<_HojaAbono> {
 class _DialogoAjuste extends StatefulWidget {
   final Dinero saldo;
 
-  const _DialogoAjuste({required this.saldo});
+  final bool esCredito;
+
+  const _DialogoAjuste({required this.saldo, this.esCredito = false});
 
   @override
   State<_DialogoAjuste> createState() => _DialogoAjusteState();
@@ -414,12 +444,15 @@ class _DialogoAjusteState extends State<_DialogoAjuste> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Ajustar saldo'),
+      title: Text(widget.esCredito ? 'Ajustar lo que debes' : 'Ajustar saldo'),
       content: TextField(
         controller: _controlador,
         autofocus: true,
         keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-        decoration: const InputDecoration(labelText: '¿Cuánto dice tu banco?', prefixText: '\$ '),
+        decoration: InputDecoration(
+          labelText: widget.esCredito ? '¿Cuánto dice tu banco que debes?' : '¿Cuánto dice tu banco?',
+          prefixText: '\$ ',
+        ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),

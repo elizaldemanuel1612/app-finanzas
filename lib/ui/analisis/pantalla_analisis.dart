@@ -16,6 +16,7 @@ import '../../domain/analisis/veredicto_ciclo.dart';
 import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
 import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/categoria.dart';
+import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/meta_base.dart';
@@ -339,15 +340,18 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
                         ),
                       ),
                   ],
-                  if (r.saldo != null) ...[
+                  if (r.saldo case final saldo?) ...[
                     const SizedBox(height: 8),
-                    Text(
-                      'Saldo: ${r.saldo!.formateado()}',
-                      style: textos.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: r.saldo!.esNegativo ? ColoresApp.coralTexto : ColoresApp.verdeTexto,
+                    if (lecturaDeSaldo(r.cuenta, saldo) case final l)
+                      Text(
+                        '${l.etiqueta}: ${l.monto.formateado()}',
+                        style: textos.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: l.alerta
+                              ? ColoresApp.coralTexto
+                              : (r.cuenta.tipo == TipoCuenta.credito ? null : ColoresApp.verdeTexto),
+                        ),
                       ),
-                    ),
                   ],
                 ],
               ),

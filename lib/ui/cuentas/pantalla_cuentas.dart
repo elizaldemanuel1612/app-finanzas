@@ -39,6 +39,7 @@ class PantallaCuentas extends StatefulWidget {
 class _PantallaCuentasState extends State<PantallaCuentas> {
   List<(Cuenta, Dinero?)>? _cuentas;
   Dinero _total = const Dinero.cero();
+  Dinero _deudas = const Dinero.cero();
   bool _verArchivadas = false;
 
   @override
@@ -56,6 +57,7 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
     setState(() {
       _cuentas = [for (final c in cuentas) (c, saldoDe(c, gastos, abonos))];
       _total = sumaDeSaldos(cuentas, gastos, abonos);
+      _deudas = sumaDeDeudas(cuentas, gastos, abonos);
     });
   }
 
@@ -121,6 +123,13 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
                           style: textos.displaySmall?.copyWith(color: _total.esNegativo ? ColoresApp.coralTexto : null),
                         ),
                         Text('Suma de las que llevan saldo; las de crédito no entran.', style: textos.labelSmall),
+                        if (_deudas.esPositivo) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Debes en tarjetas: ${_deudas.formateado()}',
+                            style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ],
                         const SizedBox(height: 12),
                         OutlinedButton.icon(
                           onPressed: activas.length < 2 ? null : _transferir,
@@ -133,7 +142,8 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Al registrar un gasto eliges con cuál pagaste. Las de débito llevan su saldo.',
+                  'Al registrar un gasto eliges con cuál pagaste. Las de débito llevan su saldo; en las de crédito '
+          'puedes llevar lo que debes.',
                   style: textos.bodySmall,
                 ),
                 const SizedBox(height: 12),
@@ -162,6 +172,7 @@ class _FilaCuenta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = saldo;
+    final lectura = s == null ? null : lecturaDeSaldo(cuenta, s);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
@@ -169,17 +180,21 @@ class _FilaCuenta extends StatelessWidget {
         leading: ExcludeSemantics(child: Text(cuenta.emoji, style: Theme.of(context).textTheme.titleMedium)),
         title: Text(cuenta.nombre),
         subtitle: Text(
-          cuenta.tipo == TipoCuenta.debito && !cuenta.llevaSaldo ? 'Débito · define su saldo' : cuenta.tipo.etiqueta,
+          cuenta.tipo == TipoCuenta.debito && !cuenta.llevaSaldo
+              ? 'Débito · define su saldo'
+              : lectura != null && cuenta.tipo == TipoCuenta.credito
+                  ? 'Crédito · ${lectura.etiqueta.toLowerCase()}'
+                  : cuenta.tipo.etiqueta,
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (s != null)
+            if (lectura != null)
               Text(
-                s.formateado(),
+                lectura.monto.formateado(),
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  color: s.esNegativo ? ColoresApp.coralTexto : ColoresApp.tinta,
+                  color: lectura.alerta ? ColoresApp.coralTexto : ColoresApp.tinta,
                 ),
               ),
             Icon(Icons.chevron_right, color: ColoresApp.medio),
