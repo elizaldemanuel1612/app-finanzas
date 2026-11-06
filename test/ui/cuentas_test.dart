@@ -141,7 +141,7 @@ void main() {
     expect(find.text(r'$3,000.00'), findsOneWidget);
     expect(find.text(r'Disponible: $7,000.00 de $10,000.00'), findsOneWidget);
 
-    await tester.tap(find.text('Abono o devolución'));
+    await tester.tap(find.text('Abonar'));
     await tester.pumpAndSettle();
     expect(find.text('También es ingreso de este ciclo'), findsNothing);
     await tester.enterText(find.widgetWithText(TextField, '¿Cuánto bajó tu deuda?'), '500');

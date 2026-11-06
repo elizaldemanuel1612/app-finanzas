@@ -189,6 +189,7 @@ class _PantallaEditarCuentaState extends State<PantallaEditarCuenta> {
                     helperText: _esCredito
                         ? 'Lo de tu app del banco. Los gastos de antes de hoy no se suman.'
                         : 'Los gastos de antes de hoy no se descuentan.',
+                    helperMaxLines: 2,
                   ),
                 ),
               ],

@@ -50,6 +50,19 @@ void main() {
       expect(razonDeContraste(PaletaHex.coralTexto, PaletaHex.tarjeta), greaterThanOrEqualTo(_minimoTexto));
     });
 
+    test('lo que tienes y lo que debes pasan en los dos modos, sobre tarjeta y fondo', () {
+      for (final (texto, fondos) in [
+        (PaletaHex.aFavor, [PaletaHex.tarjeta, PaletaHex.fondo]),
+        (PaletaHex.enContra, [PaletaHex.tarjeta, PaletaHex.fondo]),
+        (PaletaHexOscura.aFavor, [PaletaHexOscura.tarjeta, PaletaHexOscura.fondo]),
+        (PaletaHexOscura.enContra, [PaletaHexOscura.tarjeta, PaletaHexOscura.fondo]),
+      ]) {
+        for (final fondo in fondos) {
+          expect(razonDeContraste(texto, fondo), greaterThanOrEqualTo(_minimoTexto));
+        }
+      }
+    });
+
     test('las variantes Texto también pasan sobre su tinte Suave', () {
       expect(razonDeContraste(PaletaHex.verdeTexto, PaletaHex.verdeSuave), greaterThanOrEqualTo(_minimoTexto));
       expect(razonDeContraste(PaletaHex.ambarTexto, PaletaHex.ambarSuave), greaterThanOrEqualTo(_minimoTexto));

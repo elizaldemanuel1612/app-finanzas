@@ -46,6 +46,12 @@ abstract final class PaletaHex {
   static const coralSuave = 0xFFFEE2E2;
   static const coralTexto = 0xFFB91C1C;
 
+  /// Dinero que tienes y dinero que debes en las cuentas (2026-11-06): un
+  /// verde salvia y un rojo ladrillo, más apagados que `verdeTexto` y
+  /// `coralTexto`, para cifras que se ven todo el tiempo sin gritar.
+  static const aFavor = 0xFF2E7D5B;
+  static const enContra = 0xFFB4534B;
+
   /// Texto e íconos encima de `azul` (botones, selección).
   static const sobreAzul = 0xFFFFFFFF;
 
@@ -88,6 +94,9 @@ abstract final class PaletaHexOscura {
   static const coral = 0xFFEF4444;
   static const coralSuave = 0xFF351819;
   static const coralTexto = 0xFFF87171;
+
+  static const aFavor = 0xFF7CC4A0;
+  static const enContra = 0xFFE39A92;
 
   static const sobreAzul = 0xFF0B1F3B;
   static const pista = 0xFF22314B;

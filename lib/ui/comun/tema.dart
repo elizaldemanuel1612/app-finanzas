@@ -20,6 +20,9 @@ final class Paleta {
   final Color ambar, ambarSuave, ambarTexto;
   final Color coral, coralSuave, coralTexto;
 
+  /// Lo que tienes y lo que debes en las cuentas, en tonos apagados.
+  final Color aFavor, enContra;
+
   const Paleta._({
     required this.esOscura,
     required this.fondo,
@@ -43,6 +46,8 @@ final class Paleta {
     required this.coral,
     required this.coralSuave,
     required this.coralTexto,
+    required this.aFavor,
+    required this.enContra,
   });
 
   static const clara = Paleta._(
@@ -68,6 +73,8 @@ final class Paleta {
     coral: Color(PaletaHex.coral),
     coralSuave: Color(PaletaHex.coralSuave),
     coralTexto: Color(PaletaHex.coralTexto),
+    aFavor: Color(PaletaHex.aFavor),
+    enContra: Color(PaletaHex.enContra),
   );
 
   static const oscura = Paleta._(
@@ -93,6 +100,8 @@ final class Paleta {
     coral: Color(PaletaHexOscura.coral),
     coralSuave: Color(PaletaHexOscura.coralSuave),
     coralTexto: Color(PaletaHexOscura.coralTexto),
+    aFavor: Color(PaletaHexOscura.aFavor),
+    enContra: Color(PaletaHexOscura.enContra),
   );
 }
 
@@ -143,6 +152,8 @@ abstract final class ColoresApp {
   static Color get coral => _actual.coral;
   static Color get coralSuave => _actual.coralSuave;
   static Color get coralTexto => _actual.coralTexto;
+  static Color get aFavor => _actual.aFavor;
+  static Color get enContra => _actual.enContra;
 }
 
 /// Ranuras de Material a las que se mapean los tamaños que hoy están

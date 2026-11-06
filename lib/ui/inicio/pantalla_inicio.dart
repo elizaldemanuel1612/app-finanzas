@@ -30,6 +30,7 @@ import '../../plataforma/accesos_rapidos.dart';
 import '../ajustes/pantalla_ajustes.dart';
 import '../analisis/pantalla_analisis.dart';
 import '../captura/pantalla_captura.dart';
+import '../cuentas/color_saldo.dart';
 import '../cuentas/pantalla_cuentas.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../categorias/pantalla_detalle_categoria.dart';
@@ -645,7 +646,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                                 l.monto.formateado(),
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  color: l.alerta ? ColoresApp.coralTexto : ColoresApp.tinta,
+                                  color: colorDeLectura(l),
                                 ),
                               ),
                             ],

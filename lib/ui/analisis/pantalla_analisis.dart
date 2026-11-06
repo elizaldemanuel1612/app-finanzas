@@ -16,13 +16,13 @@ import '../../domain/analisis/veredicto_ciclo.dart';
 import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
 import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/categoria.dart';
-import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/meta_base.dart';
 import '../comun/aviso_gesto.dart';
 import '../comun/guia_rapida.dart';
 import '../comun/tema.dart';
+import '../cuentas/color_saldo.dart';
 import 'graficas_analisis.dart';
 
 /// Pestaña Análisis (spec-app-finanzas-v2.md §5.7): reportes y
@@ -347,9 +347,7 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
                         '${l.etiqueta}: ${l.monto.formateado()}',
                         style: textos.bodySmall?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: l.alerta
-                              ? ColoresApp.coralTexto
-                              : (r.cuenta.tipo == TipoCuenta.credito ? null : ColoresApp.verdeTexto),
+                          color: colorDeLectura(l),
                         ),
                       ),
                   ],

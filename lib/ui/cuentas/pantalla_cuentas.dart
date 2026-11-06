@@ -10,6 +10,7 @@ import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/perfil.dart';
 import '../comun/guia_rapida.dart';
 import '../comun/tema.dart';
+import 'color_saldo.dart';
 import 'hoja_transferencia.dart';
 import 'pantalla_detalle_cuenta.dart';
 import 'pantalla_editar_cuenta.dart';
@@ -120,14 +121,14 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
                         Text('Total en tus cuentas', style: textos.bodySmall),
                         Text(
                           _total.formateado(),
-                          style: textos.displaySmall?.copyWith(color: _total.esNegativo ? ColoresApp.coralTexto : null),
+                          style: textos.displaySmall?.copyWith(color: colorDeDinero(_total)),
                         ),
                         Text('Suma de las que llevan saldo; las de crédito no entran.', style: textos.labelSmall),
                         if (_deudas.esPositivo) ...[
                           const SizedBox(height: 8),
                           Text(
                             'Debes en tarjetas: ${_deudas.formateado()}',
-                            style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+                            style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: ColoresApp.enContra),
                           ),
                         ],
                         const SizedBox(height: 12),
@@ -194,7 +195,7 @@ class _FilaCuenta extends StatelessWidget {
                 lectura.monto.formateado(),
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  color: lectura.alerta ? ColoresApp.coralTexto : ColoresApp.tinta,
+                  color: colorDeLectura(lectura),
                 ),
               ),
             Icon(Icons.chevron_right, color: ColoresApp.medio),

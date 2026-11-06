@@ -59,11 +59,13 @@ Dinero sumaDeDeudas(List<Cuenta> cuentas, List<Movimiento> gastos, List<Movimien
   return Dinero(centavos);
 }
 
+typedef LecturaSaldo = ({String etiqueta, Dinero monto, bool alerta, Dinero? disponible});
+
 /// Cómo se lee el saldo de [cuenta] en pantalla: en crédito, "Debes" (o
 /// "A tu favor"), con lo disponible si hay límite; en las demás, "Saldo".
 /// [alerta] marca lo que va en coral: saldo negativo o crédito pasado del
 /// límite.
-({String etiqueta, Dinero monto, bool alerta, Dinero? disponible}) lecturaDeSaldo(Cuenta cuenta, Dinero saldo) {
+LecturaSaldo lecturaDeSaldo(Cuenta cuenta, Dinero saldo) {
   if (cuenta.tipo != TipoCuenta.credito) {
     return (etiqueta: 'Saldo', monto: saldo, alerta: saldo.esNegativo, disponible: null);
   }

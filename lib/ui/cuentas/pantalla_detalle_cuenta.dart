@@ -16,6 +16,7 @@ import '../../domain/modelos/perfil.dart';
 import '../../domain/reglas/creacion_ingreso_extra.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/tema.dart';
+import 'color_saldo.dart';
 import 'hoja_transferencia.dart';
 import 'pantalla_editar_cuenta.dart';
 
@@ -234,7 +235,7 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                         Text(
                           (lectura?.monto ?? _gastadoCiclo).formateado(),
                           style: textos.displaySmall?.copyWith(
-                            color: lectura != null && lectura.alerta ? ColoresApp.coralTexto : null,
+                            color: lectura == null ? null : colorDeLectura(lectura),
                           ),
                         ),
                         if (lectura?.disponible case final disponible?)
@@ -255,7 +256,7 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                               Expanded(
                                 child: ElevatedButton(
                                   onPressed: _abonar,
-                                  child: Text(esCredito ? 'Abono o devolución' : 'Registrar abono'),
+                                  child: Text(esCredito ? 'Abonar' : 'Registrar abono'),
                                 ),
                               ),
                               const SizedBox(width: 8),
