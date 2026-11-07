@@ -129,10 +129,19 @@ class _CompuertaAuth extends StatefulWidget {
 class _CompuertaAuthState extends State<_CompuertaAuth> {
   final _servicioAuth = ServicioAuth();
 
+  /// Un solo flujo para toda la vida de la compuerta. `authStateChanges()`
+  /// devuelve un `Stream` nuevo en cada llamada: pedirlo en `build` hacía
+  /// que cualquier reconstrucción completa (el cambio de paleta de
+  /// `SincronizarPaleta`, o el claro/oscuro que iOS alterna al tomar la
+  /// foto de la app en segundo plano) reiniciara el `StreamBuilder` a
+  /// "esperando", desmontara `_ContenidoApp` y lo volviera a montar
+  /// bloqueado: el PIN se pedía dos veces seguidas (spec §7.3).
+  late final _cambiosDeUsuario = _servicioAuth.cambiosDeUsuario;
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: _servicioAuth.cambiosDeUsuario,
+      stream: _cambiosDeUsuario,
       initialData: _servicioAuth.usuarioActual,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
