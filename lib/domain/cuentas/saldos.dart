@@ -61,6 +61,12 @@ Dinero sumaDeDeudas(List<Cuenta> cuentas, List<Movimiento> gastos, List<Movimien
 
 typedef LecturaSaldo = ({String etiqueta, Dinero monto, bool alerta, Dinero? disponible});
 
+/// Lo que se debe en una tarjeta a partir de su crédito disponible
+/// (2026-11-07): el banco muestra cualquiera de los dos, así que al ajustar
+/// se puede escribir el que se tenga a la mano. Disponible mayor que el
+/// límite = saldo a favor (deuda negativa).
+Dinero deudaDesdeDisponible({required Dinero limite, required Dinero disponible}) => limite - disponible;
+
 /// Cómo se lee el saldo de [cuenta] en pantalla: en crédito, "Debes" (o
 /// "A tu favor"), con lo disponible si hay límite; en las demás, "Saldo".
 /// [alerta] marca lo que va en coral: saldo negativo o crédito pasado del

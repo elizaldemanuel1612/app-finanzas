@@ -232,6 +232,14 @@ void main() {
   });
 
   group('tarjeta de crédito', () {
+    test('la deuda sale del límite menos el disponible', () {
+      expect(deudaDesdeDisponible(limite: const Dinero.pesos(20000), disponible: const Dinero.pesos(15500)),
+          const Dinero.pesos(4500));
+      // Más disponible que límite: saldo a favor.
+      expect(deudaDesdeDisponible(limite: const Dinero.pesos(20000), disponible: const Dinero.pesos(20300)),
+          const Dinero.pesos(-300));
+    });
+
     Cuenta amex({int debe = 3000, int? limite}) => Cuenta(
           id: 'bbva',
           nombre: 'Amex',

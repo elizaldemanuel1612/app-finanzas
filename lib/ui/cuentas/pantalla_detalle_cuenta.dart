@@ -146,16 +146,24 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
   Future<void> _ajustar() async {
     final esCredito = _cuenta.tipo == TipoCuenta.credito;
     final actual = _saldo ?? const Dinero.cero();
-    final texto = await showDialog<String>(
+    final limite = esCredito ? _cuenta.limite : null;
+    final respuesta = await showDialog<(String, bool)>(
       context: context,
-      builder: (_) => _DialogoAjuste(saldo: esCredito ? Dinero(-actual.centavos) : actual, esCredito: esCredito),
+      builder: (_) => _DialogoAjuste(
+        saldo: esCredito ? Dinero(-actual.centavos) : actual,
+        esCredito: esCredito,
+        limite: limite,
+      ),
     );
-    if (texto == null) return;
+    if (respuesta == null) return;
+    final (texto, porDisponible) = respuesta;
     final limpio = texto.replaceAll(RegExp(r'[\$\s]'), '');
     final negativo = limpio.startsWith('-');
     final deseado = Dinero.intentarDesdeTexto(negativo ? limpio.substring(1) : limpio);
     if (deseado == null) return;
-    final escrito = negativo ? Dinero(-deseado.centavos) : deseado;
+    var escrito = negativo ? Dinero(-deseado.centavos) : deseado;
+    // Si escribió su crédito disponible, lo que debe es límite − disponible.
+    if (porDisponible && limite != null) escrito = deudaDesdeDisponible(limite: limite, disponible: escrito);
     final ajuste = ajusteParaSaldo(
       actual: actual,
       // En crédito se escribe lo que se debe: el saldo es lo contrario.
@@ -427,7 +435,11 @@ class _DialogoAjuste extends StatefulWidget {
 
   final bool esCredito;
 
-  const _DialogoAjuste({required this.saldo, this.esCredito = false});
+  /// Con límite, en crédito se puede ajustar escribiendo lo que se debe o
+  /// el crédito disponible (2026-11-07).
+  final Dinero? limite;
+
+  const _DialogoAjuste({required this.saldo, this.esCredito = false, this.limite});
 
   @override
   State<_DialogoAjuste> createState() => _DialogoAjusteState();
@@ -435,6 +447,24 @@ class _DialogoAjuste extends StatefulWidget {
 
 class _DialogoAjusteState extends State<_DialogoAjuste> {
   late final _controlador = TextEditingController(text: textoEditableDeDinero(widget.saldo));
+
+  /// `true`: lo escrito es el crédito disponible, no lo que se debe.
+  bool _porDisponible = false;
+
+  /// Al cambiar de modo, el número del campo se convierte (deuda ↔
+  /// disponible) para que siga diciendo lo mismo.
+  void _cambiarModo(bool porDisponible) {
+    final limite = widget.limite;
+    if (limite == null || porDisponible == _porDisponible) return;
+    final actual = Dinero.intentarDesdeTexto(_controlador.text.replaceAll(RegExp(r'[\$\s]'), ''));
+    setState(() {
+      _porDisponible = porDisponible;
+      if (actual != null) {
+        // límite − x convierte en los dos sentidos.
+        _controlador.text = textoEditableDeDinero(deudaDesdeDisponible(limite: limite, disponible: actual));
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -446,18 +476,45 @@ class _DialogoAjusteState extends State<_DialogoAjuste> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(widget.esCredito ? 'Ajustar lo que debes' : 'Ajustar saldo'),
-      content: TextField(
-        controller: _controlador,
-        autofocus: true,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-        decoration: InputDecoration(
-          labelText: widget.esCredito ? '¿Cuánto dice tu banco que debes?' : '¿Cuánto dice tu banco?',
-          prefixText: '\$ ',
-        ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.esCredito && widget.limite != null) ...[
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(value: false, label: Text('Lo que debo')),
+                ButtonSegment(value: true, label: Text('Disponible')),
+              ],
+              selected: {_porDisponible},
+              showSelectedIcon: false,
+              onSelectionChanged: (s) => _cambiarModo(s.first),
+            ),
+            const SizedBox(height: 12),
+          ],
+          TextField(
+            controller: _controlador,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+            decoration: InputDecoration(
+              labelText: !widget.esCredito
+                  ? '¿Cuánto dice tu banco?'
+                  : _porDisponible
+                      ? 'Crédito disponible'
+                      : 'Lo que debes según tu banco',
+              prefixText: '\$ ',
+              helperText: _porDisponible ? 'Con tu límite de ${widget.limite!.formateado()} calculamos lo que debes.' : null,
+              helperMaxLines: 2,
+            ),
+          ),
+        ],
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-        TextButton(onPressed: () => Navigator.pop(context, _controlador.text), child: const Text('Ajustar')),
+        TextButton(
+          onPressed: () => Navigator.pop(context, (_controlador.text, _porDisponible)),
+          child: const Text('Ajustar'),
+        ),
       ],
     );
   }
