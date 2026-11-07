@@ -109,7 +109,7 @@ class _PantallaMoverPresupuestoState extends State<PantallaMoverPresupuesto> {
           children: [
             Text(
               'Falta cubrir ${widget.rebalanceo.faltante.formateado()} este ciclo. '
-              'Decide cuánto mover de cada categoría.',
+              'Decide cuánto mover de cada categoría; puedes mover más de lo sugerido mientras le quede sin gastar.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 16),
@@ -194,7 +194,8 @@ class _TarjetaCandidata extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final monto = Dinero.intentarDesdeTexto(controlador.text);
-    final excedeHolgura = monto != null && monto > candidata.holgura;
+    final excedeDisponible = monto != null && monto > candidata.disponible;
+    final excedeSugerencia = !excedeDisponible && monto != null && candidata.excedeSugerencia(monto);
 
     return Card(
       child: Padding(
@@ -218,7 +219,8 @@ class _TarjetaCandidata extends StatelessWidget {
               ],
             ),
             Text(
-              'hasta ${candidata.holgura.formateado()} disponible',
+              'Te sugerimos hasta ${candidata.holgura.formateado()} · '
+              'le quedan ${candidata.disponible.formateado()} sin gastar',
               style: Theme.of(context).textTheme.labelSmall,
             ),
             const SizedBox(height: 8),
@@ -234,9 +236,16 @@ class _TarjetaCandidata extends StatelessWidget {
               ),
               decoration: InputDecoration(
                 prefixText: r'$ ',
-                errorText: excedeHolgura
-                    ? 'No puede exceder ${candidata.holgura.formateado()}.'
+                errorText: excedeDisponible
+                    ? 'Solo le quedan ${candidata.disponible.formateado()} sin gastar.'
                     : null,
+                // Mover más de lo sugerido se permite: solo se avisa
+                // (addendum-v3 §2.5, 2026-11-06).
+                helperText: excedeSugerencia
+                    ? 'Es más de lo que estimamos que le sobrará; podría quedarse corta este ciclo.'
+                    : null,
+                helperMaxLines: 2,
+                helperStyle: TextStyle(color: ColoresApp.ambarTexto),
               ),
               onChanged: (_) => onCambio(),
             ),

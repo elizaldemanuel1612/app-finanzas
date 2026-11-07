@@ -577,7 +577,7 @@ class _TarjetaRebalanceo extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Categorías con holgura para mover:',
+              'Cuánto te sugerimos mover de cada una:',
               style: Theme.of(context)
                   .textTheme
                   .labelSmall

@@ -8,9 +8,20 @@ import 'ajuste_presupuesto_ciclo.dart';
 /// `Holgura_c = Presupuesto_c − Pronóstico_c`, solo cuando es positiva.
 final class CandidataRebalanceo {
   final CategoriaVariable categoria;
+
+  /// Lo que se estima que le sobrará al cierre: la **sugerencia** de cuánto
+  /// mover, no un límite (2026-11-06).
   final Dinero holgura;
 
-  const CandidataRebalanceo({required this.categoria, required this.holgura});
+  /// Lo que todavía no se ha gastado (`Presupuesto_c − Gastado_c`): el
+  /// único límite real. Mover más que la holgura se permite; mover más de
+  /// lo disponible dejaría la categoría en negativo.
+  final Dinero disponible;
+
+  const CandidataRebalanceo({required this.categoria, required this.holgura, required this.disponible});
+
+  /// Se pidió mover más de lo sugerido (pero dentro de lo disponible).
+  bool excedeSugerencia(Dinero monto) => monto > holgura;
 }
 
 /// Sugerencia de rebalanceo para una categoría que ya se pasó del
@@ -64,7 +75,14 @@ Rebalanceo? calcularRebalanceo({
     if (pronostico == null) continue;
     final holguraCentavos = c.presupuestoMensualCentavos.centavos - pronostico.pronosticoP50.centavos;
     if (holguraCentavos > 0) {
-      candidatas.add(CandidataRebalanceo(categoria: c, holgura: Dinero(holguraCentavos)));
+      final disponibleCentavos = c.presupuestoMensualCentavos.centavos - pronostico.observado.centavos;
+      candidatas.add(CandidataRebalanceo(
+        categoria: c,
+        holgura: Dinero(holguraCentavos),
+        // El pronóstico nunca queda por debajo de lo gastado, así que
+        // disponible ≥ holgura > 0.
+        disponible: Dinero(disponibleCentavos),
+      ));
     }
   }
   candidatas.sort((a, b) => b.holgura.centavos.compareTo(a.holgura.centavos));
@@ -89,9 +107,11 @@ final class MovimientoRebalanceo {
 /// nunca produce una [CategoriaVariable] nueva, solo deltas — quien llama
 /// nunca tiene la tentación de persistir con `CategoriaRepositorio`.
 ///
-/// Cada monto debe ser positivo y no exceder la holgura de su candidata.
+/// Cada monto debe ser positivo y no exceder lo **disponible** de su
+/// candidata (lo que aún no gasta). La holgura proyectada es solo una
+/// sugerencia: el usuario puede mover más si así lo decide (2026-11-06).
 /// El límite es por candidata, no por suma — permite sobre-cubrir el
-/// total si el usuario así lo decide.
+/// total.
 Resultado<List<AjustePresupuestoCiclo>> construirAjustesDeRebalanceo({
   required Rebalanceo rebalanceo,
   required List<MovimientoRebalanceo> movimientos,
@@ -117,9 +137,10 @@ Resultado<List<AjustePresupuestoCiclo>> construirAjustesDeRebalanceo({
     if (candidata == null) {
       return Falla('No se encontró la categoría candidata ${mov.categoriaOrigenId}.');
     }
-    if (mov.monto > candidata.holgura) {
+    if (mov.monto > candidata.disponible) {
       return Falla(
-        '${candidata.categoria.nombre} no tiene suficiente holgura para mover ${mov.monto.formateado()}.',
+        '${candidata.categoria.nombre} solo tiene ${candidata.disponible.formateado()} sin gastar; '
+        'no se pueden mover ${mov.monto.formateado()}.',
       );
     }
 

@@ -92,6 +92,9 @@ void main() {
       expect(r.candidatas[0].categoria.id, 'auto'); // 1600
       expect(r.candidatas[1].categoria.id, 'super'); // 1000
       expect(r.candidatas[2].categoria.id, 'terapia'); // 50
+      // Lo disponible es presupuesto − gastado, no − pronóstico.
+      expect(r.candidatas[0].disponible, const Dinero.pesos(1800)); // 4800 - 3000
+      expect(r.candidatas[2].disponible, const Dinero.pesos(100)); // 500 - 400
     });
 
     test('con más de 3 candidatas con holgura, solo regresa las 3 mayores', () {
@@ -129,10 +132,12 @@ void main() {
     final candidataAuto = CandidataRebalanceo(
       categoria: _cat('auto', 'Auto operación', presupuesto: const Dinero.pesos(4800)),
       holgura: const Dinero.pesos(600),
+      disponible: const Dinero.pesos(900),
     );
     final candidataSuper = CandidataRebalanceo(
       categoria: _cat('super', 'Súper/Comida', presupuesto: const Dinero.pesos(6000)),
       holgura: const Dinero.pesos(1000),
+      disponible: const Dinero.pesos(1500),
     );
     final rebalanceo = Rebalanceo(
       categoriaObjetivoId: objetivo.id,
@@ -190,11 +195,24 @@ void main() {
       expect(resultado.esFalla, isTrue);
     });
 
-    test('falla si el monto excede la holgura de la candidata', () {
+    test('permite mover más de la holgura sugerida mientras quede disponible', () {
+      // 'auto' sugiere 600 pero le quedan 900 sin gastar.
+      expect(candidataAuto.excedeSugerencia(const Dinero.pesos(700)), isTrue);
+      expect(candidataAuto.excedeSugerencia(const Dinero.pesos(600)), isFalse);
       final resultado = construirAjustesDeRebalanceo(
         rebalanceo: rebalanceo,
-        // 'auto' solo tiene 600 de holgura.
-        movimientos: const [MovimientoRebalanceo(categoriaOrigenId: 'auto', monto: Dinero.pesos(700))],
+        movimientos: const [MovimientoRebalanceo(categoriaOrigenId: 'auto', monto: Dinero.pesos(900))],
+        cicloId: '2026-07',
+        cuando: cuando,
+        dispositivo: 'prueba',
+      );
+      expect(resultado.esExito, isTrue);
+    });
+
+    test('falla si el monto excede lo disponible (sin gastar) de la candidata', () {
+      final resultado = construirAjustesDeRebalanceo(
+        rebalanceo: rebalanceo,
+        movimientos: const [MovimientoRebalanceo(categoriaOrigenId: 'auto', monto: Dinero.pesos(901))],
         cicloId: '2026-07',
         cuando: cuando,
         dispositivo: 'prueba',
