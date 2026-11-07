@@ -197,7 +197,7 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Ciclo ${widget.ciclo.etiqueta}', style: Theme.of(context).textTheme.labelSmall),
+            Text('Ciclo ${widget.ciclo.etiquetaConAnio}', style: Theme.of(context).textTheme.labelSmall),
             const Text('Análisis'),
           ],
         ),

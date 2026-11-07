@@ -9,6 +9,7 @@ import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/ciclo_de_vida/evolucion_ciclos.dart';
 import '../../domain/ciclo_de_vida/historial_ciclos.dart';
 import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
+import '../../domain/ciclo_de_vida/periodo_historial.dart';
 import '../../domain/modelos/estado_movimiento.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/meta_base.dart';
@@ -48,11 +49,16 @@ class PantallaCiclosAnteriores extends StatefulWidget {
 class _PantallaCiclosAnterioresState extends State<PantallaCiclosAnteriores> {
   late Future<_Datos> _datos;
 
+  /// Qué parte de la lista ver; la gráfica sigue con los últimos ciclos.
+  PeriodoHistorial _periodo = const UltimosCiclos();
+
   @override
   void initState() {
     super.initState();
     _datos = _cargar();
   }
+
+  void _elegirPeriodo(PeriodoHistorial periodo) => setState(() => _periodo = periodo);
 
   Future<_Datos> _cargar() async {
     final ciclosGuardados = await widget.cicloRepositorio.listarTodos();
@@ -162,13 +168,60 @@ class _PantallaCiclosAnterioresState extends State<PantallaCiclosAnteriores> {
                   _TarjetaFrase(frase: frase),
                 ],
                 const SizedBox(height: 16),
-                for (final r in resumenes) _TarjetaCiclo(resumen: r, onTap: () => _irAlCierre(r.ciclo)),
+                ..._listaFiltrada(resumenes),
               ],
             );
           },
         ),
       ),
     );
+  }
+}
+
+extension on _PantallaCiclosAnterioresState {
+  /// Con más de 12 ciclos o más de un año, chips para elegir qué ver:
+  /// últimos 12, cada año o todo (2026-11-06).
+  List<Widget> _listaFiltrada(List<CicloResumen> resumenes) {
+    final anios = aniosDelHistorial(resumenes);
+    final hayFiltro = resumenes.length > 12 || anios.length > 1;
+    // Con 12 o menos, "Últimos 12" es lo mismo que "Todos": se marca ese.
+    final periodo = !hayFiltro || (_periodo is UltimosCiclos && resumenes.length <= 12)
+        ? const TodoElHistorial()
+        : _periodo;
+    final visibles = filtrarHistorial(resumenes, periodo);
+    final opciones = <(PeriodoHistorial, String)>[
+      if (resumenes.length > 12) (const UltimosCiclos(), 'Últimos 12'),
+      for (final a in anios) (AnioCalendario(a), '$a'),
+      (const TodoElHistorial(), 'Todos'),
+    ];
+    final textos = Theme.of(context).textTheme;
+    return [
+      Text('Tus ciclos', style: textos.titleMedium),
+      if (hayFiltro) ...[
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final (opcion, texto) in opciones)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(texto),
+                    selected: periodo == opcion,
+                    showCheckmark: false,
+                    onSelected: (_) => _elegirPeriodo(opcion),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text('${visibles.length} de ${resumenes.length} ciclos', style: textos.labelSmall),
+      ],
+      const SizedBox(height: 8),
+      for (final r in visibles) _TarjetaCiclo(resumen: r, onTap: () => _irAlCierre(r.ciclo)),
+    ];
   }
 }
 
@@ -303,7 +356,7 @@ class _TarjetaCiclo extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         onTap: onTap,
-        title: Text('Ciclo ${resumen.ciclo.etiqueta}', style: const TextStyle(fontWeight: FontWeight.w700)),
+        title: Text('Ciclo ${resumen.ciclo.etiquetaConAnio}', style: const TextStyle(fontWeight: FontWeight.w700)),
         subtitle: Text(
             '${fechaCorta(resumen.ciclo.fechaInicio)} – ${fechaCorta(resumen.ciclo.fechaFin)}'),
         trailing: Column(

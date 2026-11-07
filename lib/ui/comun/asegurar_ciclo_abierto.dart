@@ -39,9 +39,9 @@ Future<bool> asegurarCicloAbierto(
           ? 'Ese día pertenece a un ciclo que ya cerraste'
           : 'Este movimiento es de un ciclo cerrado'),
       content: Text(esCaptura
-          ? '${guardado.ciclo.etiqueta} ya se cerró. Para registrar un '
+          ? '${guardado.ciclo.etiquetaConAnio} ya se cerró. Para registrar un '
               'gasto ahí, primero hay que reabrir ese ciclo.'
-          : '${guardado.ciclo.etiqueta} ya se cerró. Sus cifras ya son '
+          : '${guardado.ciclo.etiquetaConAnio} ya se cerró. Sus cifras ya son '
               'históricas. Para editarlo o eliminarlo, primero hay que '
               'reabrir ese ciclo.'),
       actions: [
@@ -51,7 +51,7 @@ Future<bool> asegurarCicloAbierto(
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(true),
-          child: Text('Reabrir ${guardado.ciclo.etiqueta}'),
+          child: Text('Reabrir ${guardado.ciclo.etiquetaConAnio}'),
         ),
       ],
     ),

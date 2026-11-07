@@ -146,7 +146,7 @@ class _PantallaCierreCicloState extends State<PantallaCierreCiclo> {
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('¿Reabrir ${guardado.ciclo.etiqueta}?'),
+        title: Text('¿Reabrir ${guardado.ciclo.etiquetaConAnio}?'),
         content: const Text(
           'Sus cifras dejan de ser definitivas hasta que lo vuelvas a '
           'cerrar. El cierre actual se conserva hasta entonces.',
@@ -185,7 +185,7 @@ class _PantallaCierreCicloState extends State<PantallaCierreCiclo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Cierre · ${widget.ciclo.etiqueta}')),
+      appBar: AppBar(title: Text('Cierre · ${widget.ciclo.etiquetaConAnio}')),
       body: SafeArea(
         child: FutureBuilder<_DatosCierre>(
           future: _datos,
@@ -320,7 +320,7 @@ class _AnilloAlcance extends StatelessWidget {
 
     return Column(
       children: [
-        Text(ciclo.estado == EstadoCiclo.cerrado ? 'Ciclo ${ciclo.etiqueta} · cerrado' : 'Ciclo ${ciclo.etiqueta}',
+        Text(ciclo.estado == EstadoCiclo.cerrado ? 'Ciclo ${ciclo.etiquetaConAnio} · cerrado' : 'Ciclo ${ciclo.etiquetaConAnio}',
             style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 12),
         Container(

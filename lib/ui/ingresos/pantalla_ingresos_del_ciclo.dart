@@ -242,7 +242,7 @@ class _PantallaIngresosDelCicloState extends State<PantallaIngresosDelCiclo> {
   Widget build(BuildContext context) {
     final extras = _extras;
     return Scaffold(
-      appBar: AppBar(title: Text('Ingresos del ciclo ${widget.ciclo.etiqueta}')),
+      appBar: AppBar(title: Text('Ingresos del ciclo ${widget.ciclo.etiquetaConAnio}')),
       body: SafeArea(
         child: extras == null
             ? const Center(child: CircularProgressIndicator())

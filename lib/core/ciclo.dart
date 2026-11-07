@@ -32,6 +32,11 @@ final class Ciclo {
     required this.estado,
   });
 
+  /// "Sep 2026": el mes en que **empieza** el ciclo, con su año. Para
+  /// títulos y listas; [etiqueta] sola ("Sep") queda para donde no cabe,
+  /// como las barras de las gráficas.
+  String get etiquetaConAnio => '$etiqueta ${fechaInicio.year}';
+
   bool contiene(DateTime fecha) {
     final dia = DateTime(fecha.year, fecha.month, fecha.day);
     return !dia.isBefore(fechaInicio) && !dia.isAfter(fechaFin);

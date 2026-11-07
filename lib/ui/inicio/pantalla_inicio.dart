@@ -501,7 +501,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Tu ciclo', style: Theme.of(context).textTheme.labelSmall),
-            Text('Ciclo ${_ciclo.etiqueta}'),
+            Text('Ciclo ${_ciclo.etiquetaConAnio}'),
           ],
         ),
       ),

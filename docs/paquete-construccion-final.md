@@ -295,7 +295,11 @@ alcance en curso puede rondar el 250% y arrastraría esos agregados a un
 número sin sentido. **Colores de las barras (2026-11-06):** seis tonos por alcance en vez de
 tres —verde ≥ 100 %, lima ≥ 85 %, ámbar ≥ 70 %, naranja ≥ 40 %, rojo tenue
 debajo— y el rojo fuerte solo para un ciclo en negativo (`tonoDeAlcance`,
-`lib/ui/comun/grafica_evolucion.dart`).
+`lib/ui/comun/grafica_evolucion.dart`). **Nombres y filtro (2026-11-06):** cada ciclo
+se llama por el mes en que empieza, con su año ("Ciclo Sep 2026",
+`Ciclo.etiquetaConAnio`; las barras siguen con "Sep"). Con más de 12 ciclos
+o más de un año, la lista lleva chips *Últimos 12 · 2026 · 2025 · … · Todos*
+(`domain/ciclo_de_vida/periodo_historial.dart`); la gráfica no cambia.
 
 ---
 
