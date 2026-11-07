@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/money.dart';
-import '../../domain/ciclo_de_vida/alcance.dart';
 import '../../domain/ciclo_de_vida/evolucion_ciclos.dart';
 import 'tema.dart';
 
@@ -15,12 +14,43 @@ const _bordeBarra = BorderRadius.only(
   bottomRight: Radius.circular(4),
 );
 
-Color _colorPorNivel(NivelAlcance? nivel) => switch (nivel) {
-  NivelAlcance.logrado => ColoresApp.verde,
-  NivelAlcance.cerca => ColoresApp.ambar,
-  NivelAlcance.corto => ColoresApp.coral,
-  null => ColoresApp.medio,
-};
+/// Escala de alcance de la gráfica (2026-11-06): seis tonos en vez de
+/// tres, para que se note la diferencia entre ciclos. El rojo fuerte queda
+/// **solo** para los ciclos en negativo (gastaste más de lo que entró); los
+/// que se quedaron cortos van de naranja a un rojo tenue según qué tan
+/// lejos. El texto lleva una variante más oscura (claro) o más clara
+/// (oscuro) del mismo tono para leerse sobre la tarjeta.
+enum TonoAlcance {
+  logrado(0xFF16A34A, 0xFF15803D, 0xFF22C55E, 0xFF4ADE80),
+  casi(0xFF84CC16, 0xFF4D7C0F, 0xFF84CC16, 0xFFBEF264),
+  cerca(0xFFF59E0B, 0xFF92400E, 0xFFF59E0B, 0xFFFBBF24),
+  abajo(0xFFF97316, 0xFFC2410C, 0xFFFB923C, 0xFFFDBA74),
+  lejos(0xFFE8A598, 0xFFB4534B, 0xFFC98078, 0xFFE39A92),
+  negativo(0xFFEF4444, 0xFFB91C1C, 0xFFEF4444, 0xFFF87171);
+
+  final int barraClaro, textoClaro, barraOscuro, textoOscuro;
+
+  const TonoAlcance(this.barraClaro, this.textoClaro, this.barraOscuro, this.textoOscuro);
+
+  Color get barra => Color(ColoresApp.oscuro ? barraOscuro : barraClaro);
+  Color get texto => Color(ColoresApp.oscuro ? textoOscuro : textoClaro);
+}
+
+/// `null` si no hay meta contra qué medir. Umbrales: 100 %, 85 %, 70 % (el
+/// mismo corte de "cerca" que `calcularNivelAlcance`), 40 % y 0.
+@visibleForTesting
+TonoAlcance? tonoDeAlcance(double? alcance) {
+  if (alcance == null) return null;
+  if (alcance < 0) return TonoAlcance.negativo;
+  if (alcance >= 1.0) return TonoAlcance.logrado;
+  if (alcance >= 0.85) return TonoAlcance.casi;
+  if (alcance >= 0.7) return TonoAlcance.cerca;
+  if (alcance >= 0.4) return TonoAlcance.abajo;
+  return TonoAlcance.lejos;
+}
+
+Color _colorBarra(PuntoEvolucion punto) => tonoDeAlcance(punto.metricas!.alcance)?.barra ?? ColoresApp.medio;
+Color _colorTexto(PuntoEvolucion punto) => tonoDeAlcance(punto.metricas!.alcance)?.texto ?? ColoresApp.medio;
 
 /// Gráfica «Cuánto has apartado por ciclo» (app-finanzas-fijos-cierre-v6.html
 /// §6): una barra por [PuntoEvolucion], con la altura ya resuelta por
@@ -218,7 +248,7 @@ class _Barra extends StatelessWidget {
         borderRadius: _bordeBarra,
       ),
       EstadoPunto.cerrado => BoxDecoration(
-        color: _colorPorNivel(calcularNivelAlcance(punto.metricas!.alcance)),
+        color: _colorBarra(punto),
         borderRadius: _bordeBarra,
       ),
     };
@@ -245,7 +275,7 @@ class _MontoAhorrado extends StatelessWidget {
 
     final color = punto.estado == EstadoPunto.enCurso
         ? ColoresApp.azul
-        : _colorPorNivel(calcularNivelAlcance(punto.metricas!.alcance));
+        : _colorTexto(punto);
 
     return Column(
       mainAxisSize: MainAxisSize.min,

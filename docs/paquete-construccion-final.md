@@ -292,7 +292,10 @@ La trazabilidad de la Fase 5 ya está construida: `calcularEvolucionCiclos`
 a propósito:** el ciclo en curso se dibuja pero no entra al "Acumulado en N
 ciclos" ni al promedio de alcance, porque a los pocos días de abierto el
 alcance en curso puede rondar el 250% y arrastraría esos agregados a un
-número sin sentido.
+número sin sentido. **Colores de las barras (2026-11-06):** seis tonos por alcance en vez de
+tres —verde ≥ 100 %, lima ≥ 85 %, ámbar ≥ 70 %, naranja ≥ 40 %, rojo tenue
+debajo— y el rojo fuerte solo para un ciclo en negativo (`tonoDeAlcance`,
+`lib/ui/comun/grafica_evolucion.dart`).
 
 ---
 
