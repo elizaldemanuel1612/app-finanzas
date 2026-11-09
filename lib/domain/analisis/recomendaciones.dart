@@ -30,6 +30,45 @@ final class Recomendacion {
 
 const _maximo = 5;
 
+/// Cuántas categorías excedidas van con tarjeta propia; las demás se juntan
+/// en una sola para dejar lugar a otras recomendaciones.
+const _excedidasDetalladas = 2;
+
+/// De dónde sale el exceso: de lo que le sobrará a otra variable (la que
+/// más tenga) o, si no alcanza, de lo que se aparta.
+String _deDondeCubrir(
+  Dinero exceso,
+  String categoriaId,
+  Map<String, Dinero> sobrante,
+  Map<String, String> nombres,
+  int diasRestantes,
+) {
+  String? mejor;
+  for (final e in sobrante.entries) {
+    if (e.key == categoriaId || !e.value.esPositivo) continue;
+    if (mejor == null || e.value > sobrante[mejor]!) mejor = e.key;
+  }
+  if (mejor == null) {
+    return diasRestantes > 0
+        ? 'Ninguna otra categoría tiene de dónde cubrirlo, así que sale de lo que apartas; lo que sumes aquí, también.'
+        : 'Salió de lo que apartaste. Si pasa seguido, súbele el presupuesto el próximo ciclo.';
+  }
+  final disponible = sobrante[mejor]!;
+  final cubre = exceso < disponible ? exceso : disponible;
+  sobrante[mejor] = disponible - cubre;
+  final nombre = nombres[mejor]!;
+  if (cubre == exceso) {
+    return 'Muévele ${exceso.formateado()} desde $nombre (se estima que le sobren '
+        '${disponible.formateado()}) y cuadras sin tocar lo que apartas.';
+  }
+  return 'Desde $nombre puedes cubrir ${cubre.formateado()}; los otros '
+      '${(exceso - cubre).formateado()} saldrían de lo que apartas.';
+}
+
+/// "a, b y c".
+String _enLista(List<String> partes) =>
+    partes.length == 1 ? partes.single : '${partes.sublist(0, partes.length - 1).join(', ')} y ${partes.last}';
+
 /// Recomendaciones de la pestaña Análisis (spec-app-finanzas-v2.md §5.7),
 /// en el tono de addendum-v3 §4.4 (nunca reprender) y con el vocabulario
 /// de §3.3 ("Te pasaste por $X", "Van N de M días"). Máximo 5, las más
@@ -51,30 +90,55 @@ List<Recomendacion> calcularRecomendaciones({
       if (g.categoria is CategoriaVariable) g,
   ];
 
-  // Variables con holgura proyectada (para sugerir de dónde mover).
-  final holgadas = [
+  // Lo que se estima que le sobrará a cada variable al cierre: de ahí se
+  // sugiere mover. Cada excedida "gasta" su parte, para no ofrecer dos
+  // veces el mismo dinero.
+  final sobrante = <String, Dinero>{
     for (final g in variables)
-      if (_proyeccion(g.total, r) < g.presupuesto) g,
-  ];
+      if (_proyeccion(g.total, r) < g.presupuesto) g.categoria.id: g.presupuesto - _proyeccion(g.total, r),
+  };
+  final nombres = {for (final g in variables) g.categoria.id: g.categoria.nombre};
 
-  var excedidas = 0;
+  final excedidas = [
+    for (final g in variables)
+      if (g.total > g.presupuesto) g,
+  ]..sort((a, b) => (b.total - b.presupuesto).compareTo(a.total - a.presupuesto));
+
+  // Las dos más grandes, cada una con su salida concreta (2026-11-08: antes
+  // todas decían "Nada grave" y llenaban las 5 recomendaciones).
+  for (final g in excedidas.take(_excedidasDetalladas)) {
+    final exceso = g.total - g.presupuesto;
+    lista.add(Recomendacion(
+      tono: TonoRecomendacion.alerta,
+      titulo: 'Te pasaste en ${g.categoria.nombre} por ${exceso.formateado()}',
+      detalle: [
+        if (r.diasRestantes > 0 && dias >= 3 && _proyeccion(g.total, r) > g.total)
+          'A este ritmo cerraría ${(_proyeccion(g.total, r) - g.presupuesto).formateado()} arriba.',
+        _deDondeCubrir(exceso, g.categoria.id, sobrante, nombres, r.diasRestantes),
+      ].join(' '),
+      accion: AccionRecomendacion.verCategoria,
+      categoriaId: g.categoria.id,
+    ));
+  }
+  final resto = excedidas.skip(_excedidasDetalladas).toList();
+  if (resto.isNotEmpty) {
+    final total = Dinero.suma(resto.map((g) => g.total - g.presupuesto));
+    final cuales = [for (final g in resto.take(3)) '${g.categoria.nombre} (${(g.total - g.presupuesto).formateado()})'];
+    if (resto.length > 3) cuales.add('${resto.length - 3} más');
+    lista.add(Recomendacion(
+      tono: TonoRecomendacion.alerta,
+      titulo: 'También te pasaste en ${resto.length} ${resto.length == 1 ? 'categoría' : 'categorías'} más',
+      detalle: '${_enLista(cuales)}: ${total.formateado()} en total. Si se repite cada ciclo, '
+          'su presupuesto se quedó corto: ajústalo para que tu plan sea realista.',
+      accion: AccionRecomendacion.verCategoria,
+      categoriaId: resto.first.categoria.id,
+    ));
+  }
+
   for (final g in variables) {
     final presupuesto = g.presupuesto;
     if (g.total > presupuesto) {
-      // Cada categoría excedida sugiere una holgada distinta; si ya no
-      // quedan, la salida es no sumar más.
-      final opciones = holgadas.where((h) => h.categoria.id != g.categoria.id).toList();
-      final otra = excedidas < opciones.length ? opciones[excedidas] : null;
-      excedidas++;
-      lista.add(Recomendacion(
-        tono: TonoRecomendacion.alerta,
-        titulo: 'Te pasaste en ${g.categoria.nombre} por ${(g.total - presupuesto).formateado()}',
-        detalle: otra != null
-            ? 'Nada grave: ${otra.categoria.nombre} va holgada y puedes moverle presupuesto desde el detalle.'
-            : 'Nada grave: lo que queda del ciclo, trata de no sumar más aquí.',
-        accion: AccionRecomendacion.verCategoria,
-        categoriaId: g.categoria.id,
-      ));
+      continue;
     } else if (r.diasRestantes > 0 &&
         (g.total == presupuesto || (presupuesto - g.total).centavos < r.diasRestantes)) {
       // Llegó justo (o le quedan centavos): "máximo $0.00 al día" no

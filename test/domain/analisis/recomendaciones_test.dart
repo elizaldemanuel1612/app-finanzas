@@ -80,34 +80,64 @@ List<Recomendacion> _recs(ReporteAnalisis r, {int ingreso = 0, int? meta}) => ca
     );
 
 void main() {
-  test('te pasaste: sugiere mover desde una variable holgada', () {
+  test('te pasaste: cuánto mover y desde dónde, con el ritmo', () {
+    // Día 15 de 30. salidas: 1200 de 1000 → proyecta 2400 (1400 arriba).
+    // auto: 100 de 2000 → proyecta 200, le sobrarían 1800.
     final recs = _recs(_reporte(porCategoria: [_g(_var('salidas', 1000), 1200), _g(_var('auto', 2000), 100)]));
     final r = recs.first;
     expect(r.tono, TonoRecomendacion.alerta);
     expect(r.titulo, r'Te pasaste en salidas por $200.00');
-    expect(r.detalle, contains('auto va holgada'));
+    expect(r.detalle, r'A este ritmo cerraría $1,400.00 arriba. Muévele $200.00 desde auto '
+        r'(se estima que le sobren $1,800.00) y cuadras sin tocar lo que apartas.');
+    expect(r.detalle, isNot(contains('Nada grave')));
     expect(r.accion, AccionRecomendacion.verCategoria);
     expect(r.categoriaId, 'salidas');
   });
 
-  test('dos excedidas sugieren holgadas distintas', () {
-    final recs = _recs(_reporte(porCategoria: [
-      _g(_var('salidas', 1000), 1200),
-      _g(_var('super', 1000), 1500),
-      _g(_var('auto', 2000), 100),
-      _g(_var('salud', 2000), 100),
-    ]));
-    final alertas = recs.where((r) => r.tono == TonoRecomendacion.alerta).toList();
-    expect(alertas[0].detalle, contains('auto va holgada'));
-    expect(alertas[1].detalle, contains('salud va holgada'));
-
-    final unaSola = _recs(_reporte(porCategoria: [
+  test('el sobrante se reparte: no se ofrece dos veces el mismo dinero', () {
+    // auto sobra 1800. super (500 arriba, la mayor) toma 500; salidas
+    // (200) lo que queda, de la misma auto.
+    final alertas = _recs(_reporte(porCategoria: [
       _g(_var('salidas', 1000), 1200),
       _g(_var('super', 1000), 1500),
       _g(_var('auto', 2000), 100),
     ])).where((r) => r.tono == TonoRecomendacion.alerta).toList();
-    expect(unaSola[0].detalle, contains('auto va holgada'));
-    expect(unaSola[1].detalle, contains('trata de no sumar más'));
+    expect(alertas[0].titulo, contains('super'));
+    expect(alertas[0].detalle, contains(r'Muévele $500.00 desde auto (se estima que le sobren $1,800.00)'));
+    expect(alertas[1].detalle, contains(r'Muévele $200.00 desde auto (se estima que le sobren $1,300.00)'));
+
+    // Sobrante que no alcanza: cubre una parte y el resto sale de lo apartado.
+    final parcial = _recs(_reporte(porCategoria: [
+      _g(_var('salidas', 1000), 1600),
+      _g(_var('cafe', 1000), 300), // proyecta 600, sobran 400
+    ])).first;
+    expect(parcial.detalle, contains(r'Desde cafe puedes cubrir $400.00; los otros $200.00 saldrían de lo que apartas.'));
+  });
+
+  test('con más de dos excedidas, el resto va junto en una sola', () {
+    final recs = _recs(_reporte(porCategoria: [
+      _g(_var('a', 1000), 1500),
+      _g(_var('b', 1000), 1400),
+      _g(_var('c', 1000), 1300),
+      _g(_var('d', 1000), 1200),
+      _g(_var('e', 1000), 1100),
+      _g(_var('f', 1000), 1050),
+    ]));
+    final alertas = recs.where((r) => r.tono == TonoRecomendacion.alerta).toList();
+    expect(alertas, hasLength(3));
+    expect(alertas[0].titulo, contains(' a '));
+    expect(alertas[1].titulo, contains(' b '));
+    expect(alertas[2].titulo, 'También te pasaste en 4 categorías más');
+    expect(alertas[2].detalle, startsWith(r'c ($300.00), d ($200.00), e ($100.00) y 1 más: $650.00 en total.'));
+    expect(alertas[2].categoriaId, 'c');
+
+    final una = _recs(_reporte(porCategoria: [
+      _g(_var('a', 1000), 1500),
+      _g(_var('b', 1000), 1400),
+      _g(_var('c', 1000), 1300),
+    ])).where((r) => r.tono == TonoRecomendacion.alerta).last;
+    expect(una.titulo, 'También te pasaste en 1 categoría más');
+    expect(una.detalle, startsWith(r'c ($300.00): $300.00 en total.'));
   });
 
   test('ya usaste todo: llegó justo o le quedan centavos', () {
@@ -125,9 +155,12 @@ void main() {
     expect(_recs(_reporte(dia: 30, porCategoria: [_g(_var('auto', 2700), 2700)])), isEmpty);
   });
 
-  test('te pasaste sin ninguna holgada: no sumar más', () {
+  test('te pasaste sin ninguna holgada: sale de lo que apartas', () {
     final recs = _recs(_reporte(porCategoria: [_g(_var('salidas', 1000), 1200)]));
-    expect(recs.single.detalle, contains('trata de no sumar más'));
+    expect(recs.single.detalle, contains('sale de lo que apartas'));
+    // Último día: ya no hay ritmo ni días por delante.
+    final cierre = _recs(_reporte(dia: 30, porCategoria: [_g(_var('salidas', 1000), 1200)])).single;
+    expect(cierre.detalle, r'Salió de lo que apartaste. Si pasa seguido, súbele el presupuesto el próximo ciclo.');
   });
 
   test('va rápido: proyección, cuánto arriba y máximo por día', () {
@@ -230,10 +263,14 @@ void main() {
       porCategoria: [...cats, _g(_var('rapido', 1000), 600)],
       diasConDatos: 14,
       semana: [100, 100, 100, 100, 100, 400, 100],
+      pequenos: 6,
+      totalPequenos: 500,
     ));
+    // 4 excedidas = 2 detalladas + 1 que junta el resto; luego 2 de
+    // atención (va rápido, gastos pequeños); el día de más gasto se queda fuera.
     expect(recs, hasLength(5));
-    expect(recs.take(4).every((r) => r.tono == TonoRecomendacion.alerta), isTrue);
-    expect(recs.last.tono, TonoRecomendacion.atencion);
+    expect(recs.take(3).every((r) => r.tono == TonoRecomendacion.alerta), isTrue);
+    expect(recs.skip(3).every((r) => r.tono == TonoRecomendacion.atencion), isTrue);
     expect(nombresDiaSemana, hasLength(7));
   });
 }
