@@ -10,6 +10,7 @@ import 'package:app_finanzas/data/almacenamiento/archivo_texto.dart';
 import 'package:app_finanzas/data/firebase/servicio_auth.dart';
 import 'package:app_finanzas/data/repositorios/local/almacen_local.dart';
 import 'package:app_finanzas/domain/modelos/categoria.dart';
+import 'package:app_finanzas/domain/modelos/ciclo_guardado.dart';
 import 'package:app_finanzas/domain/modelos/cuenta.dart';
 import 'package:app_finanzas/domain/modelos/estado_movimiento.dart';
 import 'package:app_finanzas/domain/modelos/movimiento.dart';
@@ -104,6 +105,17 @@ Future<void> main() async {
   await gasto(12, 'salidas', 540, 'Cine');
   await gasto(35, 'super', 2100, 'Súper del mes pasado');
   await gasto(40, 'salidas', 900, 'Salida del mes pasado');
+  // El ciclo pasado, cerrado: para ver en Gastos cómo se consulta uno.
+  final pasado = calculadora.calcularPara(hoy.subtract(const Duration(days: 40)));
+  await almacen.ciclos.guardar(CicloGuardado(
+    ciclo: Ciclo(
+      id: pasado.id,
+      fechaInicio: pasado.fechaInicio,
+      fechaFin: pasado.fechaFin,
+      etiqueta: pasado.etiqueta,
+      estado: EstadoCiclo.cerrado,
+    ),
+  ));
 
   final modo = Uri.base.queryParameters['modo'];
   if (modo == 'oscuro') AparienciaApp.actual.value = Apariencia.oscuro;
