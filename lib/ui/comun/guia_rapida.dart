@@ -27,14 +27,15 @@ enum GuiaRapida {
     ),
     PasoGuiaRapida(
       Icons.edit_outlined,
-      'Escribe cuánto y elige la categoría',
-      'Las categorías que más usas salen primero. Si escribes una descripción, como "Oxxo", la app '
-          'intenta adivinar la categoría por ti.',
+      'Escribe cuánto y toca la categoría',
+      'Al tocarla, el gasto queda guardado. Si escribes una nota, como "Oxxo", la app resalta la '
+          'categoría que cree que es.',
     ),
     PasoGuiaRapida(
       Icons.credit_card,
-      'Elige con qué pagaste',
-      'Efectivo, débito o tu tarjeta de crédito. Así el saldo de tus cuentas se actualiza solo.',
+      'Antes, si hace falta, cambia la cuenta',
+      'El chip de cuenta dice con qué pagaste: efectivo, débito o crédito. Así el saldo de tus cuentas se '
+          'actualiza solo.',
     ),
     PasoGuiaRapida(
       Icons.mic_none,
@@ -43,7 +44,7 @@ enum GuiaRapida {
     ),
     PasoGuiaRapida(
       Icons.check_circle_outline,
-      'Guarda y listo',
+      'Y listo',
       'Si te equivocas, en Gastos lo tocas para editarlo o lo deslizas a la izquierda para eliminarlo.',
     ),
   ]),
@@ -51,40 +52,45 @@ enum GuiaRapida {
     PasoGuiaRapida(
       Icons.search,
       'Busca y filtra',
-      'Escribe un comercio o un monto para encontrar un gasto. Con el botón de filtros ves solo las '
-          'categorías o el medio de pago que elijas.',
+      'Escribe un comercio o un monto para encontrar un gasto. Con los chips ves solo las categorías '
+          'o las cuentas que elijas.',
     ),
     PasoGuiaRapida(Icons.touch_app_outlined, 'Toca para editar', 'Cambia el monto, la categoría, la fecha o la descripción.'),
     PasoGuiaRapida(
       Icons.swipe,
       'Desliza',
-      'A la izquierda para eliminar (siempre te pregunta antes). A la derecha para duplicarlo con la '
-          'fecha de hoy, útil para lo que se repite.',
+      'A la izquierda para eliminar (si te equivocas, toca Deshacer). A la derecha para duplicarlo con '
+          'la fecha de hoy, útil para lo que se repite.',
     ),
   ]),
   analisis('Tu análisis', [
     PasoGuiaRapida(
       Icons.speed,
-      'Básico',
-      'Cómo vas en una frase, cuánto puedes gastar hoy y qué te recomendamos.',
+      'Resumen',
+      'Cómo vas en una frase, cuánto apartarías si sigues así y qué hacer, con un botón para hacerlo.',
     ),
     PasoGuiaRapida(
       Icons.insights,
-      'Avanzado',
-      'Tu plan contra lo real, en qué se te va, tu ritmo día a día y la comparación con ciclos pasados. '
-          'Elige Variables, Fijos o Total para ver cada parte.',
+      'Detalle',
+      'En qué se te va, tu ritmo día a día y la comparación con el ciclo pasado, cada gráfica con su '
+          'conclusión arriba.',
     ),
     PasoGuiaRapida(
-      Icons.account_balance_wallet_outlined,
-      'Cuentas',
-      'Cuánto salió de cada tarjeta y del efectivo en este ciclo.',
+      Icons.history,
+      'Historial',
+      'Cuánto has apartado ciclo por ciclo, y dónde cerrar o reabrir un ciclo.',
+    ),
+    PasoGuiaRapida(
+      Icons.date_range,
+      'Periodo',
+      'Cuánto gastaste en el año, en los últimos 12 meses o entre las fechas que elijas, mes por mes.',
     ),
   ]),
   cuentas('Tus cuentas y tarjetas', [
     PasoGuiaRapida(
       Icons.add_card,
       'Agrega tus tarjetas',
-      'Con el + das de alta tu débito, tu crédito, el efectivo o tu ahorro e inversiones. Al registrar un gasto '
+      'Con «Agregar cuenta» das de alta tu débito, tu crédito, el efectivo o tu ahorro e inversiones. Al registrar un gasto '
           'eliges con cuál pagaste, y arriba ves tu patrimonio.',
     ),
     PasoGuiaRapida(

@@ -19,13 +19,11 @@ import 'dart:io';
 import 'package:test/test.dart';
 
 const _maximoPorArchivo = {
-  'lib/ui/ajustes/pantalla_ajustes.dart': 1,
   'lib/ui/captura/hoja_dictado.dart': 3,
-  'lib/ui/captura/pantalla_captura.dart': 4,
+  'lib/ui/captura/pantalla_captura.dart': 1, // monto a 56 (componentes/Campo.md)
   'lib/ui/captura/pantalla_dividir_ticket.dart': 2,
   'lib/ui/captura/pantalla_revision_dictado.dart': 3,
   'lib/ui/categorias/pantalla_categorias.dart': 2,
-  'lib/ui/categorias/pantalla_detalle_categoria.dart': 7,
   'lib/ui/categorias/pantalla_mover_presupuesto.dart': 2,
   'lib/ui/ciclo/pantalla_ciclos_anteriores.dart': 6,
   'lib/ui/ciclo/pantalla_cierre_ciclo.dart': 3,
@@ -33,7 +31,7 @@ const _maximoPorArchivo = {
   'lib/ui/comun/pantalla_login.dart': 1,
   'lib/ui/comun/tema.dart': 12, // +1 título de AppBar; +3 título/subtítulo/lados de ListTile (antes caían a bodyLarge/bodyMedium de Material)
   'lib/ui/gastos/pantalla_gastos.dart': 2,
-  'lib/ui/inicio/pantalla_inicio.dart': 4,
+  'lib/ui/inicio/pantalla_inicio.dart': 1, // centavos de la cifra héroe al 50 %
   'lib/ui/meta/selector_meta.dart': 2,
 };
 

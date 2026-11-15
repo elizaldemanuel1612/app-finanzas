@@ -25,11 +25,14 @@ const _idsEsperados = {
 // desaparece de lib/ui/, la guía se queda hablando de algo que ya no
 // existe (el único riesgo estructural de este enfoque).
 const _citasLiteralesDeLaApp = [
-  'Gastos Variables',
-  'Buscar gasto o comercio',
-  'Cierre estimado',
+  'Hoy puedes gastar',
+  'Buscar gasto o monto',
+  'Al cierre',
   'Mover presupuesto',
-  'Sugerida por tus gastos anteriores',
+  'Elegir otra categoría',
+  'Categorías y presupuestos',
+  'Cuánto has apartado por ciclo',
+  'Deshacer',
 ];
 
 const _vocabularioProhibido = [
@@ -134,6 +137,8 @@ void main() {
         .listSync(recursive: true)
         .whereType<File>()
         .where((f) => f.path.endsWith('.dart'))
+        // La guía misma no cuenta: si no, cada cita se encontraría a sí misma.
+        .where((f) => !f.path.endsWith('contenido_guia.dart'))
         .map((f) => f.readAsStringSync())
         .join('\n');
 

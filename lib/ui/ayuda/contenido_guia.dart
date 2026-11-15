@@ -48,38 +48,29 @@ const _temaInicio = TemaGuia(
   id: 'inicio',
   emoji: '🏠',
   titulo: 'Tu pantalla de inicio',
-  resumen: 'Lo primero que ves: cuánto entró, cuánto llevas y qué atender.',
+  resumen: 'Lo primero que ves: cuánto puedes gastar hoy y qué atender.',
   bloques: [
     Parrafo(
-      'La tarjeta de arriba resume el ciclo actual: **Este ciclo entró** '
-      'muestra tu ingreso del periodo, **Gastado** lo que ya registraste y '
-      '**Para invertir** lo que te queda disponible.',
+      'La tarjeta de arriba responde una sola pregunta: **Hoy puedes gastar**. '
+      'Es lo que les queda a tus categorías variables repartido entre los días '
+      'que faltan del ciclo. Arriba trae cómo vas (**Vas bien**, **Vas rápido** '
+      'o **Te pasaste**) y abajo la barra de tus variables y tu meta del ciclo.',
     ),
     Parrafo(
-      'Debajo está tu tarjeta de meta, con el porcentaje de alcance de lo '
-      'que quieres apartar este ciclo.',
+      'Si alguna categoría va a pasarse, aparece un solo aviso con la '
+      'categoría de donde puedes cubrirlo.',
     ),
-    Subtitulo('Gastos Variables'),
+    Subtitulo('Presupuesto'),
     Parrafo(
-      'Con **Ordenar por** eliges cómo ver tus categorías, variables y fijas, '
-      'de mayor a menor: **% usado** muestra primero las que más han '
-      'consumido de su presupuesto, y **\$ gastado**, donde más dinero se ha '
-      'ido. El encabezado siempre muestra cuánto llevas '
-      'gastado de lo presupuestado para toda la sección, y puedes tocarlo '
-      'para contraer o desplegar la lista.',
+      'Tus categorías variables, primero las que necesitan tu atención. '
+      'Cada renglón dice cuánto te queda y trae su marca de ritmo. Al final, '
+      'el renglón **Fijos** dice si tus pagos fijos están al día.',
     ),
     Ejemplo(EjemploGuia.tarjetaAtencion, pie: 'Cada renglón trae su propia marca de ritmo.'),
-    Subtitulo('Gastos fijos'),
     Parrafo(
-      'Igual que Gastos Variables, el encabezado se puede contraer y '
-      'siempre muestra el total pagado contra el total presupuestado. Cada '
-      'categoría fija trae su estado — **Pagado**, **Pendiente** o '
-      '**Excedido** — y una barra que muestra qué tanto del monto ya '
-      'cubriste.',
-    ),
-    Parrafo(
-      'El AppBar trae tres accesos directos y un botón + al centro abajo '
-      'para registrar un gasto nuevo desde cualquier pantalla.',
+      'Abajo está la barra con **Inicio**, **Gastos**, el **+** dorado para '
+      'registrar, **Análisis** y **Patrimonio** (tus cuentas y tus objetivos '
+      'de ahorro). Ajustes se abre con el círculo de arriba a la derecha.',
     ),
   ],
 );
@@ -88,29 +79,29 @@ const _temaRegistrarGasto = TemaGuia(
   id: 'registrar-gasto',
   emoji: '✍️',
   titulo: 'Registrar un gasto',
-  resumen: 'Monto, categoría y ya — dos toques y queda guardado.',
+  resumen: 'Monto y categoría: dos toques y queda guardado.',
   bloques: [
+    Pasos([
+      'Toca el + dorado y escribe el monto con el teclado.',
+      'Toca la categoría: el gasto se guarda y la pantalla se cierra.',
+    ]),
     Parrafo(
-      'Escribes el monto, eliges cuándo pasó con los chips **Hoy**, '
-      '**Ayer** o **📅 Otro día**, y eliges la categoría.',
+      'Arriba de las categorías están los chips de **fecha**, **cuenta** y '
+      '**nota**. Si el gasto no fue hoy o lo pagaste con otra cuenta, '
+      'cámbialos antes de tocar la categoría.',
     ),
-    Ejemplo(EjemploGuia.chipsDeFecha, pie: 'El chip activo se marca en azul.'),
+    Ejemplo(EjemploGuia.chipsDeFecha, pie: 'Al tocar la fecha eliges hoy, ayer u otro día.'),
     Subtitulo('La categoría se sugiere sola'),
     Parrafo(
-      'Debajo del selector de categoría puede aparecer una etiqueta '
-      '**Sugerida por tus gastos anteriores**: la app aprende de las '
-      'correcciones que le haces y con el tiempo acierta más seguido.',
+      'Si escribes una nota, como "Oxxo", la app resalta la categoría que '
+      'cree que es; si no, la que más usas. Aprende de lo que corriges y '
+      'con el tiempo acierta más seguido.',
     ),
-    Vinetas([
-      'Medio de pago: **Tarjeta** o **Efectivo**.',
-      '**Descripción (opcional)** para anotar algo más, si quieres.',
-    ]),
     Nota(
       tono: TonoNota.info,
       etiqueta: 'SIN CONEXIÓN',
-      texto: 'El pie de la pantalla dice "Sin internet · se guarda y '
-          'sincroniza sola": puedes registrar gastos sin señal y no se '
-          'pierden.',
+      texto: 'Los gastos se guardan en tu teléfono: puedes registrarlos sin '
+          'señal y no se pierden.',
     ),
   ],
 );
@@ -143,25 +134,24 @@ const _temaVozYTickets = TemaGuia(
 const _temaMovimientos = TemaGuia(
   id: 'movimientos',
   emoji: '📋',
-  titulo: 'Movimientos',
-  resumen: 'Todos los gastos del ciclo actual, para buscar y corregir.',
+  titulo: 'Gastos',
+  resumen: 'Todos los gastos del ciclo, para buscar y corregir.',
   bloques: [
     Parrafo(
-      'Movimientos lista únicamente los gastos del ciclo en curso, '
-      'agrupados por día. El buscador de arriba dice '
-      '**Buscar gasto o comercio**: filtra por lo que hayas escrito en la '
-      'descripción o el nombre de la categoría.',
+      'La pestaña Gastos lista los gastos del ciclo agrupados por día. '
+      'Arriba eliges otro ciclo para ver los anteriores. El buscador dice '
+      '**Buscar gasto o monto**: encuentra por descripción, categoría o cantidad.',
     ),
     Parrafo(
-      'Los filtros por categoría y por medio de pago muestran el total de '
-      'lo filtrado, para que compares subconjuntos sin salir de la '
-      'pantalla.',
+      'Los chips de abajo del buscador filtran por categoría o por cuenta, '
+      'y se combinan. El total de arriba es el de lo filtrado.',
     ),
     Subtitulo('Corregir un gasto'),
     Vinetas([
-      'Deslizar un renglón a la izquierda lo elimina — en realidad lo '
-          'anula, nada se borra de verdad.',
-      'Deslizarlo a la derecha lo duplica, con la fecha de hoy.',
+      'Tócalo para editarlo.',
+      'Deslízalo a la izquierda para eliminarlo — en realidad se anula, '
+          'nada se borra de verdad — y si te equivocaste, toca **Deshacer**.',
+      'Deslízalo a la derecha para duplicarlo con la fecha de hoy.',
     ]),
     Ejemplo(EjemploGuia.deslizarMovimiento, pie: 'Izquierda elimina, derecha duplica.'),
   ],
@@ -180,8 +170,8 @@ const _temaCategorias = TemaGuia(
       'app nunca lo adivina por el nombre.',
     ),
     Parrafo(
-      'Desde Categorías puedes crear una nueva o editar una existente en '
-      'cualquier momento.',
+      'En Ajustes → **Categorías y presupuestos** puedes crear una nueva '
+      'o editar una existente en cualquier momento.',
     ),
     Subtitulo('Archivar y eliminar'),
     Vinetas([
@@ -194,7 +184,7 @@ const _temaCategorias = TemaGuia(
       tono: TonoNota.info,
       etiqueta: 'REGLA DE ORO',
       texto: 'Nada se borra de verdad en la app: se anula. Es la misma '
-          'idea detrás de "eliminar" un movimiento en Movimientos.',
+          'idea detrás de "eliminar" un gasto en Gastos.',
     ),
   ],
 );
@@ -203,24 +193,26 @@ const _temaSalirseDeControl = TemaGuia(
   id: 'salirse-de-control',
   emoji: '🧭',
   titulo: 'Si algo se te sale de control',
-  resumen: 'El pronóstico del cierre y cómo reacomodar el presupuesto.',
+  resumen: 'El cierre estimado y cómo cubrir lo que te pasaste.',
   bloques: [
     Parrafo(
-      'Dentro del detalle de una categoría, **Cierre estimado** te dice '
-      'cómo va a terminar el ciclo si sigues al ritmo actual, con un '
-      'rango y qué tan segura está la app de esa cifra.',
+      'Al tocar una categoría ves cuánto te queda, lo gastado y, en **Al '
+      'cierre**, cuánto se estima que gastarás al terminar el ciclo según '
+      'cómo has gastado en ciclos pasados. Con poca historia la cifra lleva '
+      'una tilde (~): es un estimado preliminar.',
     ),
+    Subtitulo('Cubrir lo que te pasaste'),
     Parrafo(
-      'Cuando el cierre estimado se ve apretado, la pantalla ofrece un '
-      '**Plan de ajuste**: en qué categorías podrías recortar para que el '
-      'ciclo cuadre.',
+      'Si una categoría se pasó, la app te propone de cuál otra cubrirlo: '
+      'la que más espacio tiene. Con el botón **Mover** pasas ese dinero de '
+      'una vez; con **Elegir otra categoría** escoges tú de dónde, en la '
+      'pantalla **Mover presupuesto**.',
     ),
-    Subtitulo('Mover presupuesto entre categorías'),
-    Parrafo(
-      'El **Rebalanceo sugerido** propone tomar presupuesto de una '
-      'categoría con espacio y dárselo a la que lo necesita. Al aceptarlo '
-      'con **Mover presupuesto**, el cambio es temporal — solo aplica a '
-      'este ciclo, no reescribe tu presupuesto de siempre.',
+    Nota(
+      tono: TonoNota.info,
+      etiqueta: 'SOLO ESTE CICLO',
+      texto: 'Mover presupuesto no cambia tu presupuesto de siempre: solo '
+          'aplica al ciclo en curso.',
     ),
   ],
 );
@@ -254,22 +246,30 @@ const _temaCiclos = TemaGuia(
   id: 'ciclos',
   emoji: '🔁',
   titulo: 'Ciclos',
-  resumen: 'Cerrar, reabrir y ver cómo te fue en meses pasados.',
+  resumen: 'Cerrar, reabrir y ver cómo te fue en meses pasados o en el año.',
   bloques: [
     Parrafo(
       'Cerrar un ciclo congela sus cifras: el pronóstico y el reparto ya '
       'no cambian con el tiempo, quedan fijos como quedó ese mes. Un '
-      'ciclo cerrado se puede reabrir si necesitas corregir algo.',
+      'ciclo cerrado se puede reabrir desde Gastos si necesitas corregir algo.',
     ),
-    Subtitulo('Ciclos anteriores'),
+    Subtitulo('Historial'),
     Parrafo(
-      'La pantalla **Ciclos anteriores** trae la gráfica '
+      'En Análisis → **Historial** está la gráfica '
       '**Cuánto has apartado por ciclo**, con tu acumulado y el promedio '
       'de alcance de tu meta a lo largo del tiempo.',
     ),
+    Subtitulo('Más allá de un ciclo'),
     Parrafo(
-      'Ahí también comparas tu tasa de ahorro contra tu alcance de meta, '
-      'ciclo por ciclo.',
+      'En Análisis → **Periodo** ves cuánto gastaste en **Este año**, los '
+      '**Últimos 12 meses**, el **Año pasado** o entre las fechas que elijas: '
+      'el total, cuánto al mes en promedio, mes por mes, por categoría y, si '
+      'ya registrabas entonces, contra las mismas fechas del año anterior.',
+    ),
+    Parrafo(
+      'Y en Análisis → Detalle, **Lo que se repite** junta lo que pagas cada '
+      'semana, quincena, mes o año con la misma descripción —Netflix, el '
+      'gimnasio, la colegiatura—, cuándo toca el próximo y cuánto suma al año.',
     ),
   ],
 );

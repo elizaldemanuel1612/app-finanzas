@@ -102,7 +102,9 @@ void main() {
       // 3:1 (antes 2.62:1), lo que cierra la deuda del ícono blanco sobre
       // verde en el Dismissible.
       expect(razonDeContraste(PaletaHex.verde, PaletaHex.tarjeta), closeTo(3.30, 0.02));
-      expect(razonDeContraste(PaletaHex.ambar, PaletaHex.tarjeta), closeTo(2.15, 0.02));
+      // Rediseño (2026-11-15): `atencion` pasó de #F59E0B (2.15:1) a #D18306
+      // para llegar al umbral gráfico 3:1 sobre blanco.
+      expect(razonDeContraste(PaletaHex.ambar, PaletaHex.tarjeta), closeTo(3.02, 0.02));
       expect(razonDeContraste(PaletaHex.coral, PaletaHex.tarjeta), closeTo(3.76, 0.02));
     });
 
@@ -161,5 +163,108 @@ void main() {
       expect(razonDeContraste(0xFFFFFF, PaletaHex.noche), greaterThanOrEqualTo(_minimoTexto));
     });
   });
-}
 
+  group('tokens del rediseño (docs/rediseno/design-system/tokens.json) — AA en los dos modos', () {
+    // (texto, fondo, mínimo) para cada modo.
+    List<(String, int, int, double)> pares(
+      int fondo,
+      int superficie,
+      int hundida,
+      int texto,
+      int texto2,
+      int accion,
+      int sobreAccion,
+      List<(String, int, int)> estados,
+      int heroeFondo,
+      List<(String, int)> sobreHeroe,
+      List<(String, int)> graficos,
+      int bordeControl,
+    ) =>
+        [
+          for (final (nombre, color) in [('texto', texto), ('texto-2', texto2)])
+            for (final (sobre, f) in [('fondo', fondo), ('superficie', superficie), ('hundida', hundida)])
+              ('$nombre sobre $sobre', color, f, _minimoTexto),
+          ('sobre-accion sobre accion', sobreAccion, accion, _minimoTexto),
+          for (final (nombre, colorTexto, colorFondo) in estados) ('$nombre-texto sobre $nombre-fondo', colorTexto, colorFondo, _minimoTexto),
+          for (final (nombre, color) in sobreHeroe) ('$nombre sobre heroe-fondo', color, heroeFondo, _minimoTexto),
+          for (final (nombre, color) in graficos) ('$nombre sobre superficie (gráfica)', color, superficie, _minimoGrafico),
+          ('borde-control sobre superficie', bordeControl, superficie, _minimoGrafico),
+        ];
+
+    final claro = pares(
+      PaletaHex.fondo,
+      PaletaHex.superficie,
+      PaletaHex.superficieHundida,
+      PaletaHex.texto,
+      PaletaHex.texto2,
+      PaletaHex.accion,
+      PaletaHex.sobreAccion,
+      [
+        ('exito', PaletaHex.exitoTexto, PaletaHex.exitoFondo),
+        ('atencion', PaletaHex.atencionTexto, PaletaHex.atencionFondo),
+        ('peligro', PaletaHex.peligroTexto, PaletaHex.peligroFondo),
+        ('info', PaletaHex.infoTexto, PaletaHex.infoFondo),
+      ],
+      PaletaHex.heroeFondo,
+      [
+        ('heroe-texto', PaletaHex.heroeTexto),
+        ('heroe-texto-2', PaletaHex.heroeTexto2),
+        ('heroe-exito', PaletaHex.heroeExito),
+        ('heroe-atencion', PaletaHex.heroeAtencion),
+        ('heroe-peligro', PaletaHex.heroePeligro),
+      ],
+      [
+        ('exito', PaletaHex.exito),
+        ('atencion', PaletaHex.atencion),
+        ('peligro', PaletaHex.peligro),
+        ('graf-1', PaletaHex.graf1),
+        ('graf-2', PaletaHex.graf2),
+        ('graf-3', PaletaHex.graf3),
+        ('graf-4', PaletaHex.graf4),
+        ('marca-ritmo', PaletaHex.marcaRitmo),
+      ],
+      PaletaHex.bordeControl,
+    );
+    final oscuro = pares(
+      PaletaHexOscura.fondo,
+      PaletaHexOscura.superficie,
+      PaletaHexOscura.superficieHundida,
+      PaletaHexOscura.texto,
+      PaletaHexOscura.texto2,
+      PaletaHexOscura.accion,
+      PaletaHexOscura.sobreAccion,
+      [
+        ('exito', PaletaHexOscura.exitoTexto, PaletaHexOscura.exitoFondo),
+        ('atencion', PaletaHexOscura.atencionTexto, PaletaHexOscura.atencionFondo),
+        ('peligro', PaletaHexOscura.peligroTexto, PaletaHexOscura.peligroFondo),
+        ('info', PaletaHexOscura.infoTexto, PaletaHexOscura.infoFondo),
+      ],
+      PaletaHexOscura.heroeFondo,
+      [
+        ('heroe-texto', PaletaHexOscura.heroeTexto),
+        ('heroe-texto-2', PaletaHexOscura.heroeTexto2),
+        ('heroe-exito', PaletaHexOscura.heroeExito),
+        ('heroe-atencion', PaletaHexOscura.heroeAtencion),
+        ('heroe-peligro', PaletaHexOscura.heroePeligro),
+      ],
+      [
+        ('exito', PaletaHexOscura.exito),
+        ('atencion', PaletaHexOscura.atencion),
+        ('peligro', PaletaHexOscura.peligro),
+        ('graf-1', PaletaHexOscura.graf1),
+        ('graf-2', PaletaHexOscura.graf2),
+        ('graf-3', PaletaHexOscura.graf3),
+        ('graf-4', PaletaHexOscura.graf4),
+        ('marca-ritmo', PaletaHexOscura.marcaRitmo),
+      ],
+      PaletaHexOscura.bordeControl,
+    );
+    for (final (modo, lista) in [('claro', claro), ('oscuro', oscuro)]) {
+      for (final (nombre, a, b, minimo) in lista) {
+        test('$modo: $nombre', () {
+          expect(razonDeContraste(a, b), greaterThanOrEqualTo(minimo));
+        });
+      }
+    }
+  });
+}

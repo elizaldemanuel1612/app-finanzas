@@ -7,6 +7,7 @@ import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
+import '../../domain/cuentas/fechas_tarjeta.dart';
 import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/estado_movimiento.dart';
@@ -14,9 +15,11 @@ import '../../domain/modelos/ingreso_extra.dart';
 import '../../domain/modelos/movimiento_cuenta.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/reglas/creacion_ingreso_extra.dart';
+import '../comun/aviso.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/tema.dart';
 import 'color_saldo.dart';
+import 'frase_pago.dart';
 import 'hoja_transferencia.dart';
 import 'pantalla_editar_cuenta.dart';
 
@@ -53,6 +56,7 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
   late Cuenta _cuenta = widget.cuenta;
   List<Cuenta> _cuentas = const [];
   Dinero? _saldo;
+  PagoTarjeta? _pago;
   Dinero _gastadoCiclo = const Dinero.cero();
   List<_Renglon>? _renglones;
 
@@ -100,6 +104,7 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
     setState(() {
       _cuenta = cuenta;
       _saldo = saldoDe(cuenta, gastos, abonos);
+      _pago = pagoDeTarjeta(cuenta, gastos, abonos, hoy: DateTime.now());
       _gastadoCiclo = Dinero(suyos.where((g) => g.cicloId == ciclo.id).fold(0, (s, g) => s + g.monto.centavos));
       _renglones = renglones.take(60).toList();
     });
@@ -311,6 +316,31 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                     ),
                   ),
                 ),
+                // Corte y fecha de pago (spec §7.3.1): cuánto y antes de
+                // cuándo; si falta pagar, la salida es pagarla.
+                if (_pago case final pago?) ...[
+                  const SizedBox(height: 12),
+                  Builder(builder: (context) {
+                    final frases = frasesDePago(pago);
+                    final pagar = pago.estado != EstadoPagoTarjeta.sinPendiente &&
+                        _cuentas.where((c) => c.activa).length > 1;
+                    return Aviso(
+                      tono: frases.tono,
+                      titulo: frases.titulo,
+                      apoyo: frases.apoyo,
+                      accion: pagar ? 'Pagar esta tarjeta' : null,
+                      onAccion: pagar ? _transferir : null,
+                    );
+                  }),
+                ] else if (esCredito && _cuenta.activa) ...[
+                  const SizedBox(height: 12),
+                  Aviso.info(
+                    titulo: '¿Cuándo corta y cuándo se paga?',
+                    apoyo: 'Agrega los días y te avisamos cuánto pagar.',
+                    accion: 'Agregar',
+                    onAccion: _editar,
+                  ),
+                ],
                 const SizedBox(height: 12),
                 if (renglones.isEmpty)
                   Padding(

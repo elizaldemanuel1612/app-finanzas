@@ -33,6 +33,8 @@ class _PantallaEditarCuentaState extends State<PantallaEditarCuenta> {
   late final _limite = TextEditingController(
     text: widget.existente?.limite == null ? '' : textoEditableDeDinero(widget.existente!.limite!),
   );
+  late final _diaCorte = TextEditingController(text: widget.existente?.diaCorte?.toString() ?? '');
+  late final _diaPago = TextEditingController(text: widget.existente?.diaPago?.toString() ?? '');
   late TipoCuenta _tipo = widget.existente?.tipo ?? widget.tipoInicial ?? TipoCuenta.debito;
 
   /// En efectivo y crédito llevar saldo es opcional: "traigo $800",
@@ -61,6 +63,8 @@ class _PantallaEditarCuentaState extends State<PantallaEditarCuenta> {
     _emoji.dispose();
     _saldo.dispose();
     _limite.dispose();
+    _diaCorte.dispose();
+    _diaPago.dispose();
     super.dispose();
   }
 
@@ -88,6 +92,26 @@ class _PantallaEditarCuentaState extends State<PantallaEditarCuenta> {
         return;
       }
     }
+    // Corte y fecha de pago (spec §7.3.1): opcionales, pero van juntos.
+    int? diaCorte;
+    int? diaPago;
+    if (_esCredito) {
+      int? leerDia(TextEditingController c) {
+        final n = int.tryParse(c.text.trim());
+        return n != null && n >= 1 && n <= 31 ? n : null;
+      }
+
+      final hayCorte = _diaCorte.text.trim().isNotEmpty;
+      final hayPago = _diaPago.text.trim().isNotEmpty;
+      if (hayCorte || hayPago) {
+        diaCorte = leerDia(_diaCorte);
+        diaPago = leerDia(_diaPago);
+        if (diaCorte == null || diaPago == null) {
+          setState(() => _error = 'Escribe los dos días, del 1 al 31: el de corte y el límite de pago.');
+          return;
+        }
+      }
+    }
     setState(() => _guardando = true);
     final ahora = DateTime.now();
     final previa = widget.existente;
@@ -102,6 +126,8 @@ class _PantallaEditarCuentaState extends State<PantallaEditarCuenta> {
             saldoInicial: saldo ?? const Dinero.cero(),
             fechaSaldoInicial: ahora,
             limite: limite,
+            diaCorte: diaCorte,
+            diaPago: diaPago,
           )
         : previa.copyWith(
             nombre: nombre,
@@ -111,6 +137,8 @@ class _PantallaEditarCuentaState extends State<PantallaEditarCuenta> {
             saldoInicial: saldo,
             fechaSaldoInicial: saldo == null ? null : ahora,
             limite: () => limite,
+            diaCorte: () => diaCorte,
+            diaPago: () => diaPago,
           );
     await widget.cuentaRepositorio.guardar(cuenta);
     if (mounted) Navigator.of(context).pop(true);
@@ -220,6 +248,35 @@ class _PantallaEditarCuentaState extends State<PantallaEditarCuenta> {
                     prefixText: '\$ ',
                     helperText: 'Para ver cuánto te queda disponible.',
                   ),
+                ),
+              ],
+              if (_esCredito) ...[
+                const SizedBox(height: 20),
+                Text('Corte y pago (opcional)', style: textos.cuerpoFuerte),
+                const SizedBox(height: 4),
+                Text(
+                  'Vienen en tu estado de cuenta. Con ellos te avisamos cuánto pagar y antes de qué día.',
+                  style: textos.etiqueta,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _diaCorte,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Día de corte', hintText: '5'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _diaPago,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Día límite de pago', hintText: '25'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
               if (_error != null) ...[

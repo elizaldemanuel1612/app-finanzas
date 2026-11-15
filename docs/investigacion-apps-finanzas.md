@@ -57,9 +57,9 @@ MAVfin ya evita las tres quejas grandes (no depende de bancos, no cobra, las cat
 | 1 | **Ahorro, inversiones y patrimonio:** dónde vive lo que se aparta y cuánto vale todo | **Hecho 2026-11-14** (spec §7.3.2) |
 | 2 | **Metas con nombre** ("Fondo de emergencia $100,000", "Viaje en junio"): progreso contra una cuenta de ahorro y cuánto apartar por ciclo para llegar a la fecha | **Hecho 2026-11-14** (spec §7.3.3) |
 | 3 | **Patrimonio en el tiempo:** gráfica por ciclo en Tus cuentas | **Hecho 2026-11-14** (spec §7.3.3) |
-| 4 | **Tarjeta de crédito: corte y fecha de pago,** con "paga antes del día X" en Inicio | Pendiente (segunda etapa de §7.3.1) |
-| 5 | **Resumen del año y rango de fechas** en Análisis | Pendiente |
-| 6 | **Gastos que se repiten** (suscripciones): detectarlos por descripción y monto, y cuánto suman al año | Pendiente |
+| 4 | **Tarjeta de crédito: corte y fecha de pago,** con "paga antes del día X" en Inicio | **Hecho 2026-11-15** (spec §7.3.1) |
+| 5 | **Resumen del año y rango de fechas** en Análisis | **Hecho 2026-11-15** (spec §5.7, vista Periodo) |
+| 6 | **Gastos que se repiten** (suscripciones): detectarlos por descripción y monto, y cuánto suman al año | **Hecho 2026-11-15** (spec §5.7, "Lo que se repite") |
 | 7 | **Tema "Cuentas y patrimonio" en la guía por temas** (hoy la guía no habla de cuentas) | Pendiente |
 | 8 | **Lo que sobra pasa al siguiente ciclo** por categoría (sobres) | Por decidir: cambia cómo se entiende el presupuesto |
 | 9 | Recordatorios y presupuesto en pareja | En pausa: piden notificaciones nativas y nube |

@@ -8,7 +8,7 @@
     "rewrites": [{ "source": "**", "destination": "/index.html" }],
     "headers": [
       {
-        "source": "**/*.@(js|wasm|json)",
+        "source": "**/*.@(js|mjs|wasm|json|otf|ttf)",
         "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
       }
     ]

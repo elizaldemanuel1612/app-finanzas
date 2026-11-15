@@ -50,6 +50,12 @@ final class Cuenta {
   /// Límite de crédito, si el usuario lo dio. Solo crédito.
   final Dinero? limite;
 
+  /// Día de corte y día límite de pago (1–31), si el usuario los dio. Solo
+  /// crédito (spec §7.3.1, 2026-11-15); las fechas salen de
+  /// `domain/cuentas/fechas_tarjeta.dart`.
+  final int? diaCorte;
+  final int? diaPago;
+
   const Cuenta({
     required this.id,
     required this.nombre,
@@ -60,6 +66,8 @@ final class Cuenta {
     required this.fechaSaldoInicial,
     this.activa = true,
     this.limite,
+    this.diaCorte,
+    this.diaPago,
   });
 
   Cuenta copyWith({
@@ -71,7 +79,10 @@ final class Cuenta {
     DateTime? fechaSaldoInicial,
     bool? activa,
     Dinero? Function()? limite,
+    int? Function()? diaCorte,
+    int? Function()? diaPago,
   }) {
+    final credito = (tipo ?? this.tipo) == TipoCuenta.credito;
     final nuevoTipo = tipo ?? this.tipo;
     return Cuenta(
       id: id,
@@ -83,6 +94,8 @@ final class Cuenta {
       fechaSaldoInicial: fechaSaldoInicial ?? this.fechaSaldoInicial,
       activa: activa ?? this.activa,
       limite: nuevoTipo != TipoCuenta.credito ? null : (limite != null ? limite() : this.limite),
+      diaCorte: !credito ? null : (diaCorte != null ? diaCorte() : this.diaCorte),
+      diaPago: !credito ? null : (diaPago != null ? diaPago() : this.diaPago),
     );
   }
 
@@ -96,6 +109,8 @@ final class Cuenta {
         'fechaSaldoInicial': fechaSaldoInicial.toIso8601String(),
         'activa': activa,
         if (limite != null) 'limiteCentavos': limite!.centavos,
+        if (diaCorte != null) 'diaCorte': diaCorte,
+        if (diaPago != null) 'diaPago': diaPago,
       };
 
   factory Cuenta.fromJson(Map<String, dynamic> json) => Cuenta(
@@ -108,6 +123,8 @@ final class Cuenta {
         fechaSaldoInicial: DateTime.parse(json['fechaSaldoInicial'] as String),
         activa: json['activa'] as bool? ?? true,
         limite: json['limiteCentavos'] == null ? null : Dinero(json['limiteCentavos'] as int),
+        diaCorte: json['diaCorte'] as int?,
+        diaPago: json['diaPago'] as int?,
       );
 }
 

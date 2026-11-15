@@ -11,7 +11,6 @@ import '../../domain/modelos/meta_apartado.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/categorias.dart';
 import '../../domain/presupuesto/reparto.dart';
-import '../../domain/rollups/estado_ritmo.dart';
 import '../ayuda/contenido_guia.dart';
 import '../ayuda/modelo_guia.dart';
 import '../ayuda/pantalla_guia.dart';
@@ -609,7 +608,6 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
           const BarraRitmo(
             porcentajeUsado: 0.62,
             avanceCiclo: 0.5,
-            estado: _estadoRitmoDeEjemplo,
             descripcion: 'este ejemplo',
           ),
           const SizedBox(height: 16),
@@ -670,9 +668,6 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
   }
 }
 
-// Estado neutral solo para dibujar el ejemplo de BarraRitmo del paso de la
-// marca de ritmo — no representa ninguna categoría real.
-const _estadoRitmoDeEjemplo = EstadoRitmo.justo;
 
 class _PaginaBienvenida extends StatelessWidget {
   const _PaginaBienvenida();

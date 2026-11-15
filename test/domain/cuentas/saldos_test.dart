@@ -434,4 +434,38 @@ void main() {
       expect(larga.map((p) => p.ciclo.id), ['2026-09', '2026-10', '2026-11']);
     });
   });
+
+  group('cuentas para registrar: solo las reales (rediseño, Etapa 3)', () {
+    Cuenta cuenta(String id, TipoCuenta tipo) => Cuenta(
+          id: id,
+          nombre: id,
+          emoji: '💳',
+          tipo: tipo,
+          llevaSaldo: false,
+          saldoInicial: const Dinero.cero(),
+          fechaSaldoInicial: _desde,
+        );
+    final base = cuentasBase(_desde);
+
+    test('sin cuentas propias, las base se quedan', () {
+      expect(cuentasParaRegistrar(base).map((c) => c.id), [idCuentaTarjeta, idCuentaEfectivo]);
+    });
+
+    test('con una tarjeta real se va la genérica; el efectivo base se queda', () {
+      final r = cuentasParaRegistrar([...base, cuenta('bbva', TipoCuenta.debito)]);
+      expect(r.map((c) => c.id), [idCuentaEfectivo, 'bbva']);
+    });
+
+    test('con otro efectivo se va el base; la del gasto que se edita se conserva', () {
+      final cuentas = [...base, cuenta('cartera', TipoCuenta.efectivo), cuenta('amex', TipoCuenta.credito)];
+      expect(cuentasParaRegistrar(cuentas).map((c) => c.id), ['cartera', 'amex']);
+      expect(cuentasParaRegistrar(cuentas, conservar: idCuentaTarjeta).map((c) => c.id), [idCuentaTarjeta, 'cartera', 'amex']);
+    });
+
+    test('una base renombrada es una cuenta real y no se esconde', () {
+      final platino = base.first.copyWith(nombre: 'Banamex platino');
+      final r = cuentasParaRegistrar([platino, base.last, cuenta('bbva', TipoCuenta.debito)]);
+      expect(r.map((c) => c.id), [idCuentaTarjeta, idCuentaEfectivo, 'bbva']);
+    });
+  });
 }

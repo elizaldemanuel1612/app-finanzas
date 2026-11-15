@@ -10,6 +10,8 @@ import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
+import '../../domain/analisis/ciclo_comparable.dart';
+import '../../domain/analisis/gastos_recurrentes.dart';
 import '../../domain/analisis/corte_pareto.dart';
 import '../../domain/analisis/presupuestos_del_cierre.dart';
 import '../../domain/analisis/recomendaciones.dart';
@@ -27,8 +29,21 @@ import '../comun/aviso_gesto.dart';
 import '../comun/guia_rapida.dart';
 import '../comun/selector_ciclo.dart';
 import '../comun/tema.dart';
-import '../cuentas/color_saldo.dart';
+import '../comun/formato_fecha.dart';
+import '../comun/tarjeta_app.dart';
+import '../comun/renglon_app.dart';
+import '../comun/formato_dinero.dart';
+import '../comun/esqueleto.dart';
+import '../comun/chip_estado.dart';
+import '../comun/barra_ritmo.dart';
+import '../comun/avatar_ajustes.dart';
+import '../ciclo/pantalla_ciclos_anteriores.dart';
+import '../../domain/rollups/estado_ritmo.dart';
+import '../../domain/presupuesto/cobertura_excesos.dart';
+import '../../domain/presupuesto/apartado_estimado.dart';
+import '../../domain/analisis/frases_conclusion.dart';
 import 'graficas_analisis.dart';
+import 'vista_periodo.dart';
 
 /// Pestaña Análisis (spec-app-finanzas-v2.md §5.7): reportes y
 /// recomendaciones del ciclo en curso o, con el selector de arriba, de un
@@ -51,8 +66,13 @@ class PantallaAnalisis extends StatefulWidget {
   final CuentaRepositorio? cuentaRepositorio;
   final MovimientoCuentaRepositorio? movimientoCuentaRepositorio;
 
-  /// Para elegir un ciclo pasado; sin él solo se ve el ciclo en curso.
+  /// Para elegir un ciclo pasado y para Historial; sin él solo se ve el
+  /// ciclo en curso.
   final CicloRepositorio? cicloRepositorio;
+
+  /// Como pestaña raíz: encabezado con el avatar que abre Ajustes.
+  final String? nombre;
+  final VoidCallback? alAbrirAjustes;
 
   const PantallaAnalisis({
     super.key,
@@ -68,6 +88,8 @@ class PantallaAnalisis extends StatefulWidget {
     this.cuentaRepositorio,
     this.movimientoCuentaRepositorio,
     this.cicloRepositorio,
+    this.nombre,
+    this.alAbrirAjustes,
   });
 
   @override
@@ -95,6 +117,15 @@ class _Datos {
   final Ciclo ciclo;
   final List<CicloConsultable> ciclos;
 
+  /// Lo que se apartaría al cierre (MPC; en un ciclo terminado, lo real).
+  final Dinero apartadoEstimado;
+
+  /// La salida de cada categoría que se pasó: la misma de Inicio y Categoría.
+  final List<Cobertura> coberturas;
+
+  /// Lo que se repite en todo el historial, con el emoji de su categoría.
+  final List<({GastoRecurrente gasto, String emoji})> recurrentes;
+
   const _Datos(
     this.reporte,
     this.recomendaciones,
@@ -104,15 +135,20 @@ class _Datos {
     this.metaCiclo,
     this.ciclo,
     this.ciclos,
+    this.apartadoEstimado,
+    this.coberturas,
+    this.recurrentes,
   );
 
 }
 
-enum _Vista { basico, avanzado, cuentas }
+/// Análisis › Resumen · Detalle · Historial (`docs/rediseno/plan-rediseno.md`,
+/// Etapa 5). Historial reemplaza a "Ciclos anteriores" de Inicio.
+enum _Vista { resumen, detalle, historial, periodo }
 
 class _PantallaAnalisisState extends State<PantallaAnalisis> {
   _Datos? _datos;
-  _Vista _vista = _Vista.basico;
+  _Vista _vista = _Vista.resumen;
 
   /// Siempre abre en el ciclo en curso.
   late String _cicloVisto = widget.ciclo.id;
@@ -187,9 +223,12 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
     final anterior = calculadora.calcularPara(
       ciclo.fechaInicio.subtract(const Duration(days: 1)),
     );
+    // "Contra el ciclo pasado" solo con un ciclo cerrado y completo
+    // (docs/rediseno/plan-rediseno.md, Etapa 0).
+    final comparable = cicloComparable(anterior: anterior, guardados: guardados, movimientos: movimientos);
     final reporte = calcularReporteAnalisis(
       ciclo: ciclo,
-      cicloAnterior: anterior,
+      cicloAnterior: comparable ? anterior : null,
       movimientos: movimientos,
       categorias: efectivas,
       hoy: DateTime.now(),
@@ -230,60 +269,332 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
           metaCiclo,
           ciclo,
           ciclos,
+          calcularApartadoEstimado(
+            ingreso: ingreso,
+            presupuestoFijas: reporte.presupuestoFijas,
+            gastadoFijas: reporte.gastadoFijas,
+            presupuestoVariables: reporte.presupuestoVariables,
+            proyeccionVariables: reporte.proyeccionVariables,
+          ),
+          calcularCoberturas(reporte.variables),
+          [
+            for (final g in detectarRecurrentes(movimientos, hoy: DateTime.now()))
+              (gasto: g, emoji: todas.where((c) => c.id == g.categoriaId).firstOrNull?.emoji ?? '🔁'),
+          ],
         ));
-  }
-
-  void _accion(Recomendacion r) {
-    switch (r.accion) {
-      case AccionRecomendacion.verCategoria:
-        widget.alVerCategoria(r.categoriaId!);
-      case AccionRecomendacion.verGastos:
-        widget.alVerGastos();
-      case AccionRecomendacion.verMeta:
-        widget.alVerMeta();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final datos = _datos;
+    final raiz = widget.alAbrirAjustes != null;
+    final conHistorial = widget.cicloRepositorio != null;
+    final vista = !conHistorial && _vista == _Vista.historial ? _Vista.resumen : _vista;
+    final segmentado = Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+      child: SegmentedButton<_Vista>(
+        showSelectedIcon: false,
+        segments: [
+          const ButtonSegment(value: _Vista.resumen, label: Text('Resumen')),
+          const ButtonSegment(value: _Vista.detalle, label: Text('Detalle')),
+          if (conHistorial) const ButtonSegment(value: _Vista.historial, label: Text('Historial')),
+          const ButtonSegment(value: _Vista.periodo, label: Text('Periodo')),
+        ],
+        selected: {vista},
+        onSelectionChanged: (s) => _elegirVista(s.first),
+      ),
+    );
+    final Widget cuerpo;
+    if (vista == _Vista.periodo) {
+      cuerpo = VistaPeriodo(
+        categoriaRepositorio: widget.categoriaRepositorio,
+        movimientoRepositorio: widget.movimientoRepositorio,
+        alVerCategoria: widget.alVerCategoria,
+      );
+    } else if (vista == _Vista.historial) {
+      cuerpo = PantallaCiclosAnteriores(
+        embebida: true,
+        perfil: widget.perfil,
+        cicloActual: widget.ciclo,
+        categoriaRepositorio: widget.categoriaRepositorio,
+        movimientoRepositorio: widget.movimientoRepositorio,
+        cicloRepositorio: widget.cicloRepositorio!,
+        ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+        cuentaRepositorio: widget.cuentaRepositorio,
+        movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio,
+      );
+    } else if (datos == null) {
+      cuerpo = const CargandoPantalla(formas: [
+        Esqueleto(alto: 44, radio: Radios.m),
+        Esqueleto.tarjeta(alto: 180),
+        Esqueleto(ancho: 120, alto: 18),
+        Esqueleto.tarjeta(alto: 140),
+      ]);
+    } else {
+      cuerpo = Column(
+        children: [
+          if (datos.ciclos.length > 1)
+            SelectorCiclo(ciclos: datos.ciclos, vistoId: datos.ciclo.id, enCursoId: widget.ciclo.id, alCambiar: _verCiclo),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await _cargar();
+                if (context.mounted) await avisarGestoPrimeraVez(context, GestoApp.recargar);
+              },
+              child: datos.reporte.sinMovimientos
+                  ? _vacio(context)
+                  : vista == _Vista.resumen
+                      ? _contenidoResumen(context, datos)
+                      : _contenidoDetalle(context, datos),
+            ),
+          ),
+        ],
+      );
+    }
     return Scaffold(
-      // Con el selector de ciclo a la vista, el título no repite el ciclo.
-      appBar: (datos?.ciclos.length ?? 0) > 1
-          ? AppBar(title: const Text('Análisis'))
-          : AppBar(
-              toolbarHeight: 64,
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      appBar: raiz ? null : AppBar(title: const Text('Análisis')),
+      body: SafeArea(
+        bottom: false,
+        top: raiz,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (raiz) EncabezadoRaiz(titulo: 'Análisis', nombre: widget.nombre, alAbrirAjustes: widget.alAbrirAjustes!),
+            segmentado,
+            Expanded(child: cuerpo),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Resumen: el veredicto, "Qué hacer" (máximo 2) y "En qué se fue".
+  Widget _contenidoResumen(BuildContext context, _Datos datos) {
+    final p = ColoresApp.actual;
+    final textos = Theme.of(context).textTheme;
+    final r = datos.reporte;
+    final avance = r.diaDelCiclo / r.diasDelCiclo;
+    final presupuesto = r.presupuestoVariables;
+    final porcentaje = presupuesto.esPositivo ? r.gastadoVariables.centavos / presupuesto.centavos : 0.0;
+    final tono = tonoDeRitmo(porcentajeUsado: presupuesto.esPositivo ? porcentaje : null, avanceCiclo: avance);
+    final meta = datos.metaCiclo;
+    final apartado = datos.apartadoEstimado;
+    final veredicto = calcularVeredicto(reporte: r, hoy: DateTime.now());
+
+    // Qué hacer: primero las coberturas (la misma salida que Inicio y
+    // Categoría), luego el ritmo diario. Máximo dos.
+    final queHacer = <Widget>[
+      for (final c in datos.coberturas.take(2))
+        RenglonApp(
+          icono: Icons.swap_horiz_rounded,
+          fondoIcono: p.peligroFondo,
+          colorIcono: p.peligroTexto,
+          titulo: c.origen == null ? 'Te pasaste en ${c.categoria.nombre}' : 'Cubre ${c.categoria.nombre} con ${c.origen!.nombre}',
+          subtitulo: c.origen == null
+              ? 'Sale de lo que apartas'
+              : c.falta.esPositivo
+                  ? 'Alcanza para ${enPesos(c.cubre)} de ${enPesos(c.exceso)}'
+                  : 'A ${c.origen!.nombre} le sobrarán ${enPesos(c.sobranteDespues)}',
+          derecha: ElevatedButton(
+            style: ElevatedButton.styleFrom(minimumSize: const Size(0, 40), padding: const EdgeInsets.symmetric(horizontal: 14)),
+            onPressed: () => widget.alVerCategoria(c.categoria.id),
+            child: Text(c.origen == null ? 'Ver' : 'Mover ${enPesos(c.cubre)}'),
+          ),
+        ),
+      if (datos.coberturas.length < 2 && !r.terminado && veredicto.disponibleHoy != null)
+        RenglonApp(
+          icono: Icons.speed_rounded,
+          fondoIcono: p.atencionFondo,
+          colorIcono: p.atencionTexto,
+          titulo: 'Gasta hasta ${enPesos(veredicto.disponibleHoy!)} al día',
+          subtitulo: meta.esPositivo ? 'Así llegas a tu meta completa' : 'Así no te pasas de lo planeado',
+        ),
+    ];
+
+    final variables = [
+      for (final e in r.variables)
+        if (e.gastado.esPositivo) e,
+    ]..sort((a, b) => b.gastado.compareTo(a.gastado));
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      children: [
+        TarjetaApp(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ChipEstado(
+                tono: tonoEstadoDeRitmo(tono),
+                texto: r.terminado ? veredicto.titulo : etiquetaTonoRitmo(tono),
+              ),
+              const SizedBox(height: 14),
+              Text(r.terminado ? 'Apartaste' : 'Si sigues así, apartas', style: textos.etiqueta),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Text('Ciclo ${widget.ciclo.etiquetaConAnio}', style: Theme.of(context).textTheme.labelSmall),
-                  const Text('Análisis'),
+                  Flexible(
+                    child: Text(
+                      apartado.esNegativo ? r'$0' : enPesos(apartado),
+                      style: textos.cifraHeroe,
+                      textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.6),
+                    ),
+                  ),
+                  if (meta.esPositivo) ...[const SizedBox(width: 8), Text('de ${enPesos(meta)}', style: textos.etiqueta)],
                 ],
               ),
-            ),
-      body: datos == null
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // Fijo arriba, como en Gastos; cada vista conserva su scroll.
-                if (datos.ciclos.length > 1)
-                  SelectorCiclo(
-                    ciclos: datos.ciclos,
-                    vistoId: datos.ciclo.id,
-                    enCursoId: widget.ciclo.id,
-                    alCambiar: _verCiclo,
-                  ),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () async {
-                      await _cargar();
-                      if (context.mounted) await avisarGestoPrimeraVez(context, GestoApp.recargar);
-                    },
-                    child: datos.reporte.sinMovimientos ? _vacio(context) : _contenido(context, datos),
-                  ),
+              const SizedBox(height: 14),
+              BarraRitmo(
+                porcentajeUsado: porcentaje,
+                avanceCiclo: avance,
+                descripcion: 'Tus variables',
+                gastado: r.gastadoVariables,
+                presupuesto: presupuesto,
+              ),
+              const SizedBox(height: 4),
+              Text('${enPesos(r.gastadoVariables)} de ${enPesos(presupuesto)} en variables', style: textos.etiqueta),
+            ],
+          ),
+        ),
+        if (queHacer.isNotEmpty) ...[
+          const EncabezadoSeccion(titulo: 'Qué hacer'),
+          TarjetaApp.lista(renglones: queHacer),
+        ],
+        if (variables.isNotEmpty) ...[
+          EncabezadoSeccion(
+            titulo: 'En qué se fue',
+            accion: TextButton(onPressed: () => _elegirVista(_Vista.detalle), child: const Text('Ver detalle')),
+          ),
+          TarjetaApp.lista(renglones: [
+            for (final e in variables.take(4))
+              RenglonApp(
+                emoji: e.categoria.emoji,
+                titulo: e.categoria.nombre,
+                monto: enPesos(e.gastado),
+                onTap: () => widget.alVerCategoria(e.categoria.id),
+                abajo: BarraRitmo(
+                  porcentajeUsado: e.presupuesto.esPositivo ? e.gastado.centavos / e.presupuesto.centavos : 0,
+                  avanceCiclo: avance,
+                  descripcion: e.categoria.nombre,
+                  gastado: e.gastado,
+                  presupuesto: e.presupuesto,
                 ),
-              ],
-            ),
+              ),
+          ]),
+        ],
+      ],
+    );
+  }
+
+  /// Detalle: cada gráfica con una frase-conclusión como título.
+  Widget _contenidoDetalle(BuildContext context, _Datos datos) {
+    final r = datos.reporte;
+    final parejo = Dinero(r.presupuestoVariables.centavos * r.diaDelCiclo ~/ r.diasDelCiclo);
+    final arriba = r.gastadoVariables > parejo;
+    final diferencia = (r.gastadoVariables - parejo).absoluto;
+    final ritmo = r.terminado
+        ? 'Cerraste ${enPesos(diferencia)} ${arriba ? 'arriba' : 'abajo'} de tu presupuesto'
+        : 'Vas ${enPesos(diferencia)} ${arriba ? 'arriba' : 'abajo'} del ritmo parejo';
+    final faltaMeta = datos.metaCiclo - datos.apartadoEstimado;
+    final plan = !datos.metaCiclo.esPositivo
+        ? 'Así se reparte lo que entra'
+        : faltaMeta.esPositivo
+            ? 'Las variables se comen ${enPesos(faltaMeta)} de tu meta'
+            : (r.terminado ? 'Apartaste toda tu meta' : 'Si sigues así, apartas toda tu meta');
+
+    final variablesConGasto = [for (final g in r.porCategoria) if (g.categoria is CategoriaVariable) g];
+    final principal = variablesConGasto.firstOrNull;
+    final porCategoria = principal == null || !r.gastadoVariables.esPositivo
+        ? 'Tus categorías'
+        : '${principal.categoria.nombre} es ${fraccionEnPalabras(principal.total.centavos / r.gastadoVariables.centavos)} de tus variables';
+
+    final masSubio = [for (final c in r.contraAnterior) if (c.diferencia.esPositivo) c]
+      ..sort((a, b) => b.diferencia.compareTo(a.diferencia));
+    final nombreAnterior = _mesAnterior(r.ciclo);
+    final contra = masSubio.isEmpty
+        ? 'Gastas menos que en $nombreAnterior'
+        : '${masSubio.first.categoria.nombre} subió ${enPesos(masSubio.first.diferencia)}';
+
+    var mayor = 0;
+    for (var i = 1; i < 7; i++) {
+      if (r.promedioPorDiaSemana[i] > r.promedioPorDiaSemana[mayor]) mayor = i;
+    }
+    final resto = [for (var i = 0; i < 7; i++) if (i != mayor) r.promedioPorDiaSemana[i].centavos];
+    final promedioResto = resto.reduce((a, b) => a + b) ~/ resto.length;
+    final veces = vecesMas(r.promedioPorDiaSemana[mayor].centavos, promedioResto);
+    final dia = veces == null ? 'Tus gastos por día de la semana' : 'Los ${nombresDiaSemana[mayor]} gastas $veces';
+
+    final total = r.conTarjeta + r.enEfectivo;
+    final pago = !total.esPositivo
+        ? 'Cómo pagas'
+        : r.conTarjeta >= r.enEfectivo
+            ? '${_mayuscula(deCadaPeso(r.conTarjeta.centavos / total.centavos))} van a tarjeta'
+            : '${_mayuscula(deCadaPeso(r.enEfectivo.centavos / total.centavos))} van en efectivo';
+
+    final cerrados = [for (final c in r.ultimosCiclos) if (!c.enCurso) c.total.centavos];
+    final ultimos = cerrados.isEmpty
+        ? 'Tu primer ciclo'
+        : 'En promedio gastas ${enPesos(Dinero(cerrados.reduce((a, b) => a + b) ~/ cerrados.length))} por ciclo';
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+      children: [
+        if (r.acumuladoVariablesPorDia.isNotEmpty) ...[
+          _Conclusion(etiqueta: 'Ritmo del ciclo', titulo: ritmo),
+          _Ritmo(reporte: r),
+        ],
+        _Conclusion(etiqueta: 'Plan contra cierre', titulo: plan),
+        _PesoDeCadaParte(
+          datos: datos,
+          parte: _parte,
+          alCambiar: (p) => setState(() => _parte = p),
+          alVerCategoria: widget.alVerCategoria,
+        ),
+        _Conclusion(etiqueta: 'Por categoría', titulo: porCategoria),
+        _EnQueSeVa(reporte: r, parte: _parte, alVerCategoria: widget.alVerCategoria),
+        if (r.contraAnterior.isNotEmpty) ...[
+          _Conclusion(
+            etiqueta: r.terminado ? 'Contra $nombreAnterior, completo' : 'Contra $nombreAnterior, a los ${r.diaDelCiclo} días',
+            titulo: contra,
+          ),
+          _ContraAnterior(reporte: r),
+        ],
+        if (r.ultimosCiclos.length > 1) ...[
+          _Conclusion(etiqueta: 'Últimos ciclos', titulo: ultimos),
+          _UltimosCiclos(reporte: r),
+        ],
+        if (r.diasConDatos >= 7) ...[
+          _Conclusion(etiqueta: 'Día de la semana · últimos 90 días', titulo: dia),
+          _PorDiaSemana(reporte: r),
+        ],
+        if (r.dondeMasGastas.isNotEmpty) ...[
+          _Conclusion(
+            etiqueta: 'Dónde más gastas',
+            titulo: '${r.dondeMasGastas.first.descripcion}: ${enPesos(r.dondeMasGastas.first.total)}',
+          ),
+          _DondeMasGastas(reporte: r),
+        ],
+        // Suscripciones y pagos periódicos de todo el historial (spec §5.7).
+        if (datos.recurrentes.isNotEmpty) ...[
+          _Conclusion(
+            etiqueta: 'Lo que se repite',
+            titulo: 'Suma ${enPesos(totalAlAnio([for (final x in datos.recurrentes) x.gasto]))} al año',
+          ),
+          TarjetaApp.lista(renglones: [
+            for (final (:gasto, :emoji) in datos.recurrentes)
+              RenglonApp(
+                emoji: emoji,
+                titulo: gasto.nombre,
+                subtitulo: '${gasto.frecuencia.etiqueta} · próximo ${fechaCorta(gasto.proximo)}',
+                monto: enPesos(gasto.monto),
+                abajo: Text('${enPesos(gasto.alAnio)} al año', style: Theme.of(context).textTheme.etiqueta),
+              ),
+          ]),
+        ],
+        _Conclusion(etiqueta: 'Cómo pagas', titulo: pago),
+        _TarjetaYEfectivo(reporte: r),
+      ],
     );
   }
 
@@ -314,194 +625,23 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
     );
   }
 
-  Widget _selectorVista() => SegmentedButton<_Vista>(
-        segments: [
-          const ButtonSegment(value: _Vista.basico, label: Text('Básico')),
-          const ButtonSegment(value: _Vista.avanzado, label: Text('Avanzado')),
-          if (_datos?.cuentas != null) const ButtonSegment(value: _Vista.cuentas, label: Text('Cuentas')),
-        ],
-        selected: {_vista},
-        // Sin la palomita: con tres opciones, "Avanzado" se partía en dos renglones.
-        showSelectedIcon: false,
-        onSelectionChanged: (s) => _elegirVista(s.first),
-      );
-
-  /// Para quien solo quiere echar un vistazo: cómo va, qué hacer y en qué se
-  /// le va más. Lo demás queda a un toque, en la vista avanzada.
-  Widget _contenidoBasico(BuildContext context, _Datos datos) {
-    final r = datos.reporte;
-    final variables = [
-      for (final g in r.porCategoria)
-        if (g.categoria is CategoriaVariable) g,
-    ];
-    return ListView(
-      // Cada vista con su propio scroll: al cambiar, arranca hasta arriba.
-      key: const ValueKey('basico'),
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-      children: [
-        _selectorVista(),
-        const SizedBox(height: 16),
-        _TarjetaVeredicto(reporte: r, veredicto: calcularVeredicto(reporte: r, hoy: DateTime.now())),
-        if (datos.recomendaciones.isNotEmpty) ...[
-          const _Titulo('Qué te recomiendo'),
-          for (final rec in datos.recomendaciones.take(2)) _TarjetaRecomendacion(rec, alTocar: () => _accion(rec)),
-        ],
-        if (variables.isNotEmpty) ...[
-          const _Titulo('En qué se te va más', subtitulo: 'Tus gastos del día a día'),
-          _TopCategorias(gastos: variables.take(3).toList(), alVerCategoria: widget.alVerCategoria),
-        ],
-        const SizedBox(height: 16),
-        OutlinedButton(
-          onPressed: () => _elegirVista(_Vista.avanzado),
-          child: const Text('Ver análisis completo'),
-        ),
-      ],
-    );
-  }
-
-  /// Por tarjeta y efectivo: cuánto salió de cada una en el ciclo, en qué,
-  /// y su saldo (spec §7.3.1).
-  Widget _contenidoCuentas(BuildContext context, List<ResumenCuenta> cuentas) {
-    final textos = Theme.of(context).textTheme;
-    return ListView(
-      key: const ValueKey('cuentas'),
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-      children: [
-        _selectorVista(),
-        const _Titulo('¿Con qué pagas?', subtitulo: 'Lo que salió de cada cuenta este ciclo'),
-        for (final r in cuentas)
-          Card(
-            margin: const EdgeInsets.only(bottom: 10),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      ExcludeSemantics(child: Text(r.cuenta.emoji, style: textos.titleMedium)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(r.cuenta.nombre, style: textos.titleMedium),
-                            Text(r.cuenta.tipo.etiqueta, style: textos.labelSmall),
-                          ],
-                        ),
-                      ),
-                      Text(r.gastado.formateado(), style: textos.titleMedium),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  BarraProporcion(valor: r.porcentaje / 100, color: ColoresApp.azul, alto: 6),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${r.porcentaje}% de tu gasto · ${r.conteo} ${r.conteo == 1 ? 'gasto' : 'gastos'}',
-                    style: textos.bodySmall,
-                  ),
-                  if (r.principales.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    for (final p in r.principales)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
-                          children: [
-                            ExcludeSemantics(child: Text(p.categoria.emoji)),
-                            const SizedBox(width: 6),
-                            Expanded(child: Text(p.categoria.nombre, style: textos.bodySmall)),
-                            Text(p.total.formateado(), style: textos.bodySmall),
-                          ],
-                        ),
-                      ),
-                  ],
-                  if (r.saldo case final saldo?) ...[
-                    const SizedBox(height: 8),
-                    if (lecturaDeSaldo(r.cuenta, saldo) case final l)
-                      Text(
-                        '${l.etiqueta}: ${l.monto.formateado()}',
-                        style: textos.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: colorDeLectura(l),
-                        ),
-                      ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _contenido(BuildContext context, _Datos datos) {
-    if (_vista == _Vista.basico) return _contenidoBasico(context, datos);
-    if (_vista == _Vista.cuentas) {
-      final cuentas = datos.cuentas;
-      if (cuentas != null) return _contenidoCuentas(context, cuentas);
-    }
-    final r = datos.reporte;
-    return ListView(
-      key: const ValueKey('avanzado'),
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-      children: [
-        _selectorVista(),
-        const SizedBox(height: 16),
-        _Resumen(reporte: r),
-        if (datos.recomendaciones.isNotEmpty) ...[
-          const _Titulo('Para ti', subtitulo: 'Lo más importante de tu ciclo, primero'),
-          for (final rec in datos.recomendaciones) _TarjetaRecomendacion(rec, alTocar: () => _accion(rec)),
-        ],
-        const _Titulo('¿Cuánto pesa cada parte?'),
-        _PesoDeCadaParte(
-          datos: datos,
-          parte: _parte,
-          alCambiar: (p) => setState(() => _parte = p),
-          alVerCategoria: widget.alVerCategoria,
-        ),
-        _Titulo(
-          '¿En qué se va?',
-          subtitulo: switch (_parte) {
-            _Parte.variables => 'Solo tus gastos variables',
-            _Parte.fijos => 'Solo tus gastos fijos',
-            _Parte.total => null,
-          },
-        ),
-        _EnQueSeVa(reporte: r, parte: _parte, alVerCategoria: widget.alVerCategoria),
-        if (r.presupuestoVariables.esPositivo) ...[
-          const _Titulo('Ritmo del ciclo', subtitulo: 'Tus gastos variables, día a día'),
-          _Ritmo(reporte: r),
-        ],
-        if (r.contraAnterior.isNotEmpty) ...[
-          _Titulo('Contra el ciclo pasado', subtitulo: r.terminado ? 'Ciclo completo' : 'A los mismos ${r.diaDelCiclo} días'),
-          _ContraAnterior(reporte: r),
-        ],
-        if (r.ultimosCiclos.length > 1) ...[
-          const _Titulo('Últimos ciclos', subtitulo: 'Total gastado por ciclo'),
-          _UltimosCiclos(reporte: r),
-        ],
-        if (r.diasConDatos >= 7) ...[
-          const _Titulo('¿Qué día gastas más?', subtitulo: 'Promedio de tus variables, últimos 90 días'),
-          _PorDiaSemana(reporte: r),
-        ],
-        if (r.dondeMasGastas.isNotEmpty) ...[
-          const _Titulo('Dónde más gastas', subtitulo: 'Según la descripción de tus gastos'),
-          _DondeMasGastas(reporte: r),
-        ],
-        const _Titulo('Tarjeta y efectivo'),
-        _TarjetaYEfectivo(reporte: r),
-      ],
-    );
+  /// "octubre": el mes del ciclo anterior, en minúsculas.
+  String _mesAnterior(Ciclo ciclo) {
+    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    final anterior = ciclo.fechaInicio.subtract(const Duration(days: 1));
+    return meses[widget.perfil.calculadoraCiclo.calcularPara(anterior).fechaInicio.month - 1];
   }
 }
 
-// ───────────────────────── bloques ─────────────────────────
+String _mayuscula(String t) => t.isEmpty ? t : t[0].toUpperCase() + t.substring(1);
 
-class _Titulo extends StatelessWidget {
-  final String texto;
-  final String? subtitulo;
+/// La frase-conclusión arriba de cada gráfica de Detalle: una etiqueta
+/// chica que dice qué es y un título que dice qué significa.
+class _Conclusion extends StatelessWidget {
+  final String etiqueta;
+  final String titulo;
 
-  const _Titulo(this.texto, {this.subtitulo});
+  const _Conclusion({required this.etiqueta, required this.titulo});
 
   @override
   Widget build(BuildContext context) {
@@ -511,214 +651,8 @@ class _Titulo extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(texto, style: textos.titleMedium),
-          if (subtitulo != null) ...[
-            const SizedBox(height: 2),
-            Text(subtitulo!, style: textos.bodySmall),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// "¿Cómo voy?" en una frase, y cuánto puede gastar hoy.
-class _TarjetaVeredicto extends StatelessWidget {
-  final ReporteAnalisis reporte;
-  final VeredictoCiclo veredicto;
-
-  const _TarjetaVeredicto({required this.reporte, required this.veredicto});
-
-  @override
-  Widget build(BuildContext context) {
-    final r = reporte;
-    final v = veredicto;
-    final textos = Theme.of(context).textTheme;
-    final (icono, color, fondo, barra) = switch (v.tono) {
-      TonoVeredicto.bien => (Icons.check_circle_outline_rounded, ColoresApp.verdeTexto, ColoresApp.verdeSuave, ColoresApp.verde),
-      TonoVeredicto.atencion => (Icons.speed_rounded, ColoresApp.ambarTexto, ColoresApp.ambarSuave, ColoresApp.ambar),
-      TonoVeredicto.pasado => (Icons.error_outline_rounded, ColoresApp.coralTexto, ColoresApp.coralSuave, ColoresApp.coral),
-      TonoVeredicto.neutro => (Icons.insights_rounded, ColoresApp.azul, ColoresApp.azulSuave, ColoresApp.azul),
-    };
-    final hayPresupuesto = r.presupuestoVariables.esPositivo;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(color: fondo, shape: BoxShape.circle),
-                  child: Icon(icono, color: color, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(v.titulo, style: textos.titleMedium?.copyWith(color: color)),
-                      const SizedBox(height: 2),
-                      Text(v.detalle, style: textos.bodySmall),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (v.disponibleHoy != null) ...[
-              const SizedBox(height: 16),
-              Text('Hoy puedes gastar', style: textos.bodySmall),
-              Text(v.disponibleHoy!.formateado(), style: textos.displaySmall),
-            ],
-            if (hayPresupuesto) ...[
-              const SizedBox(height: 14),
-              BarraProporcion(
-                valor: r.gastadoVariables.centavos / r.presupuestoVariables.centavos,
-                color: barra,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${r.gastadoVariables.formateado()} de ${r.presupuestoVariables.formateado()} · '
-                '${r.terminado ? 'Ciclo de ${r.diasDelCiclo} días' : 'Van ${r.diaDelCiclo} de ${r.diasDelCiclo} días'}',
-                style: textos.labelSmall,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TopCategorias extends StatelessWidget {
-  final List<GastoCategoria> gastos;
-  final void Function(String categoriaId) alVerCategoria;
-
-  const _TopCategorias({required this.gastos, required this.alVerCategoria});
-
-  @override
-  Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-        child: Column(
-          children: [
-            for (final g in gastos)
-              InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () => alVerCategoria(g.categoria.id),
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          ExcludeSemantics(child: Text(g.categoria.emoji)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              g.categoria.nombre,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                          Text(
-                            g.presupuesto.esPositivo
-                                ? '${g.total.formateado()} de ${g.presupuesto.formateado()}'
-                                : g.total.formateado(),
-                            style: textos.bodySmall,
-                          ),
-                        ],
-                      ),
-                      if (g.presupuesto.esPositivo) ...[
-                        const SizedBox(height: 6),
-                        BarraProporcion(
-                          valor: g.total.centavos / g.presupuesto.centavos,
-                          color: g.total > g.presupuesto ? ColoresApp.coral : ColoresApp.azul,
-                          alto: 6,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Resumen extends StatelessWidget {
-  final ReporteAnalisis reporte;
-
-  const _Resumen({required this.reporte});
-
-  @override
-  Widget build(BuildContext context) {
-    final r = reporte;
-    final textos = Theme.of(context).textTheme;
-    final blanco70 = textos.bodySmall?.copyWith(color: const Color(0xFFC9D1E3));
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [ColoresApp.noche, ColoresApp.azulMarino],
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(r.terminado ? 'Ciclo de ${r.diasDelCiclo} días' : 'Van ${r.diaDelCiclo} de ${r.diasDelCiclo} días',
-              style: blanco70),
-          const SizedBox(height: 6),
-          Text(r.terminado ? 'Gastaste' : 'Llevas gastado', style: blanco70),
-          Text(r.gastado.formateado(), style: textos.displaySmall?.copyWith(color: Colors.white)),
-          const SizedBox(height: 14),
-          BarraProporcion(valor: r.diaDelCiclo / r.diasDelCiclo, color: ColoresApp.oro, alto: 6),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _DatoOscuro(
-                  titulo: 'Promedio por día',
-                  valor: r.promedioDiarioVariables.formateado(),
-                  pie: 'en variables',
-                ),
-              ),
-              Expanded(
-                child: _DatoOscuro(
-                  titulo: r.terminado ? 'En variables' : 'Si sigues así',
-                  valor: r.proyeccionVariables.formateado(),
-                  pie: switch ((r.presupuestoVariables.esPositivo, r.terminado)) {
-                    (true, true) => 'de ${r.presupuestoVariables.formateado()} planeados',
-                    (true, false) => 'de ${r.presupuestoVariables.formateado()} en variables',
-                    (false, true) => 'al cierre',
-                    (false, false) => 'en variables al cierre',
-                  },
-                ),
-              ),
-            ],
-          ),
-          if (r.presupuestoVariables.esPositivo && r.diasRestantes > 0) ...[
-            const SizedBox(height: 12),
-            Text(
-              r.proyeccionVariables <= r.presupuestoVariables
-                  ? 'A este ritmo, tus variables cierran dentro de lo planeado.'
-                  : 'A este ritmo, tus variables cerrarían '
-                      '${(r.proyeccionVariables - r.presupuestoVariables).formateado()} arriba de lo planeado.',
-              style: textos.bodySmall?.copyWith(color: Colors.white),
-            ),
-          ],
+          Text(etiqueta, style: textos.etiqueta),
+          Semantics(header: true, child: Text(titulo, style: textos.seccion)),
         ],
       ),
     );
@@ -747,90 +681,6 @@ class _LineaPareto extends StatelessWidget {
           ),
           linea,
         ],
-      ),
-    );
-  }
-}
-
-class _DatoOscuro extends StatelessWidget {
-  final String titulo;
-  final String valor;
-  final String pie;
-
-  const _DatoOscuro({required this.titulo, required this.valor, required this.pie});
-
-  @override
-  Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
-    final suave = textos.labelSmall?.copyWith(color: const Color(0xFFC9D1E3));
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(titulo, style: suave),
-        const SizedBox(height: 2),
-        Text(valor, style: textos.titleMedium?.copyWith(color: Colors.white)),
-        Text(pie, style: suave),
-      ],
-    );
-  }
-}
-
-class _TarjetaRecomendacion extends StatelessWidget {
-  final Recomendacion recomendacion;
-  final VoidCallback alTocar;
-
-  const _TarjetaRecomendacion(this.recomendacion, {required this.alTocar});
-
-  @override
-  Widget build(BuildContext context) {
-    final rec = recomendacion;
-    final textos = Theme.of(context).textTheme;
-    final (icono, color, fondo) = switch (rec.tono) {
-      TonoRecomendacion.alerta => (Icons.error_outline_rounded, ColoresApp.coralTexto, ColoresApp.coralSuave),
-      TonoRecomendacion.atencion => (Icons.speed_rounded, ColoresApp.ambarTexto, ColoresApp.ambarSuave),
-      TonoRecomendacion.positivo => (Icons.check_circle_outline_rounded, ColoresApp.verdeTexto, ColoresApp.verdeSuave),
-      TonoRecomendacion.informativo => (Icons.lightbulb_outline_rounded, ColoresApp.oroTexto, ColoresApp.oroSuave),
-    };
-    final etiquetaAccion = switch (rec.accion) {
-      AccionRecomendacion.verCategoria => 'Ver categoría',
-      AccionRecomendacion.verGastos => 'Ver gastos',
-      AccionRecomendacion.verMeta => 'Ver mi meta',
-    };
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: alTocar,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(color: fondo, shape: BoxShape.circle),
-                child: Icon(icono, color: color, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(rec.titulo, style: textos.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    Text(rec.detalle, style: textos.bodySmall),
-                    const SizedBox(height: 8),
-                    Text(
-                      '$etiquetaAccion  ›',
-                      style: textos.labelSmall?.copyWith(color: ColoresApp.azul, fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -1241,7 +1091,6 @@ class _Ritmo extends StatelessWidget {
     final r = reporte;
     final textos = Theme.of(context).textTheme;
     final parejo = Dinero(r.presupuestoVariables.centavos * r.diaDelCiclo ~/ r.diasDelCiclo);
-    final arriba = r.gastadoVariables > parejo;
     final quedanDias = r.diaDelCiclo < r.diasDelCiclo;
     final cierreSeRebasa = r.proyeccionVariables > r.presupuestoVariables;
     return Card(
@@ -1275,22 +1124,12 @@ class _Ritmo extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              r.terminado
-                  ? (arriba
-                      ? 'Cerraste ${(r.gastadoVariables - parejo).formateado()} arriba de tu presupuesto.'
-                      : 'Cerraste ${(parejo - r.gastadoVariables).formateado()} abajo de tu presupuesto. Bien.')
-                  : arriba
-                      ? 'Vas ${(r.gastadoVariables - parejo).formateado()} arriba del ritmo parejo.'
-                      : 'Vas ${(parejo - r.gastadoVariables).formateado()} abajo del ritmo parejo. Bien.',
-              style: textos.bodySmall?.copyWith(color: arriba ? ColoresApp.ambarTexto : ColoresApp.verdeTexto),
-            ),
+            // "Vas $X arriba/abajo del ritmo parejo" ya es el título de la
+            // tarjeta (frase-conclusión de Detalle): aquí solo el pronóstico.
             if (quedanDias) ...[
               const SizedBox(height: 4),
               Text(
-                'Si sigues así, cerrarías en ${r.proyeccionVariables.formateado()} de '
-                '${r.presupuestoVariables.formateado()}.',
+                'Estimado al cierre: ${enPesos(r.proyeccionVariables)} de ${enPesos(r.presupuestoVariables)}.',
                 style: textos.bodySmall?.copyWith(
                   color: cierreSeRebasa ? ColoresApp.coralTexto : ColoresApp.verdeTexto,
                 ),

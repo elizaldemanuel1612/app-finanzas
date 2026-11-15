@@ -3,6 +3,7 @@ import 'package:app_finanzas/core/money.dart';
 import 'package:app_finanzas/domain/analisis/recomendaciones.dart';
 import 'package:app_finanzas/domain/analisis/reporte_analisis.dart';
 import 'package:app_finanzas/domain/modelos/categoria.dart';
+import 'package:app_finanzas/domain/presupuesto/cobertura_excesos.dart';
 import 'package:test/test.dart';
 
 final _ciclo = Ciclo(
@@ -40,7 +41,6 @@ ReporteAnalisis _reporte({
   int gastadoVariables = 0,
   int gastadoFijas = 0,
   int presupuestoFijas = 0,
-  int proyeccionVariables = 0,
   int? anteriorMismoDia,
   List<ComparacionCategoria> contraAnterior = const [],
   List<int> semana = const [0, 0, 0, 0, 0, 0, 0],
@@ -48,8 +48,17 @@ ReporteAnalisis _reporte({
   int pequenos = 0,
   int totalPequenos = 0,
   bool terminado = false,
-}) =>
-    ReporteAnalisis(
+}) {
+  // El pronóstico de cada variable lo da el MPC (probado en
+  // test/domain/pronostico/); aquí se simula con el ritmo del ciclo para
+  // que los montos de las pruebas se lean fácil.
+  int lineal(int pesos) => pesos + pesos * (30 - dia) ~/ dia;
+  final variables = [
+    for (final g in porCategoria)
+      if (g.categoria case final CategoriaVariable c)
+        EstadoVariable(categoria: c, gastado: g.total, proyeccion: Dinero(lineal(g.total.centavos))),
+  ];
+  return ReporteAnalisis(
       ciclo: _ciclo,
       diaDelCiclo: dia,
       diasDelCiclo: 30,
@@ -60,7 +69,8 @@ ReporteAnalisis _reporte({
       presupuestoVariables: const Dinero.cero(),
       presupuestoFijas: Dinero.pesos(presupuestoFijas),
       promedioDiarioVariables: const Dinero.cero(),
-      proyeccionVariables: Dinero.pesos(proyeccionVariables),
+      proyeccionVariables: Dinero(lineal(gastadoVariables * 100)),
+      variables: variables,
       porCategoria: porCategoria,
       acumuladoVariablesPorDia: const [],
       variablesAnteriorMismoDia: anteriorMismoDia == null ? null : Dinero.pesos(anteriorMismoDia),
@@ -74,6 +84,7 @@ ReporteAnalisis _reporte({
       gastosPequenos: pequenos,
       totalGastosPequenos: Dinero.pesos(totalPequenos),
     );
+}
 
 List<Recomendacion> _recs(ReporteAnalisis r, {int ingreso = 0, int? meta}) => calcularRecomendaciones(
       reporte: r,
@@ -109,8 +120,7 @@ void main() {
     final r = recs.first;
     expect(r.tono, TonoRecomendacion.alerta);
     expect(r.titulo, r'Te pasaste en salidas por $200.00');
-    expect(r.detalle, r'A este ritmo cerraría $1,400.00 arriba. Muévele $200.00 desde auto '
-        r'(se estima que le sobren $1,800.00) y cuadras sin tocar lo que apartas.');
+    expect(r.detalle, r'Estimado al cierre: $1,400.00 arriba. Mueve $200.00 desde auto: le sobrarán $1,600.00.');
     expect(r.detalle, isNot(contains('Nada grave')));
     expect(r.accion, AccionRecomendacion.verCategoria);
     expect(r.categoriaId, 'salidas');
@@ -125,15 +135,15 @@ void main() {
       _g(_var('auto', 2000), 100),
     ])).where((r) => r.tono == TonoRecomendacion.alerta).toList();
     expect(alertas[0].titulo, contains('super'));
-    expect(alertas[0].detalle, contains(r'Muévele $500.00 desde auto (se estima que le sobren $1,800.00)'));
-    expect(alertas[1].detalle, contains(r'Muévele $200.00 desde auto (se estima que le sobren $1,300.00)'));
+    expect(alertas[0].detalle, contains(r'Mueve $500.00 desde auto: le sobrarán $1,300.00.'));
+    expect(alertas[1].detalle, contains(r'Mueve $200.00 desde auto: le sobrarán $1,100.00.'));
 
     // Sobrante que no alcanza: cubre una parte y el resto sale de lo apartado.
     final parcial = _recs(_reporte(porCategoria: [
       _g(_var('salidas', 1000), 1600),
       _g(_var('cafe', 1000), 300), // proyecta 600, sobran 400
     ])).first;
-    expect(parcial.detalle, contains(r'Desde cafe puedes cubrir $400.00; los otros $200.00 saldrían de lo que apartas.'));
+    expect(parcial.detalle, contains(r'cafe cubre $400.00; los $200.00 restantes salen de lo que apartas.'));
   });
 
   test('con más de dos excedidas, el resto va junto en una sola', () {
@@ -182,14 +192,14 @@ void main() {
     expect(recs.single.detalle, contains('sale de lo que apartas'));
     // Último día: ya no hay ritmo ni días por delante.
     final cierre = _recs(_reporte(dia: 30, porCategoria: [_g(_var('salidas', 1000), 1200)])).single;
-    expect(cierre.detalle, r'Salió de lo que apartaste. Si pasa seguido, súbele el presupuesto el próximo ciclo.');
+    expect(cierre.detalle, 'Ninguna categoría tiene de dónde: sale de lo que apartas.');
   });
 
   test('va rápido: proyección, cuánto arriba y máximo por día', () {
     // Día 15 de 30: 600 de 1000 → proyecta 1200; quedan 400 en 15 días.
     final recs = _recs(_reporte(porCategoria: [_g(_var('super', 1000), 600)]));
     expect(recs.single.titulo, 'super va rápido');
-    expect(recs.single.detalle, contains(r'cerraría en $1,200.00, $200.00 arriba'));
+    expect(recs.single.detalle, contains(r'Estimado al cierre: $1,200.00, $200.00 arriba'));
     expect(recs.single.detalle, contains(r'máximo $26.66 al día los 15 días'));
     expect(recs.single.tono, TonoRecomendacion.atencion);
   });

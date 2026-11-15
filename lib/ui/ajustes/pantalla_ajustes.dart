@@ -14,6 +14,7 @@ import '../../data/repositorios/local/almacen_local.dart';
 import '../../domain/ciclo_de_vida/cambio_de_corte.dart';
 import '../../domain/exportacion/exportar_csv.dart';
 import '../../domain/importacion/plantilla_csv.dart';
+import '../../domain/modelos/meta_apartado.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../data/nube/errores_respaldo.dart';
 import '../../data/nube/respaldo_drive.dart';
@@ -23,13 +24,13 @@ import '../../plataforma/derivar_clave.dart';
 import '../ayuda/pantalla_guia.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../seguridad/pantalla_seguridad.dart';
-import '../cuentas/pantalla_cuentas.dart';
-import '../objetivos/pantalla_objetivos.dart';
 import '../comun/apariencia.dart';
 import '../comun/documento_legal.dart';
 import '../comun/formato_fecha.dart';
 import '../comun/guia_rapida.dart';
-import '../comun/seccion_lista.dart';
+import '../comun/formato_dinero.dart';
+import '../comun/renglon_app.dart';
+import '../comun/tarjeta_app.dart';
 import '../comun/tema.dart';
 import '../importacion/pantalla_importar.dart';
 import '../meta/pantalla_meta_ahorro.dart';
@@ -401,232 +402,228 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     if (elegida != null) await AparienciaApp.elegir(elegida);
   }
 
+  String get _textoMeta => switch (_perfil.metaApartado) {
+        null => 'Lo que sobre',
+        MetaPorMonto(:final monto) => enPesos(monto),
+        MetaPorPorcentaje(:final porcentaje) => '$porcentaje % de lo que entra',
+      };
+
+  Widget _seccion(String titulo, List<Widget> renglones) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [EncabezadoSeccion(titulo: titulo), TarjetaApp.lista(renglones: renglones)],
+      );
+
   @override
   Widget build(BuildContext context) {
-    final correo = widget.servicioAuth.usuarioActual?.email ?? 'Sin sesión';
+    final p = ColoresApp.actual;
+    final textos = Theme.of(context).textTheme;
+    final usuario = widget.servicioAuth.usuarioActual;
+    final correo = usuario?.email ?? 'Sin sesión';
+    final nombre = usuario?.displayName;
+    final inicial = (nombre ?? correo).trim().characters.firstOrNull?.toUpperCase() ?? '·';
     return Scaffold(
       appBar: AppBar(title: const Text('Ajustes')),
       body: AbsorbPointer(
         absorbing: _procesando,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           children: [
-            SeccionLista(
-              titulo: 'Cuenta',
-              hijos: [_Renglon(icono: Icons.person_outline, titulo: correo)],
-            ),
-            const SizedBox(height: 20),
-            SeccionLista(
-              titulo: 'Apariencia',
-              hijos: [
-                ValueListenableBuilder<Apariencia>(
-                  valueListenable: AparienciaApp.actual,
-                  builder: (context, apariencia, _) => _Renglon(
-                    icono: Icons.dark_mode_outlined,
-                    titulo: 'Modo claro u oscuro',
-                    subtitulo: apariencia.etiqueta,
-                    onTap: _elegirApariencia,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SeccionLista(
-              titulo: 'Seguridad',
-              hijos: [
-                _Renglon(
-                  icono: Icons.lock_outline,
-                  titulo: 'Bloqueo de la app',
-                  subtitulo: 'Face ID, huella, PIN o contraseña',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PantallaSeguridad(candado: Candado(widget.almacenLocal.candado, derivar: derivarClave)),
+            TarjetaApp(
+              child: Row(
+                children: [
+                  ExcludeSemantics(
+                    child: CircleAvatar(
+                      radius: 26,
+                      backgroundColor: p.accion,
+                      foregroundColor: p.sobreAccion,
+                      child: Text(inicial, style: textos.seccion.copyWith(color: p.sobreAccion)),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SeccionLista(
-              titulo: 'Ayuda',
-              hijos: [
-                _Renglon(
-                  icono: Icons.help_outline,
-                  titulo: 'Cómo funciona la app',
-                  subtitulo: 'Guía por temas: categorías, movimientos, registrar un gasto…',
-                  onTap: _irAComoFunciona,
-                ),
-                _Renglon(
-                  icono: Icons.replay,
-                  titulo: 'Ver de nuevo las guías rápidas',
-                  subtitulo: 'Vuelven a salir al entrar a cada apartado',
-                  onTap: () async {
-                    await reiniciarGuiasRapidas();
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Listo: verás la guía de cada apartado al volver a entrar.')),
-                    );
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SeccionLista(
-              titulo: 'Tu plan',
-              hijos: [
-                _Renglon(
-                  icono: Icons.savings_outlined,
-                  titulo: 'Meta de apartado',
-                  subtitulo: _perfil.metaApartado == null
-                      ? 'Hoy: lo que sobre de tus presupuestos'
-                      : 'Editar cuánto quieres apartar cada ciclo',
-                  onTap: _irAMetaAhorro,
-                ),
-                _Renglon(
-                  icono: Icons.grid_view_rounded,
-                  titulo: 'Categorías',
-                  subtitulo: 'Crear, editar o archivar tus categorías',
-                  onTap: _irACategorias,
-                ),
-                _Renglon(
-                  icono: Icons.account_balance_wallet_outlined,
-                  titulo: 'Tus cuentas',
-                  subtitulo: 'Tarjetas, efectivo y ahorro, con tu patrimonio',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PantallaCuentas(
-                        perfil: _perfil,
-                        cuentaRepositorio: widget.almacenLocal.cuentas,
-                        movimientoRepositorio: widget.almacenLocal.movimientos,
-                        movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
-                        ingresoExtraRepositorio: widget.almacenLocal.ingresosExtra,
-                      ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(nombre ?? correo, style: textos.cuerpoFuerte, overflow: TextOverflow.ellipsis),
+                        if (nombre != null) Text(correo, style: textos.etiqueta, overflow: TextOverflow.ellipsis),
+                      ],
                     ),
                   ),
-                ),
-                _Renglon(
-                  icono: Icons.flag_outlined,
-                  titulo: 'Objetivos de ahorro',
-                  subtitulo: 'Para qué ahorras y cuánto llevas',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PantallaObjetivos(
-                        perfil: _perfil,
-                        objetivoRepositorio: widget.almacenLocal.objetivos,
-                        cuentaRepositorio: widget.almacenLocal.cuentas,
-                        movimientoRepositorio: widget.almacenLocal.movimientos,
-                        movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
-                        categoriaRepositorio: widget.almacenLocal.categorias,
-                      ),
-                    ),
-                  ),
-                ),
-                _Renglon(
-                  icono: Icons.event_repeat,
-                  titulo: 'Día de corte',
-                  subtitulo: _subtituloCorte,
-                  onTap: _irACambiarCorte,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SeccionLista(
-              titulo: 'Tus datos',
-              hijos: [
-                _Renglon(
-                  icono: Icons.cloud_outlined,
-                  titulo: 'Respaldo en tu Google Drive',
-                  subtitulo: 'Una copia privada en tu propia cuenta',
-                  onTap: _irANube,
-                ),
-                _Renglon(
-                  icono: Icons.ios_share_outlined,
-                  titulo: 'Exportar mis gastos',
-                  subtitulo: 'Un archivo CSV con todo tu historial',
-                  onTap: _exportarCsv,
-                ),
-                _Renglon(
-                  icono: Icons.file_upload_outlined,
-                  titulo: 'Importar gastos',
-                  subtitulo: 'Desde un CSV, en cualquier momento',
-                  onTap: _irAImportar,
-                ),
-                _Renglon(
-                  icono: Icons.description_outlined,
-                  titulo: 'Descargar plantilla de ejemplo',
-                  subtitulo: 'El formato que espera la importación',
-                  onTap: _descargarPlantilla,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SeccionLista(
-              titulo: 'Legal',
-              hijos: [
-                _Renglon(
-                  icono: Icons.privacy_tip_outlined,
-                  titulo: 'Política de privacidad',
-                  onTap: () => _abrirDocumentoLegal(
-                    'Política de privacidad',
-                    'docs/legal/privacidad.md',
-                  ),
-                ),
-                _Renglon(
-                  icono: Icons.description_outlined,
-                  titulo: 'Términos y condiciones',
-                  onTap: () => _abrirDocumentoLegal(
-                    'Términos y condiciones',
-                    'docs/legal/terminos.md',
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                  child: ExpansionTile(
-                    tilePadding: EdgeInsets.zero,
-                    title: const Text('Esta app no da asesoría financiera'),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Text(
-                          'MAVfin es una herramienta de registro y '
-                          'pronóstico de tus propios gastos. No es asesoría '
-                          'financiera, no invierte tu dinero, no se conecta a '
-                          'bancos ni tarjetas, y no maneja dinero real en '
-                          'ningún momento. Las cifras que muestra son '
-                          'estimaciones basadas en lo que tú capturas.',
-                          style: TextStyle(color: ColoresApp.medio),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SeccionLista(
-              titulo: 'Cuenta',
-              hijos: [
-                _Renglon(
-                  icono: Icons.logout,
-                  titulo: 'Cerrar sesión',
-                  onTap: _cerrarSesion,
-                ),
-                _Renglon(
-                  icono: Icons.delete_outline,
-                  titulo: 'Eliminar cuenta',
-                  colorTexto: ColoresApp.coralTexto,
-                  onTap: _eliminarCuenta,
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-            Center(
-              child: Text(
-                'MAVfin · versión 1.0.0 (1)',
-                style: TextStyle(color: ColoresApp.medio, fontSize: 12),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
+            _seccion('Tu plan', [
+              RenglonApp(
+                icono: Icons.savings_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.verde,
+                colorIcono: Colors.white,
+                titulo: 'Meta del ciclo',
+                derecha: Text(_textoMeta, style: textos.etiqueta),
+                onTap: _irAMetaAhorro,
+              ),
+              RenglonApp(
+                icono: Icons.grid_view_rounded,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.azul,
+                colorIcono: Colors.white,
+                titulo: 'Categorías y presupuestos',
+                onTap: _irACategorias,
+              ),
+              RenglonApp(
+                icono: Icons.event_repeat,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.naranja,
+                colorIcono: Colors.white,
+                titulo: 'Día de corte',
+                subtitulo: _subtituloCorte,
+                onTap: _irACambiarCorte,
+              ),
+            ]),
+            _seccion('App', [
+              ValueListenableBuilder<Apariencia>(
+                valueListenable: AparienciaApp.actual,
+                builder: (context, apariencia, _) => RenglonApp(
+                  icono: Icons.dark_mode_outlined,
+                  iconoCuadrado: true,
+                  fondoIcono: _TinteAjustes.indigo,
+                  colorIcono: Colors.white,
+                  titulo: 'Apariencia',
+                  derecha: Text(apariencia.etiqueta, style: textos.etiqueta),
+                  onTap: _elegirApariencia,
+                ),
+              ),
+              RenglonApp(
+                icono: Icons.lock_outline,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.gris,
+                colorIcono: Colors.white,
+                titulo: 'Seguridad',
+                subtitulo: 'Bloqueo con PIN, Face ID o huella',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PantallaSeguridad(candado: Candado(widget.almacenLocal.candado, derivar: derivarClave)),
+                  ),
+                ),
+              ),
+            ]),
+            _seccion('Tus datos', [
+              RenglonApp(
+                icono: Icons.cloud_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.azul,
+                colorIcono: Colors.white,
+                titulo: 'Respaldo en tu Google Drive',
+                subtitulo: 'Una copia privada en tu propia cuenta',
+                onTap: _irANube,
+              ),
+              RenglonApp(
+                icono: Icons.ios_share_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.verde,
+                colorIcono: Colors.white,
+                titulo: 'Exportar mis gastos',
+                subtitulo: 'Un archivo CSV con todo tu historial',
+                onTap: _exportarCsv,
+              ),
+              RenglonApp(
+                icono: Icons.file_upload_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.naranja,
+                colorIcono: Colors.white,
+                titulo: 'Importar gastos',
+                subtitulo: 'Desde un CSV, en cualquier momento',
+                onTap: _irAImportar,
+              ),
+              RenglonApp(
+                icono: Icons.description_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.turquesa,
+                colorIcono: Colors.white,
+                titulo: 'Descargar plantilla de ejemplo',
+                subtitulo: 'El formato que espera la importación',
+                onTap: _descargarPlantilla,
+              ),
+            ]),
+            _seccion('Ayuda', [
+              RenglonApp(
+                icono: Icons.help_outline,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.azul,
+                colorIcono: Colors.white,
+                titulo: 'Cómo funciona la app',
+                subtitulo: 'Guía por temas',
+                onTap: _irAComoFunciona,
+              ),
+              RenglonApp(
+                icono: Icons.replay,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.morado,
+                colorIcono: Colors.white,
+                titulo: 'Ver de nuevo las guías rápidas',
+                onTap: () async {
+                  await reiniciarGuiasRapidas();
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Listo: verás la guía de cada apartado al volver a entrar.')),
+                  );
+                },
+              ),
+              RenglonApp(
+                icono: Icons.privacy_tip_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.gris,
+                colorIcono: Colors.white,
+                titulo: 'Política de privacidad',
+                onTap: () => _abrirDocumentoLegal('Política de privacidad', 'docs/legal/privacidad.md'),
+              ),
+              RenglonApp(
+                icono: Icons.gavel_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.gris,
+                colorIcono: Colors.white,
+                titulo: 'Términos y condiciones',
+                onTap: () => _abrirDocumentoLegal('Términos y condiciones', 'docs/legal/terminos.md'),
+              ),
+              ExpansionTile(
+                tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                shape: const Border(),
+                collapsedShape: const Border(),
+                title: Text('Esta app no da asesoría financiera', style: textos.cuerpoFuerte),
+                children: [
+                  Text(
+                    'MAVfin es una herramienta de registro y '
+                    'pronóstico de tus propios gastos. No es asesoría '
+                    'financiera, no invierte tu dinero, no se conecta a '
+                    'bancos ni tarjetas, y no maneja dinero real en '
+                    'ningún momento. Las cifras que muestra son '
+                    'estimaciones basadas en lo que tú capturas.',
+                    style: textos.etiqueta,
+                  ),
+                ],
+              ),
+            ]),
+            _seccion('Cuenta', [
+              RenglonApp(
+                icono: Icons.logout,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.gris,
+                colorIcono: Colors.white,
+                titulo: 'Cerrar sesión',
+                onTap: _cerrarSesion,
+              ),
+              RenglonApp(
+                icono: Icons.delete_outline,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.rojo,
+                colorIcono: Colors.white,
+                titulo: 'Eliminar cuenta',
+                onTap: _eliminarCuenta,
+              ),
+            ]),
+            const SizedBox(height: 24),
+            Center(child: Text('MAVfin · versión 1.0.0 (1)', style: textos.etiqueta)),
           ],
         ),
       ),
@@ -634,29 +631,16 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
   }
 }
 
-class _Renglon extends StatelessWidget {
-  final IconData icono;
-  final String titulo;
-  final String? subtitulo;
-  final Color? colorTexto;
-  final VoidCallback? onTap;
-
-  const _Renglon({
-    required this.icono,
-    required this.titulo,
-    this.subtitulo,
-    this.colorTexto,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icono, color: colorTexto ?? ColoresApp.tinta),
-      title: Text(titulo, style: TextStyle(color: colorTexto ?? ColoresApp.tinta)),
-      subtitle: subtitulo == null ? null : Text(subtitulo!),
-      onTap: onTap,
-      trailing: onTap == null ? null : Icon(Icons.chevron_right, color: ColoresApp.medio),
-    );
-  }
+/// Colores de los íconos en cuadro de Ajustes (estilo de las listas de
+/// configuración de iOS). Fijos en los dos modos: el ícono va en blanco y
+/// cada fondo pasa 3:1 contra él (umbral de gráficos, WCAG 1.4.11).
+abstract final class _TinteAjustes {
+  static const azul = Color(0xFF1F6FE0);
+  static const verde = Color(0xFF248A3D);
+  static const naranja = Color(0xFFC9590B);
+  static const indigo = Color(0xFF4B4ACF);
+  static const morado = Color(0xFF8344C7);
+  static const turquesa = Color(0xFF0E7C86);
+  static const gris = Color(0xFF6B6F7A);
+  static const rojo = Color(0xFFD12E2E);
 }

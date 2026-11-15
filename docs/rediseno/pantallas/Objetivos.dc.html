@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Objetivos de ahorro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/c71f65355dc6ebf2b82cb9a8f62c0cbc">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="mv ph {{tc}}" style="width: 390px; height: 844px">
+<div class="scr">
+
+<header class="top">
+<h1 class="titulo" style="margin: 0">Patrimonio</h1>
+<a class="me" href="Ajustes.dc.html" aria-label="Ajustes">M</a>
+</header>
+
+<div class="seg" role="tablist" style="margin-top: 12px">
+<a role="tab" href="Patrimonio.dc.html" style="text-decoration: none">Cuentas</a>
+<a role="tab" class="on" href="Objetivos.dc.html" style="text-decoration: none">Objetivos</a>
+</div>
+
+<sc-if value="{{lleno}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; align-items: baseline; justify-content: space-between; margin: 20px 4px 12px">
+<div>
+<div class="etiqueta c2">Llevas ahorrado</div>
+<div class="d" style="font-size: 30px; line-height: 36px; font-weight: 600; letter-spacing: -0.02em">$51,900</div>
+</div>
+<span class="etiqueta c2">de $150,000</span>
+</div>
+
+<sc-if value="{{vencido}}" hint-placeholder-val="{{ false }}">
+<div class="banner warn" style="margin-bottom: 12px">
+<i class="ic s i-calendario" aria-hidden="true"></i>
+<div style="flex: 1">
+<div class="cuerpo-fuerte">Pasó la fecha de tu fondo</div>
+<div class="etiqueta c2">Te faltan $18,000. ¿Le das más tiempo?</div>
+<a class="lnk" style="font-size: 14px">Cambiar fecha<i class="ic xs i-chev-r" aria-hidden="true"></i></a>
+</div>
+</div>
+</sc-if>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{objs}}" as="o" hint-placeholder-count="2">
+<section class="card" style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 12px; align-items: center">
+<span class="av" style="width: 44px; height: 44px; font-size: 22px">{{o.e}}</span>
+<div style="flex: 1">
+<div class="cuerpo-fuerte">{{o.n}}</div>
+<div class="etiqueta c2">{{o.cta}}</div>
+</div>
+<span class="pill {{o.pc}}"><i class="ic xs {{o.pi}}" aria-hidden="true"></i>{{o.pt}}</span>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<span class="seccion">{{o.lleva}}</span>
+<span class="etiqueta c2">de {{o.meta}}</span>
+</div>
+<div class="bar lg"><span class="fx"><i class="f-1" style="width: {{o.w}}%"></i></span></div>
+<div class="etiqueta {{o.fc}}">{{o.frase}}</div>
+</section>
+</sc-for>
+</div>
+
+<button class="btn btn-s" style="margin-top: 14px"><i class="ic s i-plus" aria-hidden="true"></i>Nuevo objetivo</button>
+</sc-if>
+
+<sc-if value="{{vacio}}" hint-placeholder-val="{{ false }}">
+<div class="card" style="margin-top: 24px; text-align: center; padding: 28px 20px">
+<div class="av" style="margin: 0 auto 12px; width: 56px; height: 56px"><i class="ic i-bandera" aria-hidden="true"></i></div>
+<h2 class="seccion" style="margin: 0">¿Para qué ahorras?</h2>
+<p class="etiqueta c2" style="margin: 4px 0 16px">Ponle nombre, monto y fecha. Te decimos cuánto apartar.</p>
+<div class="chips" style="justify-content: center; margin-bottom: 18px">
+<span class="chip">✈️ Viaje</span>
+<span class="chip">🛟 Emergencias</span>
+<span class="chip">🏡 Enganche</span>
+</div>
+<button class="btn btn-p"><i class="ic s i-plus" aria-hidden="true"></i>Crear objetivo</button>
+</div>
+</sc-if>
+</div>
+
+<nav class="tabbar" aria-label="Principal">
+<a class="tab" href="Main.dc.html"><i class="ic i-home" aria-hidden="true"></i>Inicio</a>
+<a class="tab" href="Gastos.dc.html"><i class="ic i-gastos" aria-hidden="true"></i>Gastos</a>
+<div class="tab-fab"><a class="fab" href="Registrar.dc.html" aria-label="Registrar gasto"><i class="ic i-plus" aria-hidden="true"></i></a></div>
+<a class="tab" href="Analisis.dc.html"><i class="ic i-analisis" aria-hidden="true"></i>Análisis</a>
+<a class="tab on" href="Patrimonio.dc.html" aria-current="page"><i class="ic i-patrimonio" aria-hidden="true"></i>Patrimonio</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tema":{"editor":"enum","options":["claro","oscuro"],"default":"claro"},"estado":{"editor":"enum","options":["normal","vencido","vacio"],"default":"normal"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tema = this.props.tema ?? 'claro';
+    const e = this.props.estado ?? 'normal';
+    const venc = e === 'vencido';
+    const japon = { e: '✈️', n: 'Viaje a Japón', cta: 'Cajita Japón · julio 2027', pc: 'ok', pi: 'i-check', pt: 'En camino',
+      lleva: '$9,900', meta: '$90,000', w: 11, frase: 'Aparta $4,005 por ciclo para llegar', fc: 'c2' };
+    const fondo = venc
+      ? { e: '🛟', n: 'Fondo de emergencia', cta: 'Cetes · era oct 2026', pc: 'warn', pi: 'i-calendario', pt: 'Fecha vencida',
+          lleva: '$42,000', meta: '$60,000', w: 70, frase: 'Te faltan $18,000', fc: 'c-warn' }
+      : { e: '🛟', n: 'Fondo de emergencia', cta: 'Cetes · sin fecha', pc: 'neu', pi: 'i-bandera', pt: 'Sin fecha',
+          lleva: '$42,000', meta: '$60,000', w: 70, frase: 'Te faltan $18,000', fc: 'c2' };
+    return {
+      tc: tema === 'oscuro' ? 't-oscuro' : 't-claro',
+      vacio: e === 'vacio', lleno: e !== 'vacio', vencido: venc,
+      objs: venc ? [fondo, japon] : [japon, fondo]
+    };
+  }
+}
+</script>
+</body>
+</html>

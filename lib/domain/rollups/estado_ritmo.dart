@@ -63,3 +63,25 @@ double avanceDelCiclo({
   if (avance > 1) return 1;
   return avance;
 }
+
+/// El veredicto de la marca de ritmo como lo ven el chip de estado y la
+/// barra (`docs/rediseno/design-system/componentes/BarraRitmo.md`): los dos
+/// leen esto, así nunca se contradicen.
+enum TonoRitmo {
+  /// "Vas bien": antes de la marca (o el ciclo apenas empieza).
+  vasBien,
+
+  /// "Vas un poco rápido": pasaste la marca con margen ([vaMuyRapido]).
+  vasRapido,
+
+  /// "Te pasaste": ya se gastó más que el presupuesto.
+  tePasaste,
+}
+
+/// [porcentajeUsado] `null` = sin presupuesto: no hay juicio, vas bien.
+TonoRitmo tonoDeRitmo({required double? porcentajeUsado, required double avanceCiclo}) {
+  if (porcentajeUsado == null) return TonoRitmo.vasBien;
+  if (porcentajeUsado > 1.0) return TonoRitmo.tePasaste;
+  if (vaMuyRapido(porcentajeUsado: porcentajeUsado, avanceCiclo: avanceCiclo)) return TonoRitmo.vasRapido;
+  return TonoRitmo.vasBien;
+}

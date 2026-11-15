@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Registrar gasto</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/c71f65355dc6ebf2b82cb9a8f62c0cbc">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="mv ph {{tc}}" style="width: 390px; height: 844px; background: var(--superficie)">
+<div class="scr" style="padding: 54px 20px 34px">
+
+<header class="top">
+<a class="btn-i" href="Main.dc.html" aria-label="Cerrar"><i class="ic i-x" aria-hidden="true"></i></a>
+<h1 class="cuerpo-fuerte" style="margin: 0">Nuevo gasto</h1>
+<div style="display: flex">
+<button class="btn-i" aria-label="Dictar gasto"><i class="ic i-mic" aria-hidden="true"></i></button>
+<button class="btn-i" aria-label="Foto del ticket"><i class="ic i-camara" aria-hidden="true"></i></button>
+</div>
+</header>
+
+<div style="display: flex; align-items: baseline; justify-content: center; gap: 4px; margin-top: 28px" aria-label="Monto: {{montoAria}}">
+<span class="d" style="font-size: 30px; font-weight: 500; color: var(--texto-2)">$</span>
+<span class="d" style="font-size: 60px; line-height: 64px; font-weight: 600; letter-spacing: -0.02em; color: {{montoColor}}">{{monto}}</span>
+</div>
+
+<div class="chips" style="justify-content: center; margin-top: 16px">
+<button class="chip soft"><i class="ic xs i-calendario" aria-hidden="true"></i>Hoy<i class="ic xs i-chev-d" aria-hidden="true"></i></button>
+<button class="chip soft"><i class="ic xs i-efectivo" aria-hidden="true"></i>Efectivo<i class="ic xs i-chev-d" aria-hidden="true"></i></button>
+<button class="chip soft"><i class="ic xs i-lapiz" aria-hidden="true"></i>Nota</button>
+</div>
+
+<div class="etiqueta c2" style="text-align: center; margin-top: 28px">{{hint}}</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; opacity: {{catOp}}">
+<sc-for list="{{cats}}" as="c" hint-placeholder-count="4">
+<a class="cat {{c.sug}}" href="Inicio-guardado.dc.html" aria-label="Guardar en {{c.n}}">
+<span class="av">{{c.e}}</span>
+<span>{{c.n}}</span>
+<span class="etiqueta c2" style="font-weight: 500; margin-top: -4px">{{c.q}}</span>
+</a>
+</sc-for>
+</div>
+
+<div style="flex: 1"></div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px" aria-label="Teclado numérico">
+<button class="key">1</button><button class="key">2</button><button class="key">3</button>
+<button class="key">4</button><button class="key">5</button><button class="key">6</button>
+<button class="key">7</button><button class="key">8</button><button class="key">9</button>
+<button class="key">.</button><button class="key">0</button>
+<button class="key" aria-label="Borrar"><i class="ic i-borrar" aria-hidden="true"></i></button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tema":{"editor":"enum","options":["claro","oscuro"],"default":"claro"},"estado":{"editor":"enum","options":["con monto","sin monto"],"default":"con monto"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tema = this.props.tema ?? 'claro';
+    const vacio = (this.props.estado ?? 'con monto') === 'sin monto';
+    const cats = [
+      { e: '🍿', n: 'Salidas', q: '$1,880', sug: vacio ? '' : 'sug' },
+      { e: '🛒', n: 'Súper', q: '$4,410', sug: '' },
+      { e: '🚗', n: 'Auto', q: '$2,600', sug: '' },
+      { e: '🏠', n: 'Vivienda', q: 'Fijo', sug: '' }
+    ];
+    return {
+      tc: tema === 'oscuro' ? 't-oscuro' : 't-claro',
+      monto: vacio ? '0' : '280',
+      montoAria: vacio ? 'vacío' : 'doscientos ochenta pesos',
+      montoColor: vacio ? 'var(--texto-desactivado)' : 'var(--texto)',
+      hint: vacio ? 'Escribe cuánto gastaste' : 'Toca la categoría y listo',
+      catOp: vacio ? 0.45 : 1,
+      cats
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Análisis</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/c71f65355dc6ebf2b82cb9a8f62c0cbc">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="mv ph {{tc}}" style="width: 390px; height: 844px">
+<div class="scr">
+
+<header class="top">
+<h1 class="titulo" style="margin: 0">Análisis</h1>
+<a class="me" href="Ajustes.dc.html" aria-label="Ajustes">M</a>
+</header>
+
+<sc-if value="{{resumen}}" hint-placeholder-val="{{ true }}">
+<div class="cyc" style="margin-top: 8px">
+<button class="btn-i" aria-label="Ciclo anterior"><i class="ic i-chev-l" aria-hidden="true"></i></button>
+<button style="display: flex; flex-direction: column; align-items: center; min-height: 44px">
+<span class="cuerpo-fuerte" style="display: flex; align-items: center; gap: 6px">Ciclo Nov 2026<i class="ic xs i-chev-d" aria-hidden="true"></i></span>
+<span class="etiqueta c2">Van 14 de 30 días</span>
+</button>
+<button class="btn-i dis" aria-label="Ciclo siguiente"><i class="ic i-chev-r" aria-hidden="true"></i></button>
+</div>
+</sc-if>
+
+<div class="seg" role="tablist" style="margin-top: 12px">
+<a role="tab" class="{{s1}}" href="Analisis.dc.html" style="text-decoration: none">Resumen</a>
+<a role="tab" class="{{s2}}" href="AnalisisDetalle.dc.html" style="text-decoration: none">Detalle</a>
+<a role="tab" class="{{s3}}" href="Analisis-historial.dc.html" style="text-decoration: none">Historial</a>
+</div>
+
+<sc-if value="{{resumen}}" hint-placeholder-val="{{ true }}">
+<section class="card" style="margin-top: 16px; padding: 18px">
+<span class="pill warn"><i class="ic xs i-ritmo" aria-hidden="true"></i>Vas un poco rápido</span>
+<div class="etiqueta c2" style="margin-top: 14px">Si sigues así, apartas</div>
+<div style="display: flex; align-items: baseline; gap: 8px">
+<span class="d" style="font-size: 34px; line-height: 40px; font-weight: 600; letter-spacing: -0.02em">$7,643</span>
+<span class="etiqueta c2">de $11,550</span>
+</div>
+<div class="bar" style="margin-top: 14px"><span class="fx"><i class="f-warn" style="width: 58.5%"></i></span><span class="mark" style="left: 46.7%"></span></div>
+<div class="etiqueta c2" style="margin-top: 8px">$9,010 de $15,400 en variables</div>
+</section>
+
+<div class="sec" style="margin-top: 24px"><h2 class="seccion" style="margin: 0">Qué hacer</h2></div>
+<div class="grp">
+<div class="row">
+<span class="av" style="background: var(--peligro-fondo); color: var(--peligro-texto)"><i class="ic s i-transferir" aria-hidden="true"></i></span>
+<span class="grow">
+<span class="cuerpo-fuerte" style="display: block">Cubre Salidas con Auto</span>
+<span class="etiqueta c2">A Auto le sobrarán $1,171</span>
+</span>
+<a class="btn btn-p btn-sm" href="Categoria.dc.html" style="text-decoration: none">Mover $620</a>
+</div>
+<div class="row">
+<span class="av" style="background: var(--atencion-fondo); color: var(--atencion-texto)"><i class="ic s i-ritmo" aria-hidden="true"></i></span>
+<span class="grow">
+<span class="cuerpo-fuerte" style="display: block">Gasta hasta $375 al día</span>
+<span class="etiqueta c2">Así llegas a tu meta completa</span>
+</span>
+</div>
+</div>
+
+<div class="sec" style="margin-top: 24px">
+<h2 class="seccion" style="margin: 0">En qué se fue</h2>
+<a class="lnk" href="AnalisisDetalle.dc.html" style="min-height: 24px">Ver detalle<i class="ic xs i-chev-r" aria-hidden="true"></i></a>
+</div>
+<div class="grp">
+<a class="crow" href="Categoria.dc.html">
+<span class="av">🍿</span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; justify-content: space-between"><span class="cuerpo-fuerte">Salidas</span><span class="cuerpo-fuerte">$4,470</span></span>
+<span class="bar"><span class="fx"><i class="f-warn" style="width: 86.1%"></i><i class="cut"></i><i class="f-bad" style="width: 13.9%"></i></span><span class="mark" style="left: 40.2%"></span></span>
+</span>
+</a>
+<a class="crow" href="Categoria-bien.dc.html">
+<span class="av">🛒</span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; justify-content: space-between"><span class="cuerpo-fuerte">Súper</span><span class="cuerpo-fuerte">$3,290</span></span>
+<span class="bar"><span class="fx"><i class="f-ok" style="width: 42.7%"></i></span><span class="mark" style="left: 46.7%"></span></span>
+</span>
+</a>
+</div>
+</sc-if>
+
+<sc-if value="{{historial}}" hint-placeholder-val="{{ false }}">
+<section class="card" style="margin-top: 16px; padding: 18px">
+<span class="pill ok"><i class="ic xs i-sube" aria-hidden="true"></i>Vas mejorando</span>
+<div class="seccion" style="margin-top: 12px">Octubre fue tu mejor ciclo</div>
+<div class="etiqueta c2">Apartaste toda tu meta y $110 más.</div>
+<div style="position: relative; display: flex; align-items: flex-end; gap: 12px; height: 150px; margin-top: 20px; padding-top: 10px" role="img" aria-label="Lo que apartaste: agosto 8,200; septiembre 9,900; octubre 11,660; noviembre en curso, estimado 7,643. Meta 11,550.">
+<div style="position: absolute; left: 0; right: 0; bottom: 103px; border-top: 1.5px dashed var(--texto-2)"></div>
+<span class="etiqueta c2" style="position: absolute; right: 0; bottom: 107px">Meta $11,550</span>
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px"><span class="etiqueta">$8.2k</span><div class="f-warn" style="width: 100%; height: 72px; border-radius: 8px 8px 3px 3px"></div></div>
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px"><span class="etiqueta">$9.9k</span><div class="f-warn" style="width: 100%; height: 88px; border-radius: 8px 8px 3px 3px"></div></div>
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px"><span class="etiqueta">$11.7k</span><div class="f-ok" style="width: 100%; height: 104px; border-radius: 8px 8px 3px 3px"></div></div>
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px"><span class="etiqueta c2">~$7.6k</span><div style="width: 100%; height: 68px; border-radius: 8px 8px 3px 3px; background: repeating-linear-gradient(135deg, var(--atencion) 0 3px, transparent 3px 7px); box-shadow: inset 0 0 0 1.5px var(--atencion)"></div></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 8px; text-align: center" class="etiqueta c2"><span>Ago</span><span>Sep</span><span>Oct</span><span>Nov · en curso</span></div>
+</section>
+
+<div class="sec" style="margin-top: 24px">
+<h2 class="seccion" style="margin: 0">Ciclos cerrados</h2>
+<button class="chip soft" style="height: 32px">Últimos 6<i class="ic xs i-chev-d" aria-hidden="true"></i></button>
+</div>
+<div class="grp">
+<a class="row" href="Gastos-cerrado.dc.html" style="text-decoration: none; color: inherit">
+<span class="grow"><span class="cuerpo-fuerte" style="display: block">Oct 2026</span><span class="etiqueta c2">Apartaste $11,660</span></span>
+<span class="pill ok"><i class="ic xs i-check" aria-hidden="true"></i>Meta</span>
+<i class="ic s i-chev-r c2" aria-hidden="true"></i>
+</a>
+<a class="row" href="Gastos-cerrado.dc.html" style="text-decoration: none; color: inherit">
+<span class="grow"><span class="cuerpo-fuerte" style="display: block">Sep 2026</span><span class="etiqueta c2">Apartaste $9,900</span></span>
+<span class="etiqueta c-warn" style="font-weight: 600">Faltaron $1,650</span>
+<i class="ic s i-chev-r c2" aria-hidden="true"></i>
+</a>
+<a class="row" href="Gastos-cerrado.dc.html" style="text-decoration: none; color: inherit">
+<span class="grow"><span class="cuerpo-fuerte" style="display: block">Ago 2026</span><span class="etiqueta c2">Apartaste $8,200</span></span>
+<span class="etiqueta c-warn" style="font-weight: 600">Faltaron $3,350</span>
+<i class="ic s i-chev-r c2" aria-hidden="true"></i>
+</a>
+</div>
+</sc-if>
+
+<sc-if value="{{vacio}}" hint-placeholder-val="{{ false }}">
+<div class="card" style="margin-top: 32px; text-align: center; padding: 28px 20px">
+<div class="av" style="margin: 0 auto 12px; width: 56px; height: 56px"><i class="ic i-historial" aria-hidden="true"></i></div>
+<h2 class="seccion" style="margin: 0">Tu historial empieza el 30 nov</h2>
+<p class="etiqueta c2" style="margin: 4px 0 0">Al cerrar tu primer ciclo verás si vas mejorando.</p>
+</div>
+</sc-if>
+</div>
+
+<nav class="tabbar" aria-label="Principal">
+<a class="tab" href="Main.dc.html"><i class="ic i-home" aria-hidden="true"></i>Inicio</a>
+<a class="tab" href="Gastos.dc.html"><i class="ic i-gastos" aria-hidden="true"></i>Gastos</a>
+<div class="tab-fab"><a class="fab" href="Registrar.dc.html" aria-label="Registrar gasto"><i class="ic i-plus" aria-hidden="true"></i></a></div>
+<a class="tab on" href="Analisis.dc.html" aria-current="page"><i class="ic i-analisis" aria-hidden="true"></i>Análisis</a>
+<a class="tab" href="Patrimonio.dc.html"><i class="ic i-patrimonio" aria-hidden="true"></i>Patrimonio</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tema":{"editor":"enum","options":["claro","oscuro"],"default":"claro"},"vista":{"editor":"enum","options":["resumen","historial","vacio"],"default":"resumen"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tema = this.props.tema ?? 'claro';
+    const v = this.props.vista ?? 'resumen';
+    const hist = v !== 'resumen';
+    return {
+      tc: tema === 'oscuro' ? 't-oscuro' : 't-claro',
+      resumen: v === 'resumen', historial: v === 'historial', vacio: v === 'vacio',
+      s1: hist ? '' : 'on', s2: '', s3: hist ? 'on' : ''
+    };
+  }
+}
+</script>
+</body>
+</html>

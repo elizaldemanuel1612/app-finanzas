@@ -1,6 +1,7 @@
 import '../../core/money.dart';
 import '../modelos/categoria.dart';
 import '../presupuesto/apartado_estimado.dart';
+import '../presupuesto/cobertura_excesos.dart';
 import 'reporte_analisis.dart';
 
 /// Qué tan urgente es una recomendación; ordena la lista (lo urgente
@@ -34,37 +35,6 @@ const _maximo = 5;
 /// en una sola para dejar lugar a otras recomendaciones.
 const _excedidasDetalladas = 2;
 
-/// De dónde sale el exceso: de lo que le sobrará a otra variable (la que
-/// más tenga) o, si no alcanza, de lo que se aparta.
-String _deDondeCubrir(
-  Dinero exceso,
-  String categoriaId,
-  Map<String, Dinero> sobrante,
-  Map<String, String> nombres,
-  int diasRestantes,
-) {
-  String? mejor;
-  for (final e in sobrante.entries) {
-    if (e.key == categoriaId || !e.value.esPositivo) continue;
-    if (mejor == null || e.value > sobrante[mejor]!) mejor = e.key;
-  }
-  if (mejor == null) {
-    return diasRestantes > 0
-        ? 'Ninguna otra categoría tiene de dónde cubrirlo, así que sale de lo que apartas; lo que sumes aquí, también.'
-        : 'Salió de lo que apartaste. Si pasa seguido, súbele el presupuesto el próximo ciclo.';
-  }
-  final disponible = sobrante[mejor]!;
-  final cubre = exceso < disponible ? exceso : disponible;
-  sobrante[mejor] = disponible - cubre;
-  final nombre = nombres[mejor]!;
-  if (cubre == exceso) {
-    return 'Muévele ${exceso.formateado()} desde $nombre (se estima que le sobren '
-        '${disponible.formateado()}) y cuadras sin tocar lo que apartas.';
-  }
-  return 'Desde $nombre puedes cubrir ${cubre.formateado()}; los otros '
-      '${(exceso - cubre).formateado()} saldrían de lo que apartas.';
-}
-
 /// "a, b y c".
 String _enLista(List<String> partes) =>
     partes.length == 1 ? partes.single : '${partes.sublist(0, partes.length - 1).join(', ')} y ${partes.last}';
@@ -85,45 +55,33 @@ List<Recomendacion> calcularRecomendaciones({
   final lista = <Recomendacion>[];
   final dias = r.diaDelCiclo;
   final avance = r.diaDelCiclo / r.diasDelCiclo;
-  final variables = [
-    for (final g in r.porCategoria)
-      if (g.categoria is CategoriaVariable) g,
-  ];
-
-  // Lo que se estima que le sobrará a cada variable al cierre: de ahí se
-  // sugiere mover. Cada excedida "gasta" su parte, para no ofrecer dos
-  // veces el mismo dinero.
-  final sobrante = <String, Dinero>{
-    for (final g in variables)
-      if (_proyeccion(g.total, r) < g.presupuesto) g.categoria.id: g.presupuesto - _proyeccion(g.total, r),
-  };
-  final nombres = {for (final g in variables) g.categoria.id: g.categoria.nombre};
-
-  final excedidas = [
-    for (final g in variables)
-      if (g.total > g.presupuesto) g,
-  ]..sort((a, b) => (b.total - b.presupuesto).compareTo(a.total - a.presupuesto));
+  // Pronóstico y cobertura: el MPC y el único motor de cobertura, los
+  // mismos que Inicio y el detalle de categoría
+  // (`docs/rediseno/plan-rediseno.md`, Etapa 0).
+  final variables = r.variables;
+  final coberturas = calcularCoberturas(variables);
 
   // Las dos más grandes, cada una con su salida concreta (2026-11-08: antes
   // todas decían "Nada grave" y llenaban las 5 recomendaciones).
-  for (final g in excedidas.take(_excedidasDetalladas)) {
-    final exceso = g.total - g.presupuesto;
+  final estadoPorId = {for (final e in variables) e.categoria.id: e};
+  for (final c in coberturas.take(_excedidasDetalladas)) {
+    final e = estadoPorId[c.categoria.id]!;
     lista.add(Recomendacion(
       tono: TonoRecomendacion.alerta,
-      titulo: 'Te pasaste en ${g.categoria.nombre} por ${exceso.formateado()}',
+      titulo: 'Te pasaste en ${c.categoria.nombre} por ${c.exceso.formateado()}',
       detalle: [
-        if (r.diasRestantes > 0 && dias >= 3 && _proyeccion(g.total, r) > g.total)
-          'A este ritmo cerraría ${(_proyeccion(g.total, r) - g.presupuesto).formateado()} arriba.',
-        _deDondeCubrir(exceso, g.categoria.id, sobrante, nombres, r.diasRestantes),
+        if (r.diasRestantes > 0 && dias >= 3 && e.proyeccion > e.gastado)
+          'Estimado al cierre: ${(e.proyeccion - e.presupuesto).formateado()} arriba.',
+        c.frase,
       ].join(' '),
       accion: AccionRecomendacion.verCategoria,
-      categoriaId: g.categoria.id,
+      categoriaId: c.categoria.id,
     ));
   }
-  final resto = excedidas.skip(_excedidasDetalladas).toList();
+  final resto = coberturas.skip(_excedidasDetalladas).toList();
   if (resto.isNotEmpty) {
-    final total = Dinero.suma(resto.map((g) => g.total - g.presupuesto));
-    final cuales = [for (final g in resto.take(3)) '${g.categoria.nombre} (${(g.total - g.presupuesto).formateado()})'];
+    final total = Dinero.suma(resto.map((c) => c.exceso));
+    final cuales = [for (final c in resto.take(3)) '${c.categoria.nombre} (${c.exceso.formateado()})'];
     if (resto.length > 3) cuales.add('${resto.length - 3} más');
     lista.add(Recomendacion(
       tono: TonoRecomendacion.alerta,
@@ -135,45 +93,44 @@ List<Recomendacion> calcularRecomendaciones({
     ));
   }
 
-  for (final g in variables) {
-    final presupuesto = g.presupuesto;
-    if (g.total > presupuesto) {
+  for (final e in variables) {
+    final presupuesto = e.presupuesto;
+    if (e.gastado > presupuesto || !presupuesto.esPositivo) {
       continue;
     } else if (r.diasRestantes > 0 &&
-        (g.total == presupuesto || (presupuesto - g.total).centavos < r.diasRestantes)) {
+        (e.gastado == presupuesto || (presupuesto - e.gastado).centavos < r.diasRestantes)) {
       // Llegó justo (o le quedan centavos): "máximo $0.00 al día" no
       // ayuda; se dice como en addendum-v3 §3.3.
       lista.add(Recomendacion(
         tono: TonoRecomendacion.atencion,
-        titulo: 'Ya usaste todo lo de ${g.categoria.nombre}',
+        titulo: 'Ya usaste todo lo de ${e.categoria.nombre}',
         detalle: 'Faltan ${r.diasRestantes} ${_dias(r.diasRestantes)}: si puedes, no sumes más aquí '
             'o muévele presupuesto desde otra categoría.',
         accion: AccionRecomendacion.verCategoria,
-        categoriaId: g.categoria.id,
+        categoriaId: e.categoria.id,
       ));
     } else if (dias >= 3 && r.diasRestantes > 0) {
-      final proyectado = _proyeccion(g.total, r);
-      if (proyectado > presupuesto) {
-        final porDia = Dinero((presupuesto - g.total).centavos ~/ r.diasRestantes);
+      if (e.proyeccion > presupuesto) {
+        final porDia = Dinero((presupuesto - e.gastado).centavos ~/ r.diasRestantes);
         lista.add(Recomendacion(
           tono: TonoRecomendacion.atencion,
-          titulo: '${g.categoria.nombre} va rápido',
-          detalle: 'A este ritmo cerraría en ${proyectado.formateado()}, '
-              '${(proyectado - presupuesto).formateado()} arriba. Para llegar justo: '
+          titulo: '${e.categoria.nombre} va rápido',
+          detalle: 'Estimado al cierre: ${e.proyeccion.formateado()}, '
+              '${(e.proyeccion - presupuesto).formateado()} arriba. Para llegar justo: '
               'máximo ${porDia.formateado()} al día los ${r.diasRestantes} ${_dias(r.diasRestantes)} que faltan.',
           accion: AccionRecomendacion.verCategoria,
-          categoriaId: g.categoria.id,
+          categoriaId: e.categoria.id,
         ));
       } else if (avance >= 0.5 &&
           presupuesto >= const Dinero.pesos(500) &&
-          g.total.centavos * 2 < (presupuesto.centavos * avance).round()) {
+          e.gastado.centavos * 2 < (presupuesto.centavos * avance).round()) {
         lista.add(Recomendacion(
           tono: TonoRecomendacion.positivo,
-          titulo: 'Te está sobrando en ${g.categoria.nombre}',
-          detalle: 'Llevas ${g.total.formateado()} de ${presupuesto.formateado()} y van '
+          titulo: 'Te está sobrando en ${e.categoria.nombre}',
+          detalle: 'Llevas ${e.gastado.formateado()} de ${presupuesto.formateado()} y van '
               '$dias de ${r.diasDelCiclo} días. Si así sigue, eso puede ir a tu meta.',
           accion: AccionRecomendacion.verCategoria,
-          categoriaId: g.categoria.id,
+          categoriaId: e.categoria.id,
         ));
       }
     }
@@ -216,9 +173,7 @@ List<Recomendacion> calcularRecomendaciones({
       presupuestoFijas: r.presupuestoFijas,
       gastadoFijas: r.gastadoFijas,
       presupuestoVariables: r.presupuestoVariables,
-      gastadoVariables: r.gastadoVariables,
-      diaDelCiclo: r.diaDelCiclo,
-      diasDelCiclo: r.diasDelCiclo,
+      proyeccionVariables: r.proyeccionVariables,
     );
     final Recomendacion rec;
     if (apartado >= meta) {
@@ -296,8 +251,5 @@ List<Recomendacion> calcularRecomendaciones({
 
 /// Plural, en minúscula, empezando en lunes.
 const nombresDiaSemana = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'];
-
-Dinero _proyeccion(Dinero total, ReporteAnalisis r) =>
-    Dinero(total.centavos + total.centavos * r.diasRestantes ~/ r.diaDelCiclo);
 
 String _dias(int n) => n == 1 ? 'día' : 'días';

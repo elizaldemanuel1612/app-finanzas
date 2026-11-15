@@ -59,11 +59,9 @@ void main() {
       ),
     ));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Ver análisis completo'), 300);
+    await tester.tap(find.text('Detalle'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Ver análisis completo'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('¿Cuánto pesa cada parte?'), 300);
+    await tester.scrollUntilVisible(find.text('Plan contra cierre'), 300);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Variables').first);
     await tester.pumpAndSettle();

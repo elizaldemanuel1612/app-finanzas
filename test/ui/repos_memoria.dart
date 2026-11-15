@@ -89,11 +89,11 @@ final class MovimientoRepositorioMemoria implements MovimientoRepositorio {
 }
 
 final class ReglasAprendidasRepositorioMemoria implements ReglasAprendidasRepositorio {
+  List<ReglaAprendida> reglas = const [];
   @override
-  Future<List<ReglaAprendida>> listarTodas() async => const [];
+  Future<List<ReglaAprendida>> listarTodas() async => reglas;
   @override
-  Future<void> guardarTodas(List<ReglaAprendida> reglas) =>
-      throw UnimplementedError();
+  Future<void> guardarTodas(List<ReglaAprendida> nuevas) async => reglas = nuevas;
 }
 
 final class CicloRepositorioMemoria implements CicloRepositorio {
@@ -141,14 +141,13 @@ final class IngresoExtraRepositorioMemoria implements IngresoExtraRepositorio {
 final class AjustePresupuestoCicloRepositorioMemoria
     implements AjustePresupuestoCicloRepositorio {
   final List<AjustePresupuestoCiclo> items;
-  AjustePresupuestoCicloRepositorioMemoria([this.items = const []]);
+  AjustePresupuestoCicloRepositorioMemoria([List<AjustePresupuestoCiclo> items = const []]) : items = [...items];
 
   @override
   Future<List<AjustePresupuestoCiclo>> listarPorCiclo(String cicloId) async =>
       items.where((a) => a.cicloId == cicloId).toList();
   @override
-  Future<void> agregarLote(List<AjustePresupuestoCiclo> ajustes) =>
-      throw UnimplementedError();
+  Future<void> agregarLote(List<AjustePresupuestoCiclo> ajustes) async => items.addAll(ajustes);
 }
 
 final class PerfilRepositorioMemoria implements PerfilRepositorio {

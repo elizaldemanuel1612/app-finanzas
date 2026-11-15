@@ -130,4 +130,21 @@ void main() {
       expect(avance, 0.0);
     });
   });
+
+  group('tonoDeRitmo — lo que dicen el chip y la barra', () {
+    test('sin presupuesto o antes de la marca: vas bien', () {
+      expect(tonoDeRitmo(porcentajeUsado: null, avanceCiclo: 0.5), TonoRitmo.vasBien);
+      expect(tonoDeRitmo(porcentajeUsado: 0.4, avanceCiclo: 0.5), TonoRitmo.vasBien);
+    });
+
+    test('pasada la marca con margen: vas un poco rápido; los primeros días no', () {
+      expect(tonoDeRitmo(porcentajeUsado: 0.7, avanceCiclo: 0.5), TonoRitmo.vasRapido);
+      expect(tonoDeRitmo(porcentajeUsado: 0.5, avanceCiclo: 0.1), TonoRitmo.vasBien);
+    });
+
+    test('más que el presupuesto: te pasaste', () {
+      expect(tonoDeRitmo(porcentajeUsado: 1.01, avanceCiclo: 0.2), TonoRitmo.tePasaste);
+      expect(tonoDeRitmo(porcentajeUsado: 1.0, avanceCiclo: 1.0), TonoRitmo.vasBien);
+    });
+  });
 }

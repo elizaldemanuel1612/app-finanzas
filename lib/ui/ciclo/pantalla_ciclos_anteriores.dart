@@ -38,8 +38,12 @@ class PantallaCiclosAnteriores extends StatefulWidget {
   final CuentaRepositorio? cuentaRepositorio;
   final MovimientoCuentaRepositorio? movimientoCuentaRepositorio;
 
+  /// Dentro de Análisis › Historial: sin barra propia.
+  final bool embebida;
+
   const PantallaCiclosAnteriores({
     super.key,
+    this.embebida = false,
     required this.perfil,
     required this.cicloActual,
     required this.categoriaRepositorio,
@@ -135,8 +139,9 @@ class _PantallaCiclosAnterioresState extends State<PantallaCiclosAnteriores> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Ciclos anteriores')),
+      appBar: widget.embebida ? null : AppBar(title: const Text('Ciclos anteriores')),
       body: SafeArea(
+        top: !widget.embebida,
         child: FutureBuilder<_Datos>(
           future: _datos,
           builder: (context, snapshot) {

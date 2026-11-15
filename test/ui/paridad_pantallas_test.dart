@@ -83,7 +83,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // El resumen "N movimiento(s) · $total" solo se muestra con un filtro
+    // El resumen "N gastos · $total" solo se muestra con un filtro
     // activo (pantalla_gastos.dart:192,218) — "e" aparece en la
     // descripción o categoría de los 7 movimientos activos del ciclo
     // sembrado, así que filtra sin excluir a ninguno.
@@ -99,7 +99,7 @@ void main() {
     final totalFormateado = esperadoLista['totalFormateado'] as String;
 
     expect(
-      find.textContaining('$conteo movimiento(s) · $totalFormateado'),
+      find.textContaining('$conteo ${conteo == 1 ? 'gasto' : 'gastos'} · $totalFormateado'),
       findsOneWidget,
       reason: 'PantallaGastos debe mostrar exactamente el conteo y total congelados',
     );
