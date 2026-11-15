@@ -32,6 +32,27 @@
 
   <title>MAVfin</title>
   <link rel="manifest" href="manifest.json">
+  <!-- Sin ampliación automática (2026-11-15). Safari amplía la página al
+       enfocar un campo con letra menor a 16 px y, en la app de la pantalla
+       de inicio, se queda así: todo se veía cortado a la derecha. Flutter
+       pone su propio viewport con maximum-scale=5.0 y reemplaza cualquiera
+       de aquí, así que lo corregimos cada vez que lo toca. iOS sigue
+       dejando ampliar con dos dedos (accesibilidad). -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <script>
+    (function () {
+      var fijo = 'width=device-width, initial-scale=1.0, maximum-scale=1.0';
+      function corregir() {
+        document.querySelectorAll('meta[name=viewport]').forEach(function (m) {
+          if (m.content !== fijo) m.content = fijo;
+        });
+      }
+      new MutationObserver(corregir).observe(document.head, {
+        childList: true, subtree: true, attributes: true, attributeFilter: ['content'],
+      });
+      corregir();
+    })();
+  </script>
 </head>
 <body>
   <!--
