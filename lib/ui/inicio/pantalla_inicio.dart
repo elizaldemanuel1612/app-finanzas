@@ -441,6 +441,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
           alVerCategoria: _irADetallePorId,
           alVerGastos: () => _elegirPestana(Pestana.gastos),
           alVerMeta: _irAMeta,
+          nombre: _nombre,
+          alAbrirAjustes: _irAAjustes,
         ),
       Pestana.patrimonio => PantallaPatrimonio(
           key: ValueKey('patrimonio-$_version'),

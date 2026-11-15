@@ -158,20 +158,16 @@ void main() {
         ),
       );
 
-      // Arranca en la vista básica: un veredicto y un botón al resto.
+      // Arranca en Resumen: el veredicto y lo que apartas.
       expect(tester.takeException(), isNull);
-      expect(find.text('Hoy puedes gastar'), findsOneWidget);
-      expect(find.text('Llevas gastado'), findsNothing);
-      await tester.scrollUntilVisible(find.text('Ver análisis completo'), 300);
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      await tester.tap(find.text('Ver análisis completo'));
+      expect(find.text('Si sigues así, apartas'), findsOneWidget);
+      await tester.tap(find.text('Detalle'));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Llevas gastado'), findsOneWidget);
+      expect(find.text('Ritmo del ciclo'), findsOneWidget);
       // Recorre la pantalla completa para que cada bloque se construya.
-      await tester.scrollUntilVisible(find.text('Tarjeta y efectivo'), 300);
+      await tester.scrollUntilVisible(find.text('Cómo pagas'), 300);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
