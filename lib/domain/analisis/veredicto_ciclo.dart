@@ -27,7 +27,8 @@ final class VeredictoCiclo {
 VeredictoCiclo calcularVeredicto({required ReporteAnalisis reporte, required DateTime hoy}) {
   final r = reporte;
   final presupuesto = r.presupuestoVariables;
-  final gastado = r.gastadoVariables;
+  // Solo lo de las categorías con presupuesto se compara (spec §7.3.6).
+  final gastado = r.gastadoConPresupuesto;
   final quedanDias = r.diasRestantes > 0;
 
   // Un ciclo pasado se cuenta en pasado y sin "hoy puedes gastar".
@@ -37,7 +38,7 @@ VeredictoCiclo calcularVeredicto({required ReporteAnalisis reporte, required Dat
     return VeredictoCiclo(
       tono: TonoVeredicto.neutro,
       titulo: terminado ? 'Gastaste ${r.gastado.formateado()} en este ciclo' : 'Llevas ${r.gastado.formateado()} este ciclo',
-      detalle: 'Ponles presupuesto a tus categorías para saber si vas bien.',
+      detalle: 'Registras sin presupuestos: aquí ves en qué se te va el dinero.',
     );
   }
   if (gastado > presupuesto) {

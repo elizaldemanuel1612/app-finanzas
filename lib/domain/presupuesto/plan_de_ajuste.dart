@@ -56,6 +56,8 @@ PlanDeAjuste? calcularPlanDeAjuste({
   final diasRestantes = _diasRestantes(hoy, fechaFinCiclo);
   if (diasRestantes < 3) return null;
 
+  // Sin presupuesto no hay plan que proponer (spec §7.3.6).
+  if (categoria.sinPresupuesto) return null;
   final presupuesto = categoria.presupuestoMensualCentavos.centavos;
   if (pronostico.pronosticoP50.centavos <= presupuesto) return null;
 

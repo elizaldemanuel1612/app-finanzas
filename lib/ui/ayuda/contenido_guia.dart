@@ -173,6 +173,13 @@ const _temaCategorias = TemaGuia(
       'En Ajustes → **Categorías y presupuestos** puedes crear una nueva '
       'o editar una existente en cualquier momento.',
     ),
+    Subtitulo('Sin presupuesto'),
+    Parrafo(
+      'Si no quieres presupuestar, deja una variable en \$0: la app solo te '
+      'dice cuánto llevas en ella, sin barra ni "te pasaste". Si todas '
+      'están en \$0, Inicio te muestra lo que llevas gastado y lo que te '
+      'entró. Al empezar puedes elegir **Solo quiero registrar mis gastos**.',
+    ),
     Subtitulo('Archivar y eliminar'),
     Vinetas([
       'El switch de archivar la saca de las pantallas activas sin '

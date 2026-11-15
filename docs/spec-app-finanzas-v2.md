@@ -399,6 +399,15 @@ Por qué: muchos bancos (y Cetes) dejan separar el dinero en "apartados" o "caji
 - **Objetivos (§7.3.3):** un objetivo se puede juntar en un apartado; se muestra como "Viaje · BBVA débito".
 - **Eliminar un apartado (2026-11-15):** con confirmación, desde su detalle. Lo que tenga **regresa a su cuenta** con una transferencia ("De Viaje"), así el dinero se libera sin desaparecer; después el apartado se archiva y deja de verse (ni en sus apartados ni en las archivadas de Tus cuentas). No se borra el registro: los movimientos de la cuenta siguen diciendo de dónde vino el dinero (regla #3). Un objetivo que se juntaba ahí se queda en $0 hasta que se le elija otra cuenta.
 
+### 7.3.6 [NUEVO] Categorías sin presupuesto: solo registrar (2026-11-15)
+
+Por qué: hay quien no quiere presupuestar por categoría; solo quiere ver en qué se le va el dinero y cuánto le entra.
+
+- Una categoría variable con presupuesto **$0 = sin presupuesto**: se registra y se analiza igual, pero **no se juzga** — sin barra de ritmo, sin "Vas bien/rápido", sin "Te pasaste", sin coberturas ni rebalanceo (no tiene exceso ni sobrante) y sin "Gasta hasta $X al día". Su renglón dice "Llevas $X · sin presupuesto". Las fijas siguen pidiendo su monto.
+- Crear, editar e importar aceptan $0 (no negativos). En el onboarding, el paso de categorías tiene **"Solo quiero registrar mis gastos"**: deja todas en $0 y esconde los montos.
+- **Totales:** "Llevas gastado $X de $Y" y el veredicto del ciclo solo comparan las categorías **con** presupuesto; lo de las demás se dice aparte ("Además, $Z en categorías sin presupuesto").
+- **Modo solo registro** (ninguna variable con presupuesto): el héroe de Inicio dice "Llevas gastado $X este ciclo" con lo que entró y cuánto queda de lo que entró, sin barra ni chip; el widget del iPhone, "Llevas gastado $X". Análisis cuenta lo gastado y lo que entró sin pedir presupuestos. La meta derivada de apartado sigue siendo ingreso − fijas − lo proyectado (§5.6.1).
+
 ### 7.4 [NUEVO] Exportación y portabilidad
 Exportar todo a Excel/CSV cuando quieras. No quedas atrapado en la app — y te da una red de seguridad psicológica al abandonar el Excel.
 

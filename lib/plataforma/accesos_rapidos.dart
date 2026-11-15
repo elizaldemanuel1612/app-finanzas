@@ -67,7 +67,8 @@ class AccesosRapidos {
       await _canal.invokeMethod<void>('actualizarWidget', {
         // La clave se llama así desde que mostraba "Hoy puedes gastar".
         'quedaHoyTexto': gastado.formateado(),
-        'deTexto': 'de ${presupuesto.formateado()}',
+        // Sin presupuestos (spec §7.3.6) solo va lo gastado.
+        'deTexto': presupuesto.esPositivo ? 'de ${presupuesto.formateado()}' : '',
         'fecha': fecha,
       });
     } on PlatformException {

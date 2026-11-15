@@ -18,8 +18,10 @@ final class EstadoVariable {
 
   Dinero get presupuesto => categoria.presupuestoMensualCentavos;
 
-  /// Lo que ya se pasó del presupuesto; cero si no se ha pasado.
-  Dinero get exceso => gastado > presupuesto ? gastado - presupuesto : const Dinero.cero();
+  /// Lo que ya se pasó del presupuesto; cero si no se ha pasado o si no
+  /// tiene presupuesto (spec §7.3.6: no se juzga).
+  Dinero get exceso =>
+      !categoria.sinPresupuesto && gastado > presupuesto ? gastado - presupuesto : const Dinero.cero();
 
   /// Lo que se estima que le sobrará al cierre; cero si no le sobrará.
   Dinero get sobrante => proyeccion < presupuesto ? presupuesto - proyeccion : const Dinero.cero();

@@ -196,7 +196,11 @@ class _PantallaInicioState extends State<PantallaInicio> {
     final datos = await _cargarDatos();
     if (!mounted) return;
     setState(() => _datos = datos);
-    AccesosRapidos.publicarGastado(datos.gastadoVariables, datos.presupuestoVariables, DateTime.now());
+    AccesosRapidos.publicarGastado(
+      datos.soloRegistro ? datos.gastadoSinPresupuesto : datos.gastadoVariables,
+      datos.presupuestoVariables,
+      DateTime.now(),
+    );
     _ofrecerTrasladoSiToca();
   }
 
@@ -262,9 +266,14 @@ class _PantallaInicioState extends State<PantallaInicio> {
     // ajustes del ciclo. Lo que se ve ajustado sale de `rollupPorCategoria`.
     final fijas = categorias.whereType<CategoriaFija>().toList();
     final variables = categorias.whereType<CategoriaVariable>().toList();
-    final gastadoVariables = Dinero.suma(
-      variables.map((c) => rollupPorCategoria[c.id]?.totalCentavos ?? const Dinero.cero()),
-    );
+    // Solo lo de las categorías con presupuesto se compara contra él; lo de
+    // las demás va aparte (spec §7.3.6).
+    bool conPresupuesto(CategoriaVariable c) =>
+        (rollupPorCategoria[c.id]?.presupuestoCentavos ?? c.presupuestoMensualCentavos).esPositivo;
+    Dinero gastadoDe(Iterable<CategoriaVariable> cs) =>
+        Dinero.suma(cs.map((c) => rollupPorCategoria[c.id]?.totalCentavos ?? const Dinero.cero()));
+    final gastadoVariables = gastadoDe(variables.where(conPresupuesto));
+    final gastadoSinPresupuesto = gastadoDe(variables.where((c) => !conPresupuesto(c)));
     final presupuestoVariables = Dinero.suma(
       variables.map((c) => rollupPorCategoria[c.id]?.presupuestoCentavos ?? c.presupuestoMensualCentavos),
     );
@@ -296,6 +305,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
       fijas: fijas,
       variables: ordenarPorAtencion(variables, rollupPorCategoria, avanceCiclo: _avanceCiclo),
       gastadoVariables: gastadoVariables,
+      gastadoSinPresupuesto: gastadoSinPresupuesto,
       presupuestoVariables: presupuestoVariables,
       totalGastado: Dinero.suma(rollups.map((r) => r.totalCentavos)),
       ingresos: ingresos,
@@ -349,7 +359,10 @@ class _PantallaInicioState extends State<PantallaInicio> {
     final categoria = [...?datos?.variables, ...?datos?.fijas].where((c) => c.id == m.categoriaId).firstOrNull;
     final presupuesto = rollup?.presupuestoCentavos;
     final String texto;
-    if (categoria is CategoriaVariable && rollup != null && presupuesto != null) {
+    if (categoria is CategoriaVariable && rollup != null && presupuesto != null && !presupuesto.esPositivo) {
+      // Sin presupuesto: solo cuánto lleva (spec §7.3.6).
+      texto = 'Listo, llevas ${enPesos(rollup.totalCentavos)} en ${categoria.nombre}';
+    } else if (categoria is CategoriaVariable && rollup != null && presupuesto != null) {
       final quedan = presupuesto - rollup.totalCentavos;
       texto = quedan.esNegativo
           ? 'Listo. Te pasaste ${enPesos(quedan.absoluto)} en ${categoria.nombre}'
@@ -719,10 +732,12 @@ class _PantallaInicioState extends State<PantallaInicio> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: EncabezadoSeccion(
-            titulo: 'Presupuesto',
-            dato: quedanVariables.esNegativo
-                ? 'Te pasaste ${enPesos(quedanVariables.absoluto)}'
-                : 'Quedan ${enPesos(quedanVariables)}',
+            titulo: datos.soloRegistro ? 'En qué se va' : 'Presupuesto',
+            dato: datos.soloRegistro
+                ? 'Llevas ${enPesos(datos.gastadoSinPresupuesto)}'
+                : quedanVariables.esNegativo
+                    ? 'Te pasaste ${enPesos(quedanVariables.absoluto)}'
+                    : 'Quedan ${enPesos(quedanVariables)}',
           ),
         ),
         Padding(
@@ -746,6 +761,17 @@ class _PantallaInicioState extends State<PantallaInicio> {
     final p = ColoresApp.actual;
     final gastado = rollup?.totalCentavos ?? const Dinero.cero();
     final presupuesto = rollup?.presupuestoCentavos ?? c.presupuestoMensualCentavos;
+    // Sin presupuesto (spec §7.3.6): cuánto lleva, sin barra ni juicio.
+    if (!presupuesto.esPositivo) {
+      return RenglonApp(
+        emoji: c.emoji,
+        titulo: c.nombre,
+        subtitulo: 'Sin presupuesto',
+        monto: 'Llevas ${enPesos(gastado)}',
+        onTap: () => _irADetalle(c),
+        etiquetaSemantica: '${c.nombre}: llevas ${montoEnPalabras(gastado)}, sin presupuesto.',
+      );
+    }
     final quedan = presupuesto - gastado;
     final porcentaje = presupuesto.esPositivo ? gastado.centavos / presupuesto.centavos : 0.0;
     final tono = tonoDeRitmo(porcentajeUsado: rollup?.porcentajeUsado, avanceCiclo: _avanceCiclo);
@@ -853,9 +879,15 @@ class _PantallaInicioState extends State<PantallaInicio> {
               Text('Cómo se calcula', style: textos.seccion),
               const SizedBox(height: 12),
               Text(
-                'Llevas gastado: lo de tus categorías variables en este ciclo, contra lo que les '
-                'asignaste. Te quedan ${enPesos(quedan)} para los $faltan ${faltan == 1 ? 'día' : 'días'} '
-                'que faltan. Las fijas (renta, colegiaturas…) van aparte, en el renglón Fijos.',
+                datos.soloRegistro
+                    ? 'Llevas gastado: lo de tus categorías variables en este ciclo. No tienen presupuesto, '
+                        'así que solo ves en qué se te va; si algún día quieres uno, ponle monto a la '
+                        'categoría. Las fijas (renta, colegiaturas…) van aparte, en el renglón Fijos.'
+                    : 'Llevas gastado: lo de tus categorías variables en este ciclo, contra lo que les '
+                        'asignaste. Te quedan ${enPesos(quedan)} para los $faltan ${faltan == 1 ? 'día' : 'días'} '
+                        'que faltan. Las fijas (renta, colegiaturas…) van aparte, en el renglón Fijos.'
+                        '${datos.gastadoSinPresupuesto.esPositivo ? ' Lo de las categorías sin presupuesto '
+                            '(${enPesos(datos.gastadoSinPresupuesto)}) no entra en la cuenta.' : ''}',
                 style: textos.cuerpo,
               ),
               const SizedBox(height: 16),
@@ -916,7 +948,9 @@ class _Heroe extends StatelessWidget {
     final presupuesto = datos.presupuestoVariables;
     final porcentaje = presupuesto.esPositivo ? datos.gastadoVariables.centavos / presupuesto.centavos : 0.0;
     final tono = tonoDeRitmo(porcentajeUsado: presupuesto.esPositivo ? porcentaje : null, avanceCiclo: avanceCiclo);
-    final chip = datos.hayGastos
+    // Solo registro (spec §7.3.6): sin presupuesto no hay ritmo que juzgar.
+    final solo = datos.soloRegistro;
+    final chip = datos.hayGastos && !solo
         ? ChipEstado.ritmo(tono, enHeroe: true)
         : ChipEstado(
             tono: TonoEstado.neutro,
@@ -924,7 +958,7 @@ class _Heroe extends StatelessWidget {
             icono: Icons.calendar_today_rounded,
             enHeroe: true,
           );
-    final gastado = datos.gastadoVariables;
+    final gastado = solo ? datos.gastadoSinPresupuesto : datos.gastadoVariables;
     final (pesos, centavos) = partesDeMonto(gastado);
     final quedan = presupuesto - gastado;
     // Igual que el encabezado ("faltan N días"): sin contar hoy.
@@ -934,14 +968,24 @@ class _Heroe extends StatelessWidget {
       1 => 'falta 1 día',
       _ => 'faltan $faltan días',
     };
-    final veredicto = datos.hayGastos ? etiquetaTonoRitmo(tono) : 'Día $dia de $dias';
-    final pie = quedan.esNegativo
-        ? 'Te pasaste por ${enPesos(quedan.absoluto)} · $dicenDias'
-        : 'Te quedan ${enPesos(quedan)} · $dicenDias';
+    final veredicto = datos.hayGastos && !solo ? etiquetaTonoRitmo(tono) : 'Día $dia de $dias';
+    // Sin presupuestos: lo que entró y lo que queda de ello (con las fijas).
+    final deLoQueEntro = datos.ingresos.total - datos.totalGastado;
+    final pie = solo
+        ? 'Entró ${enPesos(datos.ingresos.total)} · '
+            '${deLoQueEntro.esNegativo ? 'gastaste ${enPesos(deLoQueEntro.absoluto)} de más' : 'te quedan ${enPesos(deLoQueEntro)}'}'
+            ' · $dicenDias'
+        : quedan.esNegativo
+            ? 'Te pasaste por ${enPesos(quedan.absoluto)} · $dicenDias'
+            : 'Te quedan ${enPesos(quedan)} · $dicenDias';
+    final aparte = !solo && datos.gastadoSinPresupuesto.esPositivo
+        ? 'Además, ${enPesos(datos.gastadoSinPresupuesto)} en categorías sin presupuesto'
+        : null;
 
     return TarjetaApp.heroe(
-      etiquetaSemantica:
-          'Llevas gastado ${montoEnPalabras(gastado)} de ${montoEnPalabras(presupuesto)} en variables. $veredicto.',
+      etiquetaSemantica: solo
+          ? 'Llevas gastado ${montoEnPalabras(gastado)} en variables. $pie.'
+          : 'Llevas gastado ${montoEnPalabras(gastado)} de ${montoEnPalabras(presupuesto)} en variables. $veredicto.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -976,24 +1020,32 @@ class _Heroe extends StatelessWidget {
                     textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.6),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text('de ${enPesos(presupuesto)}', style: textos.cuerpoFuerte.copyWith(color: p.heroeTexto2)),
+                if (!solo) ...[
+                  const SizedBox(width: 8),
+                  Text('de ${enPesos(presupuesto)}', style: textos.cuerpoFuerte.copyWith(color: p.heroeTexto2)),
+                ],
               ],
             ),
           ),
-          const SizedBox(height: 14),
-          BarraRitmo(
-            porcentajeUsado: porcentaje,
-            avanceCiclo: avanceCiclo,
-            descripcion: 'Tus variables',
-            gastado: datos.gastadoVariables,
-            presupuesto: presupuesto,
-            enHeroe: true,
-          ),
+          if (!solo) ...[
+            const SizedBox(height: 14),
+            BarraRitmo(
+              porcentajeUsado: porcentaje,
+              avanceCiclo: avanceCiclo,
+              descripcion: 'Tus variables',
+              gastado: datos.gastadoVariables,
+              presupuesto: presupuesto,
+              enHeroe: true,
+            ),
+          ],
           const SizedBox(height: 6),
           ExcludeSemantics(
             child: Text(pie, style: textos.etiqueta.copyWith(color: p.heroeTexto2)),
           ),
+          if (aparte != null)
+            ExcludeSemantics(
+              child: Text(aparte, style: textos.etiqueta.copyWith(color: p.heroeTexto2)),
+            ),
           const SizedBox(height: 14),
           Divider(height: 1, color: p.heroePista),
           InkWell(
@@ -1183,7 +1235,13 @@ class _DatosInicio {
 
   /// Ya ordenadas: lo que necesita atención primero.
   final List<CategoriaVariable> variables;
+
+  /// Lo gastado en las variables **con** presupuesto: lo que se compara
+  /// contra [presupuestoVariables] (spec §7.3.6).
   final Dinero gastadoVariables;
+
+  /// Lo gastado en variables sin presupuesto.
+  final Dinero gastadoSinPresupuesto;
   final Dinero presupuestoVariables;
   final Dinero totalGastado;
   final IngresosDelCiclo ingresos;
@@ -1195,12 +1253,16 @@ class _DatosInicio {
   /// La tarjeta que hay que pagar pronto o que se pasó (spec §7.3.1).
   final PagoTarjeta? pagoUrgente;
 
+  /// Ninguna variable con presupuesto: solo se registra (spec §7.3.6).
+  bool get soloRegistro => !presupuestoVariables.esPositivo;
+
   const _DatosInicio({
     required this.hayCategorias,
     required this.rollupPorCategoria,
     required this.fijas,
     required this.variables,
     required this.gastadoVariables,
+    this.gastadoSinPresupuesto = const Dinero.cero(),
     required this.presupuestoVariables,
     required this.totalGastado,
     required this.ingresos,

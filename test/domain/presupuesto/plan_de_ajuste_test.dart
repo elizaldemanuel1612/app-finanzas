@@ -41,6 +41,20 @@ PronosticoCategoria _pronostico({
     );
 
 void main() {
+  test('sin presupuesto no hay plan de ajuste (spec §7.3.6)', () {
+    expect(
+      calcularPlanDeAjuste(
+        categoria: _categoria(presupuesto: const Dinero.cero()),
+        pronostico: _pronostico(observado: const Dinero.cero(), pronosticoP50: const Dinero.pesos(500)),
+        ciclosCerradosRecienteAAntiguo: const [],
+        fechaInicioCiclo: DateTime(2026, 7, 2),
+        fechaFinCiclo: DateTime(2026, 7, 31),
+        hoy: DateTime(2026, 7, 18),
+      ),
+      isNull,
+    );
+  });
+
   // Reproduce, con números reales derivados del ejemplo del propio spec
   // (addendum-v3-ajuste-y-ux.md §2.3): "Te quedan $3,026 para 14 días",
   // "Normalmente gastas $1,758 por semana", "Apunta a $1,513 · $216 al

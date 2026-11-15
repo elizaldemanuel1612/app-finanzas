@@ -254,7 +254,9 @@ class _PantallaCategoriasState extends State<PantallaCategorias> {
   Widget _tarjetaCategoria(BuildContext context, Categoria c) {
     final montoTexto = switch (c) {
       CategoriaFija f => '${f.montoFijoCentavos.formateado()} · fija',
-      CategoriaVariable v => '${v.presupuestoMensualCentavos.formateado()} al mes · variable',
+      CategoriaVariable v => v.sinPresupuesto
+          ? 'Sin presupuesto · variable'
+          : '${v.presupuestoMensualCentavos.formateado()} al mes · variable',
     };
     // Solo endToStart (coral + basurero): a diferencia de la lista
     // de gastos, aquí no hay un "duplicar" que justifique el

@@ -92,7 +92,9 @@ class _PantallaNuevaCategoriaState extends State<PantallaNuevaCategoria> {
     final id =
         _existente?.id ??
         _nombreControlador.text.trim().toLowerCase().replaceAll(' ', '_');
-    final monto = Dinero.intentarDesdeTexto(_montoControlador.text);
+    // Una variable sin monto queda sin presupuesto (spec §7.3.6).
+    final texto = _montoControlador.text.trim();
+    final monto = texto.isEmpty && !_esFija ? const Dinero.cero() : Dinero.intentarDesdeTexto(texto);
 
     if (monto == null) {
       setState(() => _error = 'Escribe un monto válido, ej. 500 o 500.00.');
@@ -231,6 +233,8 @@ class _PantallaNuevaCategoriaState extends State<PantallaNuevaCategoria> {
                 decoration: InputDecoration(
                   labelText: _esFija ? 'Cuánto' : 'Presupuesto al mes',
                   prefixText: r'$ ',
+                  helperText: _esFija ? null : r'Déjalo en $0 si solo quieres registrar lo que gastas.',
+                  helperMaxLines: 2,
                 ),
               ),
               if (_esFija) ...[

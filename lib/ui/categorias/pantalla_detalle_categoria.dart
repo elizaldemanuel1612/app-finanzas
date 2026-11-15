@@ -174,8 +174,9 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
       // Solo si ya se pasó: entonces mira todas las variables con el mismo
       // pronóstico (MPC) y el mismo motor de cobertura que Inicio y Análisis
       // (docs/rediseno/plan-rediseno.md, Etapa 0: una sola recomendación).
-      if (pronostico.observado.centavos >
-          categoriaEfectiva.presupuestoMensualCentavos.centavos) {
+      // Sin presupuesto no hay exceso que cubrir (spec §7.3.6).
+      if (!categoriaEfectiva.sinPresupuesto &&
+          pronostico.observado.centavos > categoriaEfectiva.presupuestoMensualCentavos.centavos) {
         // Pasan también por el ajuste del ciclo: una categoría que ya
         // prestó presupuesto en un rebalanceo anterior de este mismo
         // ciclo debe aparecer con menos holgura en el siguiente — los
@@ -321,19 +322,25 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
     // (spec-app-finanzas-v2.md §1.5). Sin barra ni chip de ritmo.
     final esFija = widget.categoria is CategoriaFija;
     final gastado = rollup.totalCentavos;
-    final presupuesto = rollup.presupuestoCentavos;
+    // Una variable en $0 no tiene presupuesto (spec §7.3.6): sin juicio.
+    final sinPresupuesto = !esFija && !(rollup.presupuestoCentavos?.esPositivo ?? false);
+    final presupuesto = sinPresupuesto ? null : rollup.presupuestoCentavos;
     final quedan = presupuesto == null ? null : presupuesto - gastado;
     final pasada = quedan != null && quedan.esNegativo;
     final tono = tonoDeRitmo(porcentajeUsado: rollup.porcentajeUsado, avanceCiclo: widget.avanceCiclo);
     final pagado = rollup.conteoMovimientos > 0;
 
-    final chip = esFija
+    final chip = sinPresupuesto
+        ? const ChipEstado(tono: TonoEstado.neutro, texto: 'Sin presupuesto')
+        : esFija
         ? (pagado
             ? const ChipEstado(tono: TonoEstado.exito, texto: 'Pagado')
             : const ChipEstado(tono: TonoEstado.neutro, texto: 'Por pagar', icono: Icons.calendar_today_rounded))
         : ChipEstado.ritmo(tono);
     final etiquetaCifra = esFija
         ? (pagado ? 'Pagaste' : 'Monto fijo')
+        : sinPresupuesto
+        ? 'Llevas este ciclo'
         : pasada
             ? 'Te pasaste por'
             : 'Te quedan';
@@ -386,7 +393,7 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
               const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1)),
               Row(
                 children: [
-                  dato(esFija ? 'Monto' : 'Presupuesto', presupuesto == null ? '—' : enPesos(presupuesto)),
+                  dato(esFija ? 'Monto' : 'Presupuesto', presupuesto == null ? 'Sin presupuesto' : enPesos(presupuesto)),
                   dato('Gastado', enPesos(gastado)),
                   if (pronostico != null)
                     dato(

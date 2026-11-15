@@ -84,6 +84,10 @@ final class ReporteAnalisis {
 
   final Dinero gastado;
   final Dinero gastadoVariables;
+
+  /// De [gastadoVariables], lo de las categorías **con** presupuesto: lo
+  /// único que se compara contra [presupuestoVariables] (spec §7.3.6).
+  final Dinero gastadoConPresupuesto;
   final Dinero gastadoFijas;
   final Dinero presupuestoVariables;
   final Dinero presupuestoFijas;
@@ -142,6 +146,7 @@ final class ReporteAnalisis {
     this.terminado = false,
     required this.gastado,
     required this.gastadoVariables,
+    Dinero? gastadoConPresupuesto,
     required this.gastadoFijas,
     required this.presupuestoVariables,
     required this.presupuestoFijas,
@@ -160,7 +165,13 @@ final class ReporteAnalisis {
     required this.enEfectivo,
     required this.gastosPequenos,
     required this.totalGastosPequenos,
-  });
+  }) : gastadoConPresupuesto = gastadoConPresupuesto ?? gastadoVariables;
+
+  /// De [gastadoVariables], lo de categorías sin presupuesto (spec §7.3.6).
+  Dinero get gastadoSinPresupuesto => gastadoVariables - gastadoConPresupuesto;
+
+  /// Ninguna variable con presupuesto: solo se registra (spec §7.3.6).
+  bool get soloRegistro => !presupuestoVariables.esPositivo;
 
   int get diasRestantes => diasDelCiclo - diaDelCiclo;
   bool get sinMovimientos => !gastado.esPositivo;
@@ -348,6 +359,10 @@ ReporteAnalisis calcularReporteAnalisis({
     terminado: hoyDia.isAfter(_dia(ciclo.fechaFin)),
     gastado: gastado,
     gastadoVariables: gastadoVariables,
+    gastadoConPresupuesto: _suma([
+      for (final m in variables)
+        if (!(porId[m.categoriaId] as CategoriaVariable).sinPresupuesto) m,
+    ]),
     gastadoFijas: gastado - gastadoVariables,
     presupuestoVariables: presupuestoVariables,
     presupuestoFijas: presupuestoFijas,
