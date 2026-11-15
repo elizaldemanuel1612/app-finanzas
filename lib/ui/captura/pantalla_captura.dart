@@ -2,11 +2,15 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/money.dart';
 import '../../core/result.dart';
+import '../../data/repositorios/ajuste_presupuesto_ciclo_repositorio.dart';
+import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
+import '../../domain/voz/monto_hablado.dart';
 import '../../data/almacenamiento/almacen_fotos.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
@@ -29,6 +33,9 @@ import '../../domain/rollups/orden_categorias.dart';
 import '../../plataforma/dictado_web.dart';
 import '../comun/asegurar_ciclo_abierto.dart';
 import '../comun/formato_dinero.dart';
+import '../comun/tarjeta_app.dart';
+import '../comun/renglon_app.dart';
+import '../comun/formato_fecha.dart';
 import '../comun/popscope_descartar.dart';
 import '../comun/selector_fecha.dart';
 import '../comun/tema.dart';
@@ -72,6 +79,10 @@ class PantallaCaptura extends StatefulWidget {
   /// el selector Tarjeta / Efectivo de antes.
   final CuentaRepositorio? cuentaRepositorio;
 
+  /// Para decir cuánto le queda a cada categoría con los ajustes del ciclo;
+  /// sin él, contra su presupuesto base.
+  final AjustePresupuestoCicloRepositorio? ajustePresupuestoCicloRepositorio;
+
   const PantallaCaptura({
     super.key,
     required this.perfil,
@@ -83,6 +94,7 @@ class PantallaCaptura extends StatefulWidget {
     this.paraEditar,
     this.iniciarDictado = false,
     this.cuentaRepositorio,
+    this.ajustePresupuestoCicloRepositorio,
   });
 
   @override
@@ -120,6 +132,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     });
     _cargarCascada();
     _cargarCuentas();
+    _cargarQuedan();
 
     final paraEditar = widget.paraEditar;
     _fecha = paraEditar?.fecha ?? DateTime.now();
@@ -148,13 +161,37 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     }
   }
 
+  /// Lo que le queda a cada variable en el ciclo de hoy, para la rejilla
+  /// ("Quedan $1,880"); las fijas dicen "Fijo".
+  Map<String, Dinero> _quedan = const {};
+
+  Future<void> _cargarQuedan() async {
+    final ciclo = widget.perfil.calculadoraCiclo.calcularPara(DateTime.now());
+    final categorias = await widget.categoriaRepositorio.listarActivas();
+    final ajustes = await widget.ajustePresupuestoCicloRepositorio?.listarPorCiclo(ciclo.id) ?? const [];
+    final efectivas = presupuestosEfectivosParaCiclo(base: categorias, ajustesDelCiclo: ajustes);
+    final movimientos = await widget.movimientoRepositorio.listarPorCiclo(ciclo.id);
+    final gastado = <String, int>{};
+    for (final m in movimientos) {
+      if (m.estado == EstadoMovimiento.activo) gastado[m.categoriaId] = (gastado[m.categoriaId] ?? 0) + m.monto.centavos;
+    }
+    if (!mounted) return;
+    setState(() {
+      _quedan = {
+        for (final c in efectivas.whereType<CategoriaVariable>())
+          c.id: c.presupuestoMensualCentavos - Dinero(gastado[c.id] ?? 0),
+      };
+    });
+  }
+
   /// Por omisión, la del gasto que se edita o la del último gasto.
   Future<void> _cargarCuentas() async {
     final repo = widget.cuentaRepositorio;
     if (repo == null) return;
     final cuentas = await repo.listarTodas();
     final gastos = await widget.movimientoRepositorio.listarTodos();
-    final ordenadas = ordenarCuentasPorUso(cuentas, gastos);
+    final editarId = widget.paraEditar == null ? null : cuentaDe(widget.paraEditar!);
+    final ordenadas = cuentasParaRegistrar(ordenarCuentasPorUso(cuentas, gastos), conservar: editarId);
     if (!mounted || ordenadas.isEmpty) return;
     final editar = widget.paraEditar;
     final propuesta = editar != null ? cuentaDe(editar) : ultimaCuentaUsada(gastos);
@@ -505,210 +542,450 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final rangoFecha = _rangoFecha;
-    return PopScopeDescartar(
-      hayCambiosSinGuardar: () => _hayCambiosSinGuardar,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            widget.paraEditar == null ? 'Registrar gasto' : 'Editar gasto',
+  Dinero? get _monto => Dinero.intentarDesdeTexto(_montoControlador.text);
+
+  /// El teclado numérico propio (componentes/Campo.md): sin teclado del
+  /// sistema, con punto y ⌫. Máximo dos decimales y nueve cifras.
+  void _teclear(String tecla) {
+    final actual = _montoControlador.text.replaceAll(',', '');
+    String nuevo;
+    if (tecla == '⌫') {
+      nuevo = actual.isEmpty ? '' : actual.substring(0, actual.length - 1);
+    } else if (tecla == '.') {
+      nuevo = actual.contains('.') ? actual : (actual.isEmpty ? '0.' : '$actual.');
+    } else {
+      final punto = actual.indexOf('.');
+      if (punto >= 0 && actual.length - punto > 2) return;
+      if (punto < 0 && actual.replaceAll('.', '').length >= 9) return;
+      nuevo = actual == '0' ? tecla : '$actual$tecla';
+    }
+    setState(() {
+      _montoControlador.text = conComasDeMiles(nuevo);
+      _error = null;
+    });
+  }
+
+  /// Un teclado físico (web, iPad) también escribe el monto.
+  KeyEventResult _alTeclaFisica(FocusNode _, KeyEvent evento) {
+    if (evento is! KeyDownEvent && evento is! KeyRepeatEvent) return KeyEventResult.ignored;
+    final caracter = evento.character;
+    if (evento.logicalKey == LogicalKeyboardKey.backspace) {
+      _teclear('⌫');
+      return KeyEventResult.handled;
+    }
+    if (caracter != null && RegExp(r'^[0-9.]$').hasMatch(caracter)) {
+      _teclear(caracter);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  /// Tocar una categoría guarda y cierra (dos toques: monto → categoría).
+  /// Al editar solo la elige; se guarda con el botón.
+  void _tocarCategoria(Categoria c) {
+    setState(() {
+      _seleccionada = c;
+      _categoriaTocadaManualmente = true;
+      _sugerida = false;
+    });
+    if (widget.paraEditar == null) _registrar();
+  }
+
+  String get _textoFecha {
+    final hoy = DateTime.now();
+    final f = DateTime(_fecha.year, _fecha.month, _fecha.day);
+    final h = DateTime(hoy.year, hoy.month, hoy.day);
+    if (f == h) return 'Hoy';
+    if (f == h.subtract(const Duration(days: 1))) return 'Ayer';
+    return fechaCorta(_fecha);
+  }
+
+  Future<void> _elegirFecha() async {
+    final rango = _rangoFecha;
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (contexto) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: StatefulBuilder(
+            builder: (contexto, actualizar) => SelectorFecha(
+              seleccionada: _fecha,
+              onCambio: (f) {
+                setState(() => _fecha = f);
+                Navigator.of(contexto).pop();
+              },
+              primeraFecha: rango.primera,
+              ultimaFecha: rango.ultima,
+            ),
           ),
         ),
-        body: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(20),
+      ),
+    );
+  }
+
+  Future<void> _elegirCuentaEnHoja() async {
+    final elegida = await showModalBottomSheet<Cuenta>(
+      context: context,
+      builder: (contexto) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                '¿Cuánto gastaste?',
-                style: TextStyle(color: ColoresApp.medio),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _montoControlador,
-                // Con el dictado abriéndose, el teclado solo estorbaría.
-                autofocus: !widget.iniciarDictado,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                inputFormatters: formateadoresDeMonto,
-                style: _estiloMonto,
-                decoration: InputDecoration(
-                  // prefixIcon (no prefixText): se ve siempre, también
-                  // sin foco, así el campo vacío nunca parece un hueco.
-                  prefixIcon: const Padding(
-                    padding: EdgeInsets.only(right: 8),
-                    child: Text(r'$', style: _estiloMonto),
+              Text('¿Con qué pagaste?', style: Theme.of(contexto).textTheme.seccion),
+              const SizedBox(height: 12),
+              TarjetaApp.lista(renglones: [
+                for (final c in _cuentas)
+                  RenglonApp(
+                    emoji: c.emoji,
+                    titulo: c.nombre,
+                    subtitulo: c.tipo.etiqueta,
+                    derecha: c.id == _cuentaId ? Icon(Icons.check_rounded, color: ColoresApp.texto) : null,
+                    onTap: () => Navigator.of(contexto).pop(c),
                   ),
-                  prefixIconConstraints: const BoxConstraints(),
-                  hintText: '0',
-                  hintStyle: TextStyle(color: ColoresApp.linea),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  filled: false,
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (elegida != null) setState(() => _elegirCuenta(elegida));
+  }
+
+  Future<void> _escribirNota() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (contexto) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.of(contexto).viewInsets.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Nota', style: Theme.of(contexto).textTheme.seccion),
+            const SizedBox(height: 12),
+            TextField(
+              key: const ValueKey('campo_descripcion'),
+              controller: _descripcionControlador,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => Navigator.of(contexto).pop(),
+              decoration: const InputDecoration(hintText: 'Dónde o en qué, por ejemplo "Oxxo"'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(onPressed: () => Navigator.of(contexto).pop(), child: const Text('Listo')),
+          ],
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = ColoresApp.actual;
+    final textos = Theme.of(context).textTheme;
+    final editando = widget.paraEditar != null;
+    final monto = _monto;
+    final hayMonto = monto != null && monto.esPositivo;
+    final cuenta = _cuentas.where((c) => c.id == _cuentaId).firstOrNull;
+    final nota = _descripcionControlador.text.trim();
+    final textoMonto = _montoControlador.text.isEmpty ? '0' : _montoControlador.text;
+    final punto = textoMonto.indexOf('.');
+    final (enteros, decimales) = punto < 0 ? (textoMonto, '') : (textoMonto.substring(0, punto), textoMonto.substring(punto));
+    final estiloMonto = textos.cifraHeroe.copyWith(fontSize: 56, height: 64 / 56, color: hayMonto ? p.texto : p.textoDesactivado);
+
+    Widget chip(IconData icono, String texto, VoidCallback onTap, {bool desplegable = true}) => ActionChip(
+          avatar: Icon(icono, size: 16, color: p.texto),
+          label: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(child: Text(texto, overflow: TextOverflow.ellipsis)),
+              if (desplegable) Icon(Icons.expand_more_rounded, size: 16, color: p.texto2),
+            ],
+          ),
+          backgroundColor: p.superficieHundida,
+          side: BorderSide.none,
+          onPressed: onTap,
+        );
+
+    return PopScopeDescartar(
+      hayCambiosSinGuardar: () => _hayCambiosSinGuardar,
+      child: Focus(
+        autofocus: !widget.iniciarDictado,
+        onKeyEvent: _alTeclaFisica,
+        child: Scaffold(
+          backgroundColor: p.superficie,
+          appBar: AppBar(
+            backgroundColor: p.superficie,
+            leading: IconButton(
+              icon: const Icon(Icons.close_rounded),
+              tooltip: 'Cerrar',
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
+            centerTitle: true,
+            title: Text(editando ? 'Editar gasto' : 'Nuevo gasto', style: textos.cuerpoFuerte),
+            actions: [
+              IconButton(icon: const Icon(Icons.mic_none_rounded), tooltip: 'Dictar gasto', onPressed: _dictar),
+              // En la web no hay dónde guardar fotos (spec §4.2.2).
+              if (!kIsWeb)
+                IconButton(
+                  icon: const Icon(Icons.photo_camera_outlined),
+                  tooltip: 'Foto del ticket',
+                  onPressed: _cargandoFoto ? null : _mostrarOpcionesFoto,
+                ),
+              const SizedBox(width: 4),
+            ],
+          ),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
                     children: [
-                      // En la web no hay dónde guardar fotos (spec §4.2.2).
-                      if (!kIsWeb)
-                        IconButton(
-                          icon: Icon(
-                            Icons.photo_camera_outlined,
-                            color: ColoresApp.azul,
-                          ),
-                          tooltip: 'Foto de ticket',
-                          onPressed: _cargandoFoto ? null : _mostrarOpcionesFoto,
+                      Semantics(
+                        label: hayMonto ? 'Monto: ${montoEnPalabras(monto)}' : 'Monto: vacío',
+                        excludeSemantics: true,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(r'$ ', style: textos.titulo.copyWith(color: p.texto2)),
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text.rich(
+                                  TextSpan(children: [
+                                    TextSpan(text: enteros),
+                                    TextSpan(text: decimales, style: TextStyle(color: p.texto2)),
+                                  ]),
+                                  style: estiloMonto,
+                                  textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.6),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.mic_none,
-                          color: ColoresApp.azul,
-                        ),
-                        tooltip: 'Dictar por voz',
-                        onPressed: _dictar,
                       ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          chip(Icons.calendar_today_rounded, _textoFecha, _elegirFecha),
+                          if (cuenta != null) chip(Icons.account_balance_wallet_outlined, cuenta.nombre, _elegirCuentaEnHoja),
+                          chip(Icons.edit_outlined, nota.isEmpty ? 'Nota' : nota, _escribirNota, desplegable: false),
+                        ],
+                      ),
+                      if (_cargandoFoto) ...[const SizedBox(height: 12), const LinearProgressIndicator()],
+                      if (_fotoUrl != null) ...[
+                        const SizedBox(height: 12),
+                        _TarjetaFotoTicket(
+                          fotoUrl: _fotoUrl!,
+                          onQuitar: () => setState(() => _fotoUrl = null),
+                          onDividir: _dividirTicket,
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      Text(
+                        !hayMonto
+                            ? 'Escribe cuánto gastaste'
+                            : editando
+                                ? 'Elige la categoría y guarda'
+                                : 'Toca la categoría y listo',
+                        textAlign: TextAlign.center,
+                        style: textos.etiqueta,
+                      ),
+                      const SizedBox(height: 10),
+                      _rejillaCategorias(hayMonto),
+                      if (_sugerida) ...[
+                        const SizedBox(height: 8),
+                        Text('Resaltada: la sugerimos por tus gastos anteriores.', textAlign: TextAlign.center, style: textos.etiqueta),
+                      ],
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.error_outline_rounded, size: 18, color: p.peligroTexto),
+                            const SizedBox(width: 6),
+                            Flexible(child: Text(_error!, style: textos.etiqueta.copyWith(color: p.peligroTexto))),
+                          ],
+                        ),
+                      ],
+                      if (editando) ...[
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _guardando || !hayMonto || _seleccionada == null ? null : _registrar,
+                          child: Text(_guardando ? 'Guardando…' : 'Guardar cambios'),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-              ),
-              if (_cargandoFoto) ...[
-                const SizedBox(height: 12),
-                const LinearProgressIndicator(),
+                _Teclado(alTeclear: _teclear),
               ],
-              if (_fotoUrl != null) ...[
-                const SizedBox(height: 12),
-                _TarjetaFotoTicket(
-                  fotoUrl: _fotoUrl!,
-                  onQuitar: () => setState(() => _fotoUrl = null),
-                  onDividir: _dividirTicket,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Rejilla de 4 columnas: emoji, nombre y cuánto le queda. Sin monto, las
+  /// categorías van deshabilitadas; la sugerida, resaltada.
+  Widget _rejillaCategorias(bool hayMonto) {
+    final p = ColoresApp.actual;
+    final textos = Theme.of(context).textTheme;
+    return FutureBuilder<List<Categoria>>(
+      future: _categorias,
+      builder: (context, snapshot) {
+        final categorias = snapshot.data ?? const <Categoria>[];
+        if (snapshot.hasData && categorias.isEmpty) {
+          return Text(
+            'No tienes categorías todavía. Crea una desde Ajustes → Categorías.',
+            textAlign: TextAlign.center,
+            style: textos.etiqueta.copyWith(color: p.peligroTexto),
+          );
+        }
+        return AnimatedOpacity(
+          opacity: hayMonto ? 1 : 0.45,
+          duration: Duracion.rapida,
+          child: GridView.count(
+            crossAxisCount: 4,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 0.72,
+            children: [
+              for (final c in categorias)
+                _CeldaCategoria(
+                  categoria: c,
+                  resto: switch (c) {
+                    CategoriaFija() => 'Fijo',
+                    CategoriaVariable() => _textoQuedan(_quedan[c.id]),
+                  },
+                  // La sugerida por la nota o el dictado; si no hay, la más
+                  // usada (la lista ya viene en ese orden).
+                  resaltada: c.id == (_seleccionada?.id ?? categorias.first.id),
+                  onTap: hayMonto && !_guardando ? () => _tocarCategoria(c) : null,
                 ),
-              ],
-              const SizedBox(height: 16),
-              SelectorFecha(
-                seleccionada: _fecha,
-                onCambio: (f) => setState(() => _fecha = f),
-                primeraFecha: rangoFecha.primera,
-                ultimaFecha: rangoFecha.ultima,
-              ),
-              const Divider(height: 32),
-              Text(
-                'Categoría',
-                style: TextStyle(color: ColoresApp.medio),
-              ),
-              const SizedBox(height: 8),
-              FutureBuilder<List<Categoria>>(
-                future: _categorias,
-                builder: (context, snapshot) {
-                  final categorias = snapshot.data ?? const [];
-                  if (snapshot.hasData && categorias.isEmpty) {
-                    return Text(
-                      'No tienes categorías todavía. Crea una desde Categorías antes de registrar.',
-                      style: TextStyle(color: ColoresApp.coralTexto),
-                    );
-                  }
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: categorias.map((c) {
-                      final elegida = c.id == _seleccionada?.id;
-                      return ChoiceChip(
-                        label: Text('${c.emoji} ${c.nombre}'),
-                        selected: elegida,
-                        onSelected: (_) => setState(() {
-                          _seleccionada = c;
-                          _categoriaTocadaManualmente = true;
-                          _sugerida = false;
-                        }),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
-              if (_sugerida) ...[
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _textoQuedan(Dinero? quedan) {
+    if (quedan == null) return '';
+    return quedan.esNegativo ? 'Pasada ${enPesos(quedan.absoluto)}' : enPesos(quedan);
+  }
+}
+
+class _CeldaCategoria extends StatelessWidget {
+  final Categoria categoria;
+  final String resto;
+  final bool resaltada;
+  final VoidCallback? onTap;
+
+  const _CeldaCategoria({required this.categoria, required this.resto, required this.resaltada, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = ColoresApp.actual;
+    final textos = Theme.of(context).textTheme;
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      selected: resaltada,
+      label: 'Guardar en ${categoria.nombre}${resto.isEmpty ? '' : ', $resto'}',
+      excludeSemantics: true,
+      child: Material(
+        color: p.superficie,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: resaltada ? p.accion : p.borde, width: resaltada ? 2 : 1),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(color: p.superficieHundida, shape: BoxShape.circle),
+                  child: Text(categoria.emoji, style: textos.seccion, textScaler: TextScaler.noScaling),
+                ),
                 const SizedBox(height: 6),
                 Text(
-                  'Sugerida por tus gastos anteriores',
-                  style: TextStyle(
-                    color: ColoresApp.azul,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  categoria.nombre,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textos.etiqueta.copyWith(color: p.texto, fontWeight: FontWeight.w600),
                 ),
+                if (resto.isNotEmpty)
+                  Text(resto, maxLines: 1, overflow: TextOverflow.ellipsis, style: textos.etiqueta),
               ],
-              const SizedBox(height: 20),
-              Text(_cuentas.isEmpty ? 'Medio' : '¿Con qué pagaste?', style: TextStyle(color: ColoresApp.medio)),
-              const SizedBox(height: 8),
-              if (_cuentas.isNotEmpty)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final c in _cuentas)
-                      ChoiceChip(
-                        label: Text('${c.emoji} ${c.nombre}'),
-                        selected: c.id == _cuentaId,
-                        onSelected: (_) => setState(() => _elegirCuenta(c)),
-                      ),
-                  ],
-                )
-              else
-              SegmentedButton<MedioPago>(
-                segments: const [
-                  ButtonSegment(
-                    value: MedioPago.tarjeta,
-                    label: Text('Tarjeta'),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Teclado numérico propio: 1–9, punto, 0 y ⌫; teclas de 52 de alto.
+class _Teclado extends StatelessWidget {
+  final ValueChanged<String> alTeclear;
+
+  const _Teclado({required this.alTeclear});
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    const teclas = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'];
+    return Semantics(
+      label: 'Teclado numérico',
+      container: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+        child: MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1.3,
+          child: GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 6,
+            crossAxisSpacing: 6,
+            childAspectRatio: 2.4,
+            children: [
+              for (final t in teclas)
+                Semantics(
+                  button: true,
+                  label: t == '⌫' ? 'Borrar' : (t == '.' ? 'Punto' : t),
+                  excludeSemantics: true,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(Radios.m),
+                    onTap: () => alTeclear(t),
+                    child: Center(
+                      child: t == '⌫'
+                          ? Icon(Icons.backspace_outlined, color: ColoresApp.texto)
+                          : Text(t, style: textos.titulo.copyWith(fontWeight: FontWeight.w500)),
+                    ),
                   ),
-                  ButtonSegment(
-                    value: MedioPago.efectivo,
-                    label: Text('Efectivo'),
-                  ),
-                ],
-                selected: {_medio},
-                onSelectionChanged: (s) => setState(() => _medio = s.first),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                // Sin esta key, insertar el aviso "Sugerida por tus gastos
-                // anteriores" arriba (cuando `_sugerida` pasa a true) corre
-                // este campo dos posiciones dentro de la lista sin llaves
-                // del ListView — Flutter deja de reconocerlo como el mismo
-                // widget, le destruye el Element y el cursor/foco se pierde
-                // a media escritura. La key le da identidad estable sin
-                // importar en qué posición de la lista termine.
-                key: const ValueKey('campo_descripcion'),
-                controller: _descripcionControlador,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Descripción (opcional)',
                 ),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  style: TextStyle(color: ColoresApp.coralTexto),
-                ),
-              ],
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _guardando ? null : _registrar,
-                child: Text(
-                  _guardando
-                      ? 'Guardando…'
-                      : (widget.paraEditar == null
-                            ? 'Listo'
-                            : 'Guardar cambios'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  'Sin internet · se guarda y sincroniza sola',
-                  style: TextStyle(color: ColoresApp.medio, fontSize: 12),
-                ),
-              ),
             ],
           ),
         ),
@@ -759,10 +1036,10 @@ class _TarjetaFotoTicket extends StatelessWidget {
                     onTap: onDividir,
                     child: Text(
                       'Dividir en varias categorías',
-                      style: TextStyle(
-                        color: ColoresApp.azul,
+                      style: Theme.of(context).textTheme.etiqueta.copyWith(
+                        color: ColoresApp.texto,
                         fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                        decoration: TextDecoration.underline,
                       ),
                     ),
                   ),
@@ -781,5 +1058,3 @@ class _TarjetaFotoTicket extends StatelessWidget {
   }
 }
 
-/// Mismo estilo para la cifra capturada y su signo de pesos.
-const _estiloMonto = TextStyle(fontSize: 40, fontWeight: FontWeight.w800);

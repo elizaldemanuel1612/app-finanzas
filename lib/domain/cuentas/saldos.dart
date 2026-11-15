@@ -226,6 +226,23 @@ List<Cuenta> ordenarCuentasPorUso(List<Cuenta> cuentas, List<Movimiento> gastos)
     });
 }
 
+/// Las cuentas que se ofrecen al registrar (`docs/rediseno/plan-rediseno.md`,
+/// Etapa 3: "solo cuentas reales"). La cuenta base genérica "Tarjeta" se
+/// esconde en cuanto hay una tarjeta real (débito o crédito activa), y la
+/// base "Efectivo", si el usuario dio de alta otra de efectivo. [conservar]
+/// (la cuenta del gasto que se edita) se queda siempre.
+List<Cuenta> cuentasParaRegistrar(List<Cuenta> ordenadas, {String? conservar}) {
+  bool hay(bool Function(Cuenta) condicion) => ordenadas.any((c) => c.activa && condicion(c));
+  final tarjetaReal = hay((c) => c.id != idCuentaTarjeta && (c.tipo == TipoCuenta.debito || c.tipo == TipoCuenta.credito));
+  final efectivoReal = hay((c) => c.id != idCuentaEfectivo && c.tipo == TipoCuenta.efectivo);
+  return [
+    for (final c in ordenadas)
+      if (c.id == conservar ||
+          !((c.id == idCuentaTarjeta && tarjetaReal) || (c.id == idCuentaEfectivo && efectivoReal)))
+        c,
+  ];
+}
+
 /// La cuenta del último gasto registrado (el último de [gastos], que se
 /// guardan en orden), para proponerla al registrar el siguiente.
 String? ultimaCuentaUsada(List<Movimiento> gastos) {

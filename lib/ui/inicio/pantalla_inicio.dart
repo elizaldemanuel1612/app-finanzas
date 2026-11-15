@@ -274,6 +274,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
           documentos: widget.almacenLocal.directorio,
           iniciarDictado: iniciarDictado,
           cuentaRepositorio: widget.almacenLocal.cuentas,
+          ajustePresupuestoCicloRepositorio: widget.ajustePresupuestoCicloRepositorio,
         ),
       ),
     );

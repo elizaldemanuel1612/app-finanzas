@@ -89,11 +89,11 @@ final class MovimientoRepositorioMemoria implements MovimientoRepositorio {
 }
 
 final class ReglasAprendidasRepositorioMemoria implements ReglasAprendidasRepositorio {
+  List<ReglaAprendida> reglas = const [];
   @override
-  Future<List<ReglaAprendida>> listarTodas() async => const [];
+  Future<List<ReglaAprendida>> listarTodas() async => reglas;
   @override
-  Future<void> guardarTodas(List<ReglaAprendida> reglas) =>
-      throw UnimplementedError();
+  Future<void> guardarTodas(List<ReglaAprendida> nuevas) async => reglas = nuevas;
 }
 
 final class CicloRepositorioMemoria implements CicloRepositorio {

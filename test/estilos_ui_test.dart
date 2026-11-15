@@ -21,7 +21,7 @@ import 'package:test/test.dart';
 const _maximoPorArchivo = {
   'lib/ui/ajustes/pantalla_ajustes.dart': 1,
   'lib/ui/captura/hoja_dictado.dart': 3,
-  'lib/ui/captura/pantalla_captura.dart': 4,
+  'lib/ui/captura/pantalla_captura.dart': 1, // monto a 56 (componentes/Campo.md)
   'lib/ui/captura/pantalla_dividir_ticket.dart': 2,
   'lib/ui/captura/pantalla_revision_dictado.dart': 3,
   'lib/ui/categorias/pantalla_categorias.dart': 2,
