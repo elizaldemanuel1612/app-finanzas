@@ -64,3 +64,33 @@ String nombreConCuenta(Cuenta cuenta, List<Cuenta> cuentas) {
   }
   return cuenta.nombre;
 }
+
+/// Lo que hay que hacer para eliminar [apartado] (spec §7.3.5): la
+/// transferencia que regresa su [saldo] a la cuenta donde vive —o que la
+/// cubre, si quedó negativo— y el apartado ya archivado. Transferencia
+/// `null` si el saldo es cero. `null` del todo si [apartado] no es un
+/// apartado.
+({MovimientoCuenta? liberacion, Cuenta archivado})? eliminarApartado({
+  required Cuenta apartado,
+  required Dinero saldo,
+  required String clientId,
+  required DateTime ahora,
+}) {
+  final padre = apartado.cuentaPadreId;
+  if (padre == null) return null;
+  final regresa = !saldo.esNegativo;
+  return (
+    liberacion: saldo.esCero
+        ? null
+        : MovimientoCuenta(
+            clientId: clientId,
+            cuentaId: regresa ? apartado.id : padre,
+            cuentaDestinoId: regresa ? padre : apartado.id,
+            fecha: ahora,
+            monto: saldo.absoluto,
+            tipo: TipoMovimientoCuenta.transferencia,
+            entra: false,
+          ),
+    archivado: apartado.copyWith(activa: false),
+  );
+}

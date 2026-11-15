@@ -83,6 +83,64 @@ void main() {
     expect(transferencia, 1, reason: 'abrir la hoja no guarda nada');
   });
 
+  testWidgets('eliminar un apartado regresa su dinero a la cuenta y lo quita de la lista', (tester) async {
+    final cuentas = CuentaRepositorioArchivo.sobre(ArchivoTextoMemoria());
+    final movs = MovimientoCuentaRepositorioArchivo.sobre(ArchivoTextoMemoria());
+    final bbva = _cuenta('bbva', 'BBVA', TipoCuenta.debito, 10000);
+    final viaje = Cuenta(
+      id: 'viaje',
+      nombre: 'Viaje',
+      emoji: '✈️',
+      tipo: TipoCuenta.ahorro,
+      llevaSaldo: true,
+      saldoInicial: const Dinero.cero(),
+      fechaSaldoInicial: DateTime(2026, 1, 1),
+      cuentaPadreId: 'bbva',
+    );
+    await cuentas.guardar(bbva);
+    await cuentas.guardar(viaje);
+    await movs.guardar(MovimientoCuenta(
+      clientId: 't1',
+      cuentaId: 'bbva',
+      cuentaDestinoId: 'viaje',
+      fecha: DateTime(2026, 2, 1),
+      monto: const Dinero.pesos(3000),
+      tipo: TipoMovimientoCuenta.transferencia,
+      entra: false,
+    ));
+
+    await tester.pumpWidget(MaterialApp(
+      theme: construirTema(),
+      home: PantallaDetalleCuenta(
+        cuenta: bbva,
+        perfil: const Perfil(diaCorte: 1, ingresoBaseMensual: Dinero.pesos(20000)),
+        cuentaRepositorio: cuentas,
+        movimientoRepositorio: MovimientoRepositorioMemoria([]),
+        movimientoCuentaRepositorio: movs,
+        ingresoExtraRepositorio: IngresoExtraRepositorioMemoria([]),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text(r'$7,000.00'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('Viaje'), 200);
+    await tester.tap(find.text('Viaje'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Archivar'), findsNothing, reason: 'un apartado se elimina, no se archiva suelto');
+    await tester.tap(find.text('Eliminar apartado'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(r'Los $3,000.00 que tiene regresan a BBVA'), findsOneWidget);
+    await tester.tap(find.text('Eliminar'));
+    await tester.pumpAndSettle();
+
+    // De vuelta en BBVA: el dinero regresó y el apartado ya no está.
+    expect(find.text(r'$10,000.00'), findsOneWidget);
+    expect(find.text('Viaje'), findsNothing);
+    expect(find.text('De Viaje'), findsOneWidget, reason: 'el historial dice de dónde vino');
+    final archivado = (await cuentas.listarTodas()).singleWhere((c) => c.id == 'viaje');
+    expect(archivado.activa, isFalse);
+  });
+
   testWidgets('Ingresos se filtra por una o varias cuentas', (tester) async {
     final cuentas = CuentaRepositorioArchivo.sobre(ArchivoTextoMemoria());
     final movs = MovimientoCuentaRepositorioArchivo.sobre(ArchivoTextoMemoria());

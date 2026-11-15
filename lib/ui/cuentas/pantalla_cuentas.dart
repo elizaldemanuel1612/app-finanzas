@@ -165,7 +165,8 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
     final textos = Theme.of(context).textTheme;
     final todas = cuentas ?? const <(Cuenta, Dinero?)>[];
     final activas = [for (final c in todas) if (c.$1.activa) c];
-    final archivadas = [for (final c in todas) if (!c.$1.activa) c];
+    // Un apartado eliminado (spec §7.3.5) queda archivado, pero ya no se ve.
+    final archivadas = [for (final c in todas) if (!c.$1.activa && !c.$1.esApartado) c];
     List<(Cuenta, Dinero?)> deTipo(Set<TipoCuenta> tipos) => [for (final c in activas) if (tipos.contains(c.$1.tipo)) c];
     final paraGastar = deTipo({TipoCuenta.efectivo, TipoCuenta.debito});
     // Los apartados (spec §7.3.5) son ahorro: cada uno junto a la cuenta de

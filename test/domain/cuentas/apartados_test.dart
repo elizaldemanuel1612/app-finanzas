@@ -94,4 +94,26 @@ void main() {
     expect(viaje.copyWith(nombre: 'Japón').cuentaPadreId, 'bbva');
     expect(bbva.toJson().containsKey('cuentaPadreId'), isFalse);
   });
+
+  test('eliminar un apartado regresa su saldo a la cuenta y lo archiva', () {
+    final viaje = nuevoApartado(padre: bbva, id: 'viaje', nombre: 'Viaje', emoji: '✈️', ahora: _inicio)!;
+    final ahora = DateTime(2026, 11, 15);
+    final r = eliminarApartado(apartado: viaje, saldo: const Dinero.pesos(7000), clientId: 'lib', ahora: ahora)!;
+    expect(r.archivado.activa, isFalse);
+    expect(r.archivado.cuentaPadreId, 'bbva');
+    final t = r.liberacion!;
+    expect((t.cuentaId, t.cuentaDestinoId, t.monto, t.tipo, t.fecha, t.clientId),
+        ('viaje', 'bbva', const Dinero.pesos(7000), TipoMovimientoCuenta.transferencia, ahora, 'lib'));
+
+    final movs = [_transferencia('bbva', 'viaje', 7000), t];
+    expect(saldoDe(bbva, const [], movs), const Dinero.pesos(30000), reason: 'el dinero vuelve a la cuenta');
+    expect(saldoDe(viaje, const [], movs), const Dinero.cero());
+
+    final negativo = eliminarApartado(apartado: viaje, saldo: const Dinero.pesos(-50), clientId: 'x', ahora: ahora)!;
+    expect((negativo.liberacion!.cuentaId, negativo.liberacion!.cuentaDestinoId), ('bbva', 'viaje'));
+    expect(negativo.liberacion!.monto, const Dinero.pesos(50));
+
+    expect(eliminarApartado(apartado: viaje, saldo: const Dinero.cero(), clientId: 'x', ahora: ahora)!.liberacion, isNull);
+    expect(eliminarApartado(apartado: bbva, saldo: const Dinero.cero(), clientId: 'x', ahora: ahora), isNull);
+  });
 }

@@ -397,6 +397,7 @@ Por qué: muchos bancos (y Cetes) dejan separar el dinero en "apartados" o "caji
 - **Patrimonio:** el apartado cuenta como ahorro (`sumaDeAhorros`), y su cuenta solo con lo que queda disponible: el total no cambia al guardar o sacar.
 - **Pantallas:** el detalle de una cuenta de débito o de ahorro lista sus apartados, con "Nuevo apartado", y dice cuánto hay en total sumando lo apartado. En Tus cuentas los apartados van en "Ahorro", cada uno con la cuenta donde vive. El detalle de un apartado ofrece "Guardar" (desde su cuenta) y "Sacar" (a su cuenta) y "Actualizar valor" (rendimientos).
 - **Objetivos (§7.3.3):** un objetivo se puede juntar en un apartado; se muestra como "Viaje · BBVA débito".
+- **Eliminar un apartado (2026-11-15):** con confirmación, desde su detalle. Lo que tenga **regresa a su cuenta** con una transferencia ("De Viaje"), así el dinero se libera sin desaparecer; después el apartado se archiva y deja de verse (ni en sus apartados ni en las archivadas de Tus cuentas). No se borra el registro: los movimientos de la cuenta siguen diciendo de dónde vino el dinero (regla #3). Un objetivo que se juntaba ahí se queda en $0 hasta que se le elija otra cuenta.
 
 ### 7.4 [NUEVO] Exportación y portabilidad
 Exportar todo a Excel/CSV cuando quieras. No quedas atrapado en la app — y te da una red de seguridad psicológica al abandonar el Excel.

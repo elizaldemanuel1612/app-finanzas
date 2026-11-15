@@ -206,6 +206,38 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
     await _cargar();
   }
 
+  /// Eliminar este apartado (spec §7.3.5): lo que tenga regresa a su
+  /// cuenta y el apartado se archiva; el historial se conserva.
+  Future<void> _eliminarApartado() async {
+    final padre = _padre;
+    final saldo = _saldo ?? const Dinero.cero();
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: Text('¿Eliminar ${_cuenta.nombre}?'),
+        content: Text(
+          '${saldo.esPositivo ? 'Los ${saldo.formateado()} que tiene regresan a ${padre?.nombre ?? 'su cuenta'}. ' : ''}'
+          'Si un objetivo se juntaba aquí, después elígele otra cuenta.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(contexto, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, true),
+            style: TextButton.styleFrom(foregroundColor: ColoresApp.actual.peligroTexto),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (si != true) return;
+    final r = eliminarApartado(apartado: _cuenta, saldo: saldo, clientId: _uuid.v4(), ahora: DateTime.now());
+    if (r == null) return;
+    final liberacion = r.liberacion;
+    if (liberacion != null) await widget.movimientoCuentaRepositorio.guardar(liberacion);
+    await widget.cuentaRepositorio.guardar(r.archivado);
+    if (mounted) Navigator.of(context).pop();
+  }
+
   /// Guardar en este apartado (desde su cuenta) o sacar de él (a su cuenta).
   Future<void> _moverConPadre({required bool guardar}) async {
     final padre = _padre;
@@ -301,7 +333,7 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
         title: Text('${_cuenta.emoji} ${_cuenta.nombre}'),
         actions: [
           IconButton(icon: const Icon(Icons.edit_outlined), tooltip: 'Editar', onPressed: _editar),
-          if (!esEfectivoBase)
+          if (!esEfectivoBase && !_cuenta.esApartado)
             IconButton(
               icon: Icon(_cuenta.activa ? Icons.archive_outlined : Icons.unarchive_outlined),
               tooltip: _cuenta.activa ? 'Archivar' : 'Reactivar',
@@ -367,7 +399,17 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                                 ),
                               ],
                             ),
-                            TextButton(onPressed: _ajustar, child: const Text('Actualizar valor')),
+                            Row(
+                              children: [
+                                TextButton(onPressed: _ajustar, child: const Text('Actualizar valor')),
+                                const Spacer(),
+                                TextButton(
+                                  onPressed: _eliminarApartado,
+                                  style: TextButton.styleFrom(foregroundColor: ColoresApp.actual.peligroTexto),
+                                  child: const Text('Eliminar apartado'),
+                                ),
+                              ],
+                            ),
                           ] else ...[
                           const SizedBox(height: 12),
                           Row(

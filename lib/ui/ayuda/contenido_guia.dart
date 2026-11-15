@@ -401,7 +401,8 @@ const _temaPatrimonioYObjetivos = TemaGuia(
       'cuenta de débito o de ahorro: entra a la cuenta y toca **Nuevo '
       'apartado**. Lo que guardas deja de estar disponible en la cuenta pero '
       'sigue siendo tuyo; desde el apartado usas **Guardar** y **Sacar** para '
-      'moverlo. Tu patrimonio no cambia.',
+      'moverlo. Tu patrimonio no cambia. Si ya no lo necesitas, **Eliminar '
+      'apartado** regresa lo que tenga a su cuenta.',
     ),
     Subtitulo('Objetivos'),
     Parrafo(
