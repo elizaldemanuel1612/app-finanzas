@@ -22,8 +22,8 @@ import '../../domain/voz/monto_hablado.dart';
 import '../captura/pantalla_captura.dart';
 import '../comun/asegurar_ciclo_abierto.dart';
 import '../comun/aviso_gesto.dart';
-import '../comun/formato_fecha.dart';
 import '../comun/guia_rapida.dart';
+import '../comun/selector_ciclo.dart';
 import '../comun/tema.dart';
 
 const _uuid = Uuid();
@@ -236,50 +236,6 @@ class _PantallaGastosState extends State<PantallaGastos> {
     _refrescar();
   }
 
-  /// Hoja con todos los ciclos: más práctico que las flechas cuando hay
-  /// mucha historia.
-  Future<void> _elegirCiclo(List<CicloConsultable> ciclos) async {
-    final elegido = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      builder: (contexto) => SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(contexto).height * 0.7),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                child: Text('¿Qué ciclo quieres ver?', style: Theme.of(contexto).textTheme.titleMedium),
-              ),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (final c in ciclos)
-                      ListTile(
-                        selected: c.ciclo.id == _cicloVisto,
-                        leading: Icon(c.cerrado ? Icons.lock_outline : Icons.lock_open_outlined),
-                        title: Text('Ciclo ${c.ciclo.etiquetaConAnio}'),
-                        subtitle: Text(
-                          '${fechaCorta(c.ciclo.fechaInicio)} – ${fechaCorta(c.ciclo.fechaFin)} · '
-                          '${c.ciclo.id == widget.cicloId ? 'En curso' : c.cerrado ? 'Cerrado' : 'Sin cerrar'}',
-                        ),
-                        trailing: Text(Dinero(c.totalCentavos).formateado()),
-                        onTap: () => Navigator.of(contexto).pop(c.ciclo.id),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (elegido != null && elegido != _cicloVisto) _verCiclo(elegido);
-  }
-
   List<Movimiento> _filtrar(
     List<Movimiento> movimientos,
     Map<String, Categoria> categoriasPorId,
@@ -328,16 +284,12 @@ class _PantallaGastosState extends State<PantallaGastos> {
 
     return Column(
       children: [
-        if (visto != null)
-          _SelectorCiclo(
-            visto: visto,
-            esEnCurso: visto.ciclo.id == widget.cicloId,
-            // La lista va del más reciente al más viejo: "anterior" es el
-            // siguiente índice.
-            alAnterior: indice + 1 < datos.ciclos.length ? () => _verCiclo(datos.ciclos[indice + 1].ciclo.id) : null,
-            alSiguiente: indice > 0 ? () => _verCiclo(datos.ciclos[indice - 1].ciclo.id) : null,
-            alElegir: () => _elegirCiclo(datos.ciclos),
-          ),
+        SelectorCiclo(
+          ciclos: datos.ciclos,
+          vistoId: _cicloVisto,
+          enCursoId: widget.cicloId,
+          alCambiar: _verCiclo,
+        ),
         if (visto != null && visto.cerrado)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
@@ -684,74 +636,3 @@ class _DatosGastos {
   });
 }
 
-/// "‹ Ciclo Oct 2026 ›" con sus fechas, si está cerrado y cuánto se gastó.
-/// Tocar el nombre abre la lista de todos los ciclos.
-class _SelectorCiclo extends StatelessWidget {
-  final CicloConsultable visto;
-  final bool esEnCurso;
-  final VoidCallback? alAnterior;
-  final VoidCallback? alSiguiente;
-  final VoidCallback alElegir;
-
-  const _SelectorCiclo({
-    required this.visto,
-    required this.esEnCurso,
-    required this.alAnterior,
-    required this.alSiguiente,
-    required this.alElegir,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
-    final ciclo = visto.ciclo;
-    final estado = esEnCurso ? 'En curso' : visto.cerrado ? 'Cerrado' : 'Sin cerrar';
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            tooltip: 'Ciclo anterior',
-            onPressed: alAnterior,
-          ),
-          Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: alElegir,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (visto.cerrado) ...[
-                          Icon(Icons.lock_outline, size: 16, color: ColoresApp.medio),
-                          const SizedBox(width: 4),
-                        ],
-                        Flexible(child: Text('Ciclo ${ciclo.etiquetaConAnio}', style: textos.titleMedium)),
-                        Icon(Icons.arrow_drop_down, color: ColoresApp.medio),
-                      ],
-                    ),
-                    Text(
-                      '${fechaCorta(ciclo.fechaInicio)} – ${fechaCorta(ciclo.fechaFin)} · $estado · '
-                      '${Dinero(visto.totalCentavos).formateado()}',
-                      textAlign: TextAlign.center,
-                      style: textos.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            tooltip: 'Ciclo siguiente',
-            onPressed: alSiguiente,
-          ),
-        ],
-      ),
-    );
-  }
-}

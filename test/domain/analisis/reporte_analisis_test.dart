@@ -150,6 +150,22 @@ void main() {
     expect(sinDatos.contraAnterior, isEmpty);
   });
 
+  test('ciclo terminado: completo, no "en curso", contra el anterior completo', () {
+    final ms = [
+      _mov(DateTime(2026, 10, 5), 500, 'super'),
+      _mov(DateTime(2026, 9, 5), 300, 'super', ciclo: '2026-09'),
+      _mov(DateTime(2026, 9, 30), 200, 'super', ciclo: '2026-09'),
+    ];
+    final r = _reporte(ms, hoy: DateTime(2026, 11, 5), anterior: _sep);
+    expect(r.terminado, isTrue);
+    expect(r.ultimosCiclos.last.enCurso, isFalse);
+    expect(r.variablesAnteriorMismoDia, const Dinero.pesos(500), reason: 'incluye el 30 de septiembre');
+
+    final ultimoDia = _reporte(ms, hoy: DateTime(2026, 10, 31, 22), anterior: _sep);
+    expect(ultimoDia.terminado, isFalse, reason: 'el último día sigue en curso');
+    expect(ultimoDia.ultimosCiclos.last.enCurso, isTrue);
+  });
+
   test('últimos ciclos: hasta 6, sin futuros, el actual aunque no tenga gastos', () {
     final ms = [
       for (var mes = 2; mes <= 9; mes++)

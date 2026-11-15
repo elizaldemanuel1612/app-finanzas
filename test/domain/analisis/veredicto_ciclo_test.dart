@@ -7,7 +7,7 @@ import 'package:test/test.dart';
 final _calc = const CalculadoraCiclo(1);
 
 /// Ciclo de agosto (31 días) visto el día [dia].
-VeredictoCiclo _veredicto({required int dia, required int gastado, required int presupuesto}) {
+VeredictoCiclo _veredicto({required int dia, required int gastado, required int presupuesto, bool terminado = false}) {
   final hoy = DateTime(2026, 8, dia);
   final ciclo = _calc.calcularPara(hoy);
   final r = calcularReporteAnalisis(
@@ -24,6 +24,7 @@ VeredictoCiclo _veredicto({required int dia, required int gastado, required int 
       ciclo: ciclo,
       diaDelCiclo: dia,
       diasDelCiclo: r.diasDelCiclo,
+      terminado: terminado,
       gastado: Dinero.pesos(gastado + 700),
       gastadoVariables: Dinero.pesos(gastado),
       gastadoFijas: const Dinero.pesos(700),
@@ -92,5 +93,18 @@ void main() {
   test('justo en el presupuesto: nada que repartir hoy', () {
     final v = _veredicto(dia: 31, gastado: 1000, presupuesto: 1000);
     expect(v.disponibleHoy, isNull);
+  });
+
+  test('ciclo ya terminado: en pasado y sin "hoy puedes gastar"', () {
+    final dentro = _veredicto(dia: 31, gastado: 900, presupuesto: 1000, terminado: true);
+    expect(dentro.titulo, 'Cerraste dentro de lo planeado');
+    expect(dentro.detalle, contains(r'$100'));
+    expect(dentro.disponibleHoy, isNull);
+
+    final sinPresupuesto = _veredicto(dia: 31, gastado: 100, presupuesto: 0, terminado: true);
+    expect(sinPresupuesto.titulo, startsWith('Gastaste'));
+
+    final pasado = _veredicto(dia: 31, gastado: 1200, presupuesto: 1000, terminado: true);
+    expect(pasado.tono, TonoVeredicto.pasado);
   });
 }

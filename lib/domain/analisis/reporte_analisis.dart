@@ -76,6 +76,10 @@ final class ReporteAnalisis {
   final int diaDelCiclo;
   final int diasDelCiclo;
 
+  /// El ciclo ya acabó (hoy es después de su último día): se está viendo
+  /// cómo quedó, y los textos van en pasado.
+  final bool terminado;
+
   final Dinero gastado;
   final Dinero gastadoVariables;
   final Dinero gastadoFijas;
@@ -128,6 +132,7 @@ final class ReporteAnalisis {
     required this.ciclo,
     required this.diaDelCiclo,
     required this.diasDelCiclo,
+    this.terminado = false,
     required this.gastado,
     required this.gastadoVariables,
     required this.gastadoFijas,
@@ -240,7 +245,9 @@ ReporteAnalisis calcularReporteAnalisis({
   Dinero? anteriorMismoDia;
   final contraAnterior = <ComparacionCategoria>[];
   if (cicloAnterior != null) {
-    final limite = cicloAnterior.fechaInicio.add(Duration(days: diaDelCiclo - 1));
+    final terminado = hoyDia.isAfter(_dia(ciclo.fechaFin));
+    // Un ciclo terminado se compara completo contra el anterior completo.
+    final limite = terminado ? cicloAnterior.fechaFin : cicloAnterior.fechaInicio.add(Duration(days: diaDelCiclo - 1));
     final delAnterior = [
       for (final m in activos)
         if (m.cicloId == cicloAnterior.id && !_dia(m.fecha).isAfter(_dia(limite))) m,
@@ -277,7 +284,8 @@ ReporteAnalisis calcularReporteAnalisis({
         cicloId: id,
         etiqueta: _etiquetaDeId(id),
         total: Dinero(porCiclo[id]!),
-        enCurso: id == ciclo.id,
+        // Un ciclo ya terminado se ve completo, no "en curso".
+        enCurso: id == ciclo.id && !hoyDia.isAfter(_dia(ciclo.fechaFin)),
       ),
   ];
 
@@ -331,6 +339,7 @@ ReporteAnalisis calcularReporteAnalisis({
     ciclo: ciclo,
     diaDelCiclo: diaDelCiclo,
     diasDelCiclo: diasDelCiclo,
+    terminado: hoyDia.isAfter(_dia(ciclo.fechaFin)),
     gastado: gastado,
     gastadoVariables: gastadoVariables,
     gastadoFijas: gastado - gastadoVariables,

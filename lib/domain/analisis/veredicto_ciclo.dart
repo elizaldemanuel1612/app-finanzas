@@ -30,10 +30,13 @@ VeredictoCiclo calcularVeredicto({required ReporteAnalisis reporte, required Dat
   final gastado = r.gastadoVariables;
   final quedanDias = r.diasRestantes > 0;
 
+  // Un ciclo pasado se cuenta en pasado y sin "hoy puedes gastar".
+  final terminado = r.terminado;
+
   if (!presupuesto.esPositivo) {
     return VeredictoCiclo(
       tono: TonoVeredicto.neutro,
-      titulo: 'Llevas ${r.gastado.formateado()} este ciclo',
+      titulo: terminado ? 'Gastaste ${r.gastado.formateado()} en este ciclo' : 'Llevas ${r.gastado.formateado()} este ciclo',
       detalle: 'Ponles presupuesto a tus categorías para saber si vas bien.',
     );
   }
@@ -46,7 +49,13 @@ VeredictoCiclo calcularVeredicto({required ReporteAnalisis reporte, required Dat
           : 'Para el próximo ciclo, revisa qué categoría se llevó más.',
     );
   }
-
+  if (terminado) {
+    return VeredictoCiclo(
+      tono: TonoVeredicto.bien,
+      titulo: 'Cerraste dentro de lo planeado',
+      detalle: 'Te sobraron ${(presupuesto - gastado).formateado()} de tus gastos del día a día.',
+    );
+  }
   final disponible = calcularDisponiblePorDia(
     presupuestoVariables: presupuesto,
     gastadoVariables: gastado,

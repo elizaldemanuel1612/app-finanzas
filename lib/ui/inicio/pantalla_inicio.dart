@@ -367,6 +367,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
           ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
           cuentaRepositorio: widget.almacenLocal.cuentas,
           movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
+          cicloRepositorio: widget.cicloRepositorio,
           alVerCategoria: (id) {
             final categoria = _datos?.categorias.where((c) => c.id == id).firstOrNull;
             if (categoria != null) _irADetalle(categoria);

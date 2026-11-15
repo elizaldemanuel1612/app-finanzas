@@ -47,11 +47,13 @@ ReporteAnalisis _reporte({
   int diasConDatos = 0,
   int pequenos = 0,
   int totalPequenos = 0,
+  bool terminado = false,
 }) =>
     ReporteAnalisis(
       ciclo: _ciclo,
       diaDelCiclo: dia,
       diasDelCiclo: 30,
+      terminado: terminado,
       gastado: Dinero.pesos(gastadoVariables + gastadoFijas),
       gastadoVariables: Dinero.pesos(gastadoVariables),
       gastadoFijas: Dinero.pesos(gastadoFijas),
@@ -80,6 +82,26 @@ List<Recomendacion> _recs(ReporteAnalisis r, {int ingreso = 0, int? meta}) => ca
     );
 
 void main() {
+  test('ciclo terminado: contra el pasado y lo pequeño, en pasado', () {
+    final recs = _recs(_reporte(
+      dia: 30,
+      terminado: true,
+      gastadoVariables: 1100,
+      anteriorMismoDia: 2000,
+      contraAnterior: [
+        ComparacionCategoria(categoria: _var('cafe', 500), actual: const Dinero.pesos(1000), anterior: const Dinero.pesos(500)),
+      ],
+      pequenos: 6,
+      totalPequenos: 200,
+    ));
+    final titulos = recs.map((r) => r.titulo).toList();
+    expect(titulos, contains(r'Gastaste $900.00 menos que el ciclo pasado'));
+    final porTitulo = {for (final r in recs) r.titulo: r.detalle};
+    expect(porTitulo['Más en cafe que el ciclo pasado'], r'Gastaste $1,000.00; el ciclo pasado, $500.00.');
+    expect(porTitulo[r'Gastaste $900.00 menos que el ciclo pasado'], contains(r'Fueron $1,100.00 en variables'));
+    expect(porTitulo['Los gastos pequeños suman'], contains('en ese ciclo'));
+  });
+
   test('te pasaste: cuánto mover y desde dónde, con el ritmo', () {
     // Día 15 de 30. salidas: 1200 de 1000 → proyecta 2400 (1400 arriba).
     // auto: 100 de 2000 → proyecta 200, le sobrarían 1800.

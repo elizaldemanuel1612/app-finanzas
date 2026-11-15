@@ -5,14 +5,17 @@ import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../../data/repositorios/ajuste_presupuesto_ciclo_repositorio.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
+import '../../data/repositorios/ciclo_repositorio.dart';
 import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
+import '../../domain/analisis/presupuestos_del_cierre.dart';
 import '../../domain/analisis/recomendaciones.dart';
 import '../../domain/analisis/reparto_ingreso.dart';
 import '../../domain/analisis/reporte_analisis.dart';
 import '../../domain/analisis/veredicto_ciclo.dart';
+import '../../domain/ciclo_de_vida/ciclos_para_consultar.dart';
 import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
 import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/categoria.dart';
@@ -21,12 +24,14 @@ import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/meta_base.dart';
 import '../comun/aviso_gesto.dart';
 import '../comun/guia_rapida.dart';
+import '../comun/selector_ciclo.dart';
 import '../comun/tema.dart';
 import '../cuentas/color_saldo.dart';
 import 'graficas_analisis.dart';
 
 /// Pestaña Análisis (spec-app-finanzas-v2.md §5.7): reportes y
-/// recomendaciones del ciclo en curso. Todo el cálculo vive en
+/// recomendaciones del ciclo en curso o, con el selector de arriba, de un
+/// ciclo pasado tal como quedó. Todo el cálculo vive en
 /// `domain/analisis/`; aquí solo se carga y se dibuja.
 class PantallaAnalisis extends StatefulWidget {
   final Perfil perfil;
@@ -45,6 +50,9 @@ class PantallaAnalisis extends StatefulWidget {
   final CuentaRepositorio? cuentaRepositorio;
   final MovimientoCuentaRepositorio? movimientoCuentaRepositorio;
 
+  /// Para elegir un ciclo pasado; sin él solo se ve el ciclo en curso.
+  final CicloRepositorio? cicloRepositorio;
+
   const PantallaAnalisis({
     super.key,
     required this.perfil,
@@ -58,6 +66,7 @@ class PantallaAnalisis extends StatefulWidget {
     required this.alVerMeta,
     this.cuentaRepositorio,
     this.movimientoCuentaRepositorio,
+    this.cicloRepositorio,
   });
 
   @override
@@ -80,7 +89,22 @@ class _Datos {
   /// Lo que se piensa apartar este ciclo (meta más extras a apartar).
   final Dinero metaCiclo;
 
-  const _Datos(this.reporte, this.recomendaciones, this.ingreso, this.categorias, this.cuentas, this.metaCiclo);
+  /// El ciclo que se está viendo y todos los que se pueden elegir (vacío
+  /// sin `cicloRepositorio`).
+  final Ciclo ciclo;
+  final List<CicloConsultable> ciclos;
+
+  const _Datos(
+    this.reporte,
+    this.recomendaciones,
+    this.ingreso,
+    this.categorias,
+    this.cuentas,
+    this.metaCiclo,
+    this.ciclo,
+    this.ciclos,
+  );
+
 }
 
 enum _Vista { basico, avanzado, cuentas }
@@ -88,6 +112,9 @@ enum _Vista { basico, avanzado, cuentas }
 class _PantallaAnalisisState extends State<PantallaAnalisis> {
   _Datos? _datos;
   _Vista _vista = _Vista.basico;
+
+  /// Siempre abre en el ciclo en curso.
+  late String _cicloVisto = widget.ciclo.id;
 
   /// Variables, Fijos o Total: lo comparten "¿Cuánto pesa cada parte?" y la
   /// dona de "¿En qué se va?".
@@ -123,15 +150,40 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
     } catch (_) {}
   }
 
+  void _verCiclo(String cicloId) {
+    setState(() => _cicloVisto = cicloId);
+    _cargar();
+  }
+
   Future<void> _cargar() async {
-    final ciclo = widget.ciclo;
     final todas = await widget.categoriaRepositorio.listarTodas();
-    final ajustes = await widget.ajustePresupuestoCicloRepositorio.listarPorCiclo(ciclo.id);
     final movimientos = await widget.movimientoRepositorio.listarTodos();
+
+    // El ciclo a ver: el en curso, o uno pasado elegido en el selector. De un
+    // ciclo cerrado se usa su fotografía del cierre (presupuestos, ingreso y
+    // meta de ese día), para verlo como quedó.
+    final calculadora = widget.perfil.calculadoraCiclo;
+    final guardados = await widget.cicloRepositorio?.listarTodos() ?? const [];
+    final ciclos = widget.cicloRepositorio == null
+        ? const <CicloConsultable>[]
+        : ciclosParaConsultar(
+            enCurso: widget.ciclo,
+            movimientos: movimientos,
+            guardados: guardados,
+            calculadora: calculadora,
+          );
+    final ciclo = ciclos.where((c) => c.ciclo.id == _cicloVisto).firstOrNull?.ciclo ?? widget.ciclo;
+    final guardado = guardados.where((g) => g.ciclo.id == ciclo.id).firstOrNull;
+    final cierre = ciclo.estado == EstadoCiclo.cerrado ? guardado?.snapshot : null;
+
+    final ajustes = await widget.ajustePresupuestoCicloRepositorio.listarPorCiclo(ciclo.id);
     final extras = await widget.ingresoExtraRepositorio.listarPorCiclo(ciclo.id);
 
-    final efectivas = presupuestosEfectivosParaCiclo(base: todas, ajustesDelCiclo: ajustes);
-    final anterior = widget.perfil.calculadoraCiclo.calcularPara(
+    final efectivas = presupuestosDelCierre(
+      categorias: presupuestosEfectivosParaCiclo(base: todas, ajustesDelCiclo: ajustes),
+      snapshot: cierre,
+    );
+    final anterior = calculadora.calcularPara(
       ciclo.fechaInicio.subtract(const Duration(days: 1)),
     );
     final reporte = calcularReporteAnalisis(
@@ -150,10 +202,11 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
       perfil: widget.perfil,
       categorias: [for (final c in todas) if (c.activa) c],
     );
-    final metaCiclo = calcularMetaDelCiclo(metaBase: metaBase, ingresos: ingresos);
+    final metaCiclo = cierre?.metaApartado ?? calcularMetaDelCiclo(metaBase: metaBase, ingresos: ingresos);
+    final ingreso = cierre?.ingresoTotal ?? ingresos.total;
     final recomendaciones = calcularRecomendaciones(
       reporte: reporte,
-      ingresoCiclo: ingresos.total,
+      ingresoCiclo: ingreso,
       metaCiclo: metaCiclo,
     );
     final repoCuentas = widget.cuentaRepositorio;
@@ -170,10 +223,12 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
     setState(() => _datos = _Datos(
           reporte,
           recomendaciones,
-          ingresos.total,
+          ingreso,
           [for (final c in efectivas) if (c.activa) c],
           cuentas,
           metaCiclo,
+          ciclo,
+          ciclos,
         ));
   }
 
@@ -192,24 +247,41 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
   Widget build(BuildContext context) {
     final datos = _datos;
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 64,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Ciclo ${widget.ciclo.etiquetaConAnio}', style: Theme.of(context).textTheme.labelSmall),
-            const Text('Análisis'),
-          ],
-        ),
-      ),
+      // Con el selector de ciclo a la vista, el título no repite el ciclo.
+      appBar: (datos?.ciclos.length ?? 0) > 1
+          ? AppBar(title: const Text('Análisis'))
+          : AppBar(
+              toolbarHeight: 64,
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Ciclo ${widget.ciclo.etiquetaConAnio}', style: Theme.of(context).textTheme.labelSmall),
+                  const Text('Análisis'),
+                ],
+              ),
+            ),
       body: datos == null
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () async {
-                await _cargar();
-                if (context.mounted) await avisarGestoPrimeraVez(context, GestoApp.recargar);
-              },
-              child: datos.reporte.sinMovimientos ? _vacio(context) : _contenido(context, datos),
+          : Column(
+              children: [
+                // Fijo arriba, como en Gastos; cada vista conserva su scroll.
+                if (datos.ciclos.length > 1)
+                  SelectorCiclo(
+                    ciclos: datos.ciclos,
+                    vistoId: datos.ciclo.id,
+                    enCursoId: widget.ciclo.id,
+                    alCambiar: _verCiclo,
+                  ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      await _cargar();
+                      if (context.mounted) await avisarGestoPrimeraVez(context, GestoApp.recargar);
+                    },
+                    child: datos.reporte.sinMovimientos ? _vacio(context) : _contenido(context, datos),
+                  ),
+                ),
+              ],
             ),
     );
   }
@@ -248,6 +320,8 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
           if (_datos?.cuentas != null) const ButtonSegment(value: _Vista.cuentas, label: Text('Cuentas')),
         ],
         selected: {_vista},
+        // Sin la palomita: con tres opciones, "Avanzado" se partía en dos renglones.
+        showSelectedIcon: false,
         onSelectionChanged: (s) => _elegirVista(s.first),
       );
 
@@ -398,7 +472,7 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
           _Ritmo(reporte: r),
         ],
         if (r.contraAnterior.isNotEmpty) ...[
-          _Titulo('Contra el ciclo pasado', subtitulo: 'A los mismos ${r.diaDelCiclo} días'),
+          _Titulo('Contra el ciclo pasado', subtitulo: r.terminado ? 'Ciclo completo' : 'A los mismos ${r.diaDelCiclo} días'),
           _ContraAnterior(reporte: r),
         ],
         if (r.ultimosCiclos.length > 1) ...[
@@ -508,7 +582,7 @@ class _TarjetaVeredicto extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 '${r.gastadoVariables.formateado()} de ${r.presupuestoVariables.formateado()} · '
-                'Van ${r.diaDelCiclo} de ${r.diasDelCiclo} días',
+                '${r.terminado ? 'Ciclo de ${r.diasDelCiclo} días' : 'Van ${r.diaDelCiclo} de ${r.diasDelCiclo} días'}',
                 style: textos.labelSmall,
               ),
             ],
@@ -603,9 +677,10 @@ class _Resumen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Van ${r.diaDelCiclo} de ${r.diasDelCiclo} días', style: blanco70),
+          Text(r.terminado ? 'Ciclo de ${r.diasDelCiclo} días' : 'Van ${r.diaDelCiclo} de ${r.diasDelCiclo} días',
+              style: blanco70),
           const SizedBox(height: 6),
-          Text('Llevas gastado', style: blanco70),
+          Text(r.terminado ? 'Gastaste' : 'Llevas gastado', style: blanco70),
           Text(r.gastado.formateado(), style: textos.displaySmall?.copyWith(color: Colors.white)),
           const SizedBox(height: 14),
           BarraProporcion(valor: r.diaDelCiclo / r.diasDelCiclo, color: ColoresApp.oro, alto: 6),
@@ -621,11 +696,14 @@ class _Resumen extends StatelessWidget {
               ),
               Expanded(
                 child: _DatoOscuro(
-                  titulo: 'Si sigues así',
+                  titulo: r.terminado ? 'En variables' : 'Si sigues así',
                   valor: r.proyeccionVariables.formateado(),
-                  pie: r.presupuestoVariables.esPositivo
-                      ? 'de ${r.presupuestoVariables.formateado()} en variables'
-                      : 'en variables al cierre',
+                  pie: switch ((r.presupuestoVariables.esPositivo, r.terminado)) {
+                    (true, true) => 'de ${r.presupuestoVariables.formateado()} planeados',
+                    (true, false) => 'de ${r.presupuestoVariables.formateado()} en variables',
+                    (false, true) => 'al cierre',
+                    (false, false) => 'en variables al cierre',
+                  },
                 ),
               ),
             ],
@@ -985,11 +1063,16 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('De ${datos.ingreso.formateado()} que entran este ciclo', style: textos.bodySmall),
+        Text(
+          datos.reporte.terminado
+              ? 'De ${datos.ingreso.formateado()} que entraron ese ciclo'
+              : 'De ${datos.ingreso.formateado()} que entran este ciclo',
+          style: textos.bodySmall,
+        ),
         const SizedBox(height: 12),
         _plan(context, reparto.plan),
         const SizedBox(height: 18),
-        barra('Hasta hoy', 'Real', EstiloReparto.real, reparto.hoy),
+        barra(datos.reporte.terminado ? 'Al cierre' : 'Hasta hoy', 'Real', EstiloReparto.real, reparto.hoy),
         if (quedanDias) ...[
           const SizedBox(height: 18),
           barra('Al cierre, si sigues así', 'Estimado', EstiloReparto.estimado, reparto.alCierre),
@@ -1140,8 +1223,10 @@ class _Ritmo extends StatelessWidget {
               diasDelCiclo: r.diasDelCiclo,
               presupuesto: r.presupuestoVariables,
               proyeccion: quedanDias ? r.proyeccionVariables : null,
-              descripcion: 'Llevas ${r.gastadoVariables.formateado()} en variables; '
-                  'a ritmo parejo llevarías ${parejo.formateado()}.'
+              descripcion: r.terminado
+                  ? 'Gastaste ${r.gastadoVariables.formateado()} en variables de ${r.presupuestoVariables.formateado()}.'
+                  : 'Llevas ${r.gastadoVariables.formateado()} en variables; '
+                      'a ritmo parejo llevarías ${parejo.formateado()}.'
                   '${quedanDias ? ' Si sigues así, cerrarías en ${r.proyeccionVariables.formateado()}.' : ''}',
             ),
             const SizedBox(height: 12),
@@ -1149,7 +1234,7 @@ class _Ritmo extends StatelessWidget {
               spacing: 16,
               runSpacing: 6,
               children: [
-                _Leyenda(color: ColoresApp.azul, texto: 'Lo que llevas'),
+                _Leyenda(color: ColoresApp.azul, texto: r.terminado ? 'Lo que gastaste' : 'Lo que llevas'),
                 _Leyenda(color: ColoresApp.oro, texto: 'Ritmo parejo'),
                 if (quedanDias)
                   _Leyenda(
@@ -1160,9 +1245,13 @@ class _Ritmo extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              arriba
-                  ? 'Vas ${(r.gastadoVariables - parejo).formateado()} arriba del ritmo parejo.'
-                  : 'Vas ${(parejo - r.gastadoVariables).formateado()} abajo del ritmo parejo. Bien.',
+              r.terminado
+                  ? (arriba
+                      ? 'Cerraste ${(r.gastadoVariables - parejo).formateado()} arriba de tu presupuesto.'
+                      : 'Cerraste ${(parejo - r.gastadoVariables).formateado()} abajo de tu presupuesto. Bien.')
+                  : arriba
+                      ? 'Vas ${(r.gastadoVariables - parejo).formateado()} arriba del ritmo parejo.'
+                      : 'Vas ${(parejo - r.gastadoVariables).formateado()} abajo del ritmo parejo. Bien.',
               style: textos.bodySmall?.copyWith(color: arriba ? ColoresApp.ambarTexto : ColoresApp.verdeTexto),
             ),
             if (quedanDias) ...[

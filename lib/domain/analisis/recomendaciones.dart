@@ -188,8 +188,10 @@ List<Recomendacion> calcularRecomendaciones({
     lista.add(Recomendacion(
       tono: TonoRecomendacion.atencion,
       titulo: 'Más en ${c.categoria.nombre} que el ciclo pasado',
-      detalle: 'A los $dias ${_dias(dias)} llevas ${c.actual.formateado()}; el ciclo pasado '
-          'llevabas ${c.anterior.formateado()}.',
+      detalle: r.terminado
+          ? 'Gastaste ${c.actual.formateado()}; el ciclo pasado, ${c.anterior.formateado()}.'
+          : 'A los $dias ${_dias(dias)} llevas ${c.actual.formateado()}; el ciclo pasado '
+              'llevabas ${c.anterior.formateado()}.',
       accion: AccionRecomendacion.verCategoria,
       categoriaId: c.categoria.id,
     ));
@@ -201,7 +203,7 @@ List<Recomendacion> calcularRecomendaciones({
       tono: TonoRecomendacion.atencion,
       titulo: 'Los gastos pequeños suman',
       detalle: '${r.gastosPequenos} gastos de ${montoGastoPequeno.formateado()} o menos suman '
-          '${r.totalGastosPequenos.formateado()} este ciclo. Uno por uno no se notan.',
+          '${r.totalGastosPequenos.formateado()} ${r.terminado ? 'en ese ciclo' : 'este ciclo'}. Uno por uno no se notan.',
       accion: AccionRecomendacion.verGastos,
     ));
   }
@@ -254,9 +256,13 @@ List<Recomendacion> calcularRecomendaciones({
       r.gastadoVariables.centavos * 100 <= anterior.centavos * 85) {
     lista.add(Recomendacion(
       tono: TonoRecomendacion.positivo,
-      titulo: 'Vas ${(anterior - r.gastadoVariables).formateado()} abajo del ciclo pasado',
-      detalle: 'A los $dias ${_dias(dias)} llevas ${r.gastadoVariables.formateado()} en variables; '
-          'el ciclo pasado llevabas ${anterior.formateado()}.',
+      titulo: r.terminado
+          ? 'Gastaste ${(anterior - r.gastadoVariables).formateado()} menos que el ciclo pasado'
+          : 'Vas ${(anterior - r.gastadoVariables).formateado()} abajo del ciclo pasado',
+      detalle: r.terminado
+          ? 'Fueron ${r.gastadoVariables.formateado()} en variables; el ciclo pasado, ${anterior.formateado()}.'
+          : 'A los $dias ${_dias(dias)} llevas ${r.gastadoVariables.formateado()} en variables; '
+              'el ciclo pasado llevabas ${anterior.formateado()}.',
       accion: AccionRecomendacion.verGastos,
     ));
   }
