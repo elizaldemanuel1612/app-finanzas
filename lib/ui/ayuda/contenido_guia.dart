@@ -48,13 +48,13 @@ const _temaInicio = TemaGuia(
   id: 'inicio',
   emoji: '🏠',
   titulo: 'Tu pantalla de inicio',
-  resumen: 'Lo primero que ves: cuánto puedes gastar hoy y qué atender.',
+  resumen: 'Lo primero que ves: cuánto llevas gastado y qué atender.',
   bloques: [
     Parrafo(
-      'La tarjeta de arriba responde una sola pregunta: **Hoy puedes gastar**. '
-      'Es lo que les queda a tus categorías variables repartido entre los días '
-      'que faltan del ciclo. Arriba trae cómo vas (**Vas bien**, **Vas rápido** '
-      'o **Te pasaste**) y abajo la barra de tus variables y tu meta del ciclo.',
+      'La tarjeta de arriba dice cuánto **Llevas gastado** en tus categorías '
+      'variables este ciclo y de cuánto, con la barra y cuánto te queda. Arriba '
+      'trae cómo vas (**Vas bien**, **Vas rápido** o **Te pasaste**) y abajo tu '
+      'meta del ciclo.',
     ),
     Parrafo(
       'Si alguna categoría va a pasarse, aparece un solo aviso con la '

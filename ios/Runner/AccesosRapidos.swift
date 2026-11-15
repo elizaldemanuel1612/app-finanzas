@@ -63,6 +63,7 @@ final class AccesosRapidos: NSObject, FlutterPlugin, FlutterSceneLifeCycleDelega
         let compartidas = UserDefaults(suiteName: Self.appGroup)
       {
         compartidas.set(datos["quedaHoyTexto"] as? String, forKey: "quedaHoyTexto")
+        compartidas.set(datos["deTexto"] as? String, forKey: "deTexto")
         compartidas.set(datos["fecha"] as? String, forKey: "fecha")
         WidgetCenter.shared.reloadAllTimelines()
       }
@@ -70,6 +71,7 @@ final class AccesosRapidos: NSObject, FlutterPlugin, FlutterSceneLifeCycleDelega
     case "limpiarWidget":
       if let compartidas = UserDefaults(suiteName: Self.appGroup) {
         compartidas.removeObject(forKey: "quedaHoyTexto")
+        compartidas.removeObject(forKey: "deTexto")
         compartidas.removeObject(forKey: "fecha")
         WidgetCenter.shared.reloadAllTimelines()
       }

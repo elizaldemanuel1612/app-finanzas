@@ -62,7 +62,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('Hoy puedes gastar'), findsOneWidget);
+    expect(find.text('Llevas gastado'), findsOneWidget);
     expect(find.text(r'Te pasaste en Salidas por $600'), findsOneWidget);
     // Sin historial, el MPC estima que Auto usará todo su presupuesto: no
     // hay de dónde cubrir y la salida es ver la categoría.

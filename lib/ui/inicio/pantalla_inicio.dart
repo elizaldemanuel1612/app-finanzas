@@ -24,7 +24,6 @@ import '../ia/servicio_ia_app.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/apartado_estimado.dart';
 import '../../domain/presupuesto/cobertura_excesos.dart';
-import '../../domain/presupuesto/disponible_por_dia.dart';
 import '../../domain/presupuesto/meta_base.dart';
 import '../../domain/presupuesto/traslado_sobrante.dart';
 import '../ciclo/hoja_traslado_sobrante.dart';
@@ -196,7 +195,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
     final datos = await _cargarDatos();
     if (!mounted) return;
     setState(() => _datos = datos);
-    AccesosRapidos.publicarDisponibleHoy(datos.disponibleHoy, DateTime.now());
+    AccesosRapidos.publicarGastado(datos.gastadoVariables, datos.presupuestoVariables, DateTime.now());
     _ofrecerTrasladoSiToca();
   }
 
@@ -307,12 +306,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
         await widget.almacenLocal.cuentas.listarTodas(),
         todos,
         await widget.almacenLocal.movimientosCuenta.listarTodos(),
-        hoy: hoy,
-      ),
-      disponibleHoy: calcularDisponiblePorDia(
-        presupuestoVariables: presupuestoVariables,
-        gastadoVariables: gastadoVariables,
-        ciclo: _ciclo,
         hoy: hoy,
       ),
     );
@@ -843,7 +836,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
   Future<void> _explicarHoy(_DatosInicio datos) async {
     final textos = Theme.of(context).textTheme;
     final quedan = datos.presupuestoVariables - datos.gastadoVariables;
-    final faltan = _ciclo.diasParaTerminar(DateTime.now()) + 1;
+    final faltan = _ciclo.diasParaTerminar(DateTime.now());
     final irAIngresos = await showModalBottomSheet<bool>(
       context: context,
       builder: (contexto) => SafeArea(
@@ -856,8 +849,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
               Text('Cómo se calcula', style: textos.seccion),
               const SizedBox(height: 12),
               Text(
-                'Hoy puedes gastar: lo que te queda en variables (${enPesos(quedan)}) '
-                'entre los $faltan ${faltan == 1 ? 'día' : 'días'} que faltan, contando hoy.',
+                'Llevas gastado: lo de tus categorías variables en este ciclo, contra lo que les '
+                'asignaste. Te quedan ${enPesos(quedan)} para los $faltan ${faltan == 1 ? 'día' : 'días'} '
+                'que faltan. Las fijas (renta, colegiaturas…) van aparte, en el renglón Fijos.',
                 style: textos.cuerpo,
               ),
               const SizedBox(height: 16),
@@ -881,8 +875,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
   }
 }
 
-/// La tarjeta héroe de Inicio: veredicto, "Hoy puedes gastar", ritmo de las
-/// variables y la meta del ciclo.
+/// La tarjeta héroe de Inicio: veredicto, "Llevas gastado" (variables del
+/// ciclo contra su presupuesto, 2026-11-15; antes "Hoy puedes gastar"),
+/// ritmo de las variables y la meta del ciclo.
 class _Heroe extends StatelessWidget {
   final _DatosInicio datos;
   final double avanceCiclo;
@@ -925,12 +920,24 @@ class _Heroe extends StatelessWidget {
             icono: Icons.calendar_today_rounded,
             enHeroe: true,
           );
-    final hoy = datos.disponibleHoy;
-    final (pesos, centavos) = partesDeMonto(hoy);
+    final gastado = datos.gastadoVariables;
+    final (pesos, centavos) = partesDeMonto(gastado);
+    final quedan = presupuesto - gastado;
+    // Igual que el encabezado ("faltan N días"): sin contar hoy.
+    final faltan = dias - dia;
+    final dicenDias = switch (faltan) {
+      <= 0 => 'último día',
+      1 => 'falta 1 día',
+      _ => 'faltan $faltan días',
+    };
     final veredicto = datos.hayGastos ? etiquetaTonoRitmo(tono) : 'Día $dia de $dias';
+    final pie = quedan.esNegativo
+        ? 'Te pasaste por ${enPesos(quedan.absoluto)} · $dicenDias'
+        : 'Te quedan ${enPesos(quedan)} · $dicenDias';
 
     return TarjetaApp.heroe(
-      etiquetaSemantica: 'Hoy puedes gastar ${montoEnPalabras(hoy)}. $veredicto.',
+      etiquetaSemantica:
+          'Llevas gastado ${montoEnPalabras(gastado)} de ${montoEnPalabras(presupuesto)} en variables. $veredicto.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -946,15 +953,28 @@ class _Heroe extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          ExcludeSemantics(child: Text('Hoy puedes gastar', style: textos.etiqueta.copyWith(color: p.heroeTexto2))),
+          ExcludeSemantics(child: Text('Llevas gastado', style: textos.etiqueta.copyWith(color: p.heroeTexto2))),
           ExcludeSemantics(
-            child: Text.rich(
-              TextSpan(children: [
-                TextSpan(text: pesos),
-                TextSpan(text: centavos, style: TextStyle(fontSize: textos.cifraHeroe.fontSize! / 2, color: p.heroeTexto2)),
-              ]),
-              style: textos.cifraHeroe.copyWith(color: p.heroeTexto),
-              textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Flexible(
+                  child: Text.rich(
+                    TextSpan(children: [
+                      TextSpan(text: pesos),
+                      TextSpan(
+                        text: centavos,
+                        style: TextStyle(fontSize: textos.cifraHeroe.fontSize! / 2, color: p.heroeTexto2),
+                      ),
+                    ]),
+                    style: textos.cifraHeroe.copyWith(color: p.heroeTexto),
+                    textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.6),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('de ${enPesos(presupuesto)}', style: textos.cuerpoFuerte.copyWith(color: p.heroeTexto2)),
+              ],
             ),
           ),
           const SizedBox(height: 14),
@@ -968,10 +988,7 @@ class _Heroe extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           ExcludeSemantics(
-            child: Text(
-              '${enPesos(datos.gastadoVariables)} de ${enPesos(presupuesto)} en variables',
-              style: textos.etiqueta.copyWith(color: p.heroeTexto2),
-            ),
+            child: Text(pie, style: textos.etiqueta.copyWith(color: p.heroeTexto2)),
           ),
           const SizedBox(height: 14),
           Divider(height: 1, color: p.heroePista),
@@ -1170,7 +1187,6 @@ class _DatosInicio {
   final Dinero apartadoEstimado;
   final List<Cobertura> coberturas;
   final bool hayGastos;
-  final Dinero disponibleHoy;
 
   /// La tarjeta que hay que pagar pronto o que se pasó (spec §7.3.1).
   final PagoTarjeta? pagoUrgente;
@@ -1188,7 +1204,6 @@ class _DatosInicio {
     required this.apartadoEstimado,
     required this.coberturas,
     required this.hayGastos,
-    required this.disponibleHoy,
     this.pagoUrgente,
   });
 }
