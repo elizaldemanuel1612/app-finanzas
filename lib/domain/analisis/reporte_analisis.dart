@@ -4,6 +4,8 @@ import '../../core/money.dart';
 import '../modelos/categoria.dart';
 import '../modelos/estado_movimiento.dart';
 import '../modelos/movimiento.dart';
+import '../presupuesto/cobertura_excesos.dart';
+import '../pronostico/pronostico_del_ciclo.dart';
 
 /// Datos de la pestaña Análisis (spec-app-finanzas-v2.md §5.7). Todo se
 /// calcula aquí sobre movimientos activos; la UI solo dibuja.
@@ -89,9 +91,14 @@ final class ReporteAnalisis {
   /// Promedio por día de las variables en lo que va del ciclo.
   final Dinero promedioDiarioVariables;
 
-  /// Variables al cierre si sigue el mismo ritmo (lineal; las fijas no se
-  /// pronostican, regla #9).
+  /// Variables al cierre: la suma de los pronósticos MPC de [variables]
+  /// (las fijas no se pronostican, regla #9). La misma cifra que Inicio y el
+  /// detalle de categoría (`docs/rediseno/plan-rediseno.md`, Etapa 0).
   final Dinero proyeccionVariables;
+
+  /// Cada categoría variable con lo gastado y su cierre estimado (MPC):
+  /// lo que usan las recomendaciones y `calcularCoberturas`.
+  final List<EstadoVariable> variables;
 
   /// Ordenadas de mayor a menor gasto; solo categorías con gasto.
   final List<GastoCategoria> porCategoria;
@@ -140,6 +147,7 @@ final class ReporteAnalisis {
     required this.presupuestoFijas,
     required this.promedioDiarioVariables,
     required this.proyeccionVariables,
+    this.variables = const [],
     required this.porCategoria,
     required this.acumuladoVariablesPorDia,
     required this.variablesAnteriorMismoDia,
@@ -210,9 +218,7 @@ ReporteAnalisis calcularReporteAnalisis({
       if (c.activa && c is CategoriaFija) c.montoFijoCentavos,
   ]);
   final promedio = Dinero(gastadoVariables.centavos ~/ diaDelCiclo);
-  final proyeccion = Dinero(
-    gastadoVariables.centavos + gastadoVariables.centavos * (diasDelCiclo - diaDelCiclo) ~/ diaDelCiclo,
-  );
+  final estados = estadosDeVariables(categorias: categorias, movimientos: movimientos, ciclo: ciclo, hoy: hoy);
 
   // ¿En qué se va?
   final totales = <String, (int, int)>{};
@@ -346,7 +352,8 @@ ReporteAnalisis calcularReporteAnalisis({
     presupuestoVariables: presupuestoVariables,
     presupuestoFijas: presupuestoFijas,
     promedioDiarioVariables: promedio,
-    proyeccionVariables: proyeccion,
+    proyeccionVariables: proyeccionTotal(estados),
+    variables: estados,
     porCategoria: porCategoria,
     acumuladoVariablesPorDia: acumuladoPorDia,
     variablesAnteriorMismoDia: anteriorMismoDia,

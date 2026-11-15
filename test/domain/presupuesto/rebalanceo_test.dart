@@ -1,9 +1,7 @@
 import 'package:app_finanzas/core/money.dart';
 import 'package:app_finanzas/domain/modelos/categoria.dart';
+import 'package:app_finanzas/domain/presupuesto/cobertura_excesos.dart';
 import 'package:app_finanzas/domain/presupuesto/rebalanceo.dart';
-import 'package:app_finanzas/domain/pronostico/nivel_madurez.dart';
-import 'package:app_finanzas/domain/pronostico/pronostico_categoria.dart';
-import 'package:app_finanzas/domain/pronostico/subcaptura.dart';
 import 'package:test/test.dart';
 
 CategoriaVariable _cat(String id, String nombre, {required Dinero presupuesto}) => CategoriaVariable(
@@ -15,34 +13,16 @@ CategoriaVariable _cat(String id, String nombre, {required Dinero presupuesto}) 
       presupuestoMensualCentavos: presupuesto,
     );
 
-PronosticoCategoria _pron(String categoriaId, {required Dinero observado, required Dinero p50}) =>
-    PronosticoCategoria(
-      categoriaId: categoriaId,
-      cicloId: '2026-07',
-      tipo: TipoMpc.variableFrecuente,
-      observado: observado,
-      base: observado,
-      atipico: const Dinero.cero(),
-      comprometido: const Dinero.cero(),
-      avanceEfectivo: 0.6,
-      pronosticoP50: p50,
-      pronosticoP10: p50,
-      pronosticoP90: p50,
-      confianza: ConfianzaMpc.media,
-      senalSubcaptura: SenalSubcaptura.normal,
-      nivelMadurez: NivelMadurezMpc.atipicosYCredibilidad,
-      explicacion: const [],
-    );
+EstadoVariable _e(CategoriaVariable c, {required Dinero observado, required Dinero p50}) =>
+    EstadoVariable(categoria: c, gastado: observado, proyeccion: p50);
 
 void main() {
   group('calcularRebalanceo — cuándo se dispara (§2.5)', () {
     test('no se dispara si la categoría objetivo no se ha pasado del presupuesto', () {
       final objetivo = _cat('salidas', 'Salidas/Diversión', presupuesto: const Dinero.pesos(2000));
       final r = calcularRebalanceo(
-        categoriaObjetivo: objetivo,
-        pronosticoObjetivo: _pron('salidas', observado: const Dinero.pesos(1500), p50: const Dinero.pesos(1900)),
-        otrasCategorias: const [],
-        otrosPronosticos: const [],
+        objetivo: _e(objetivo, observado: const Dinero.pesos(1500), p50: const Dinero.pesos(1900)),
+        otras: const [],
       );
       expect(r, isNull);
     });
@@ -50,21 +30,18 @@ void main() {
     test('se dispara cuando ya se gastó más del presupuesto', () {
       final objetivo = _cat('salidas', 'Salidas/Diversión', presupuesto: const Dinero.pesos(2000));
       final r = calcularRebalanceo(
-        categoriaObjetivo: objetivo,
-        pronosticoObjetivo: _pron('salidas', observado: const Dinero.pesos(2300), p50: const Dinero.pesos(2600)),
-        otrasCategorias: const [],
-        otrosPronosticos: const [],
+        objetivo: _e(objetivo, observado: const Dinero.pesos(2300), p50: const Dinero.pesos(2600)),
+        otras: const [],
       );
       expect(r, isNotNull);
       expect(r!.categoriaObjetivoId, 'salidas');
-      expect(r.faltante, const Dinero.pesos(600)); // 2600 - 2000
+      expect(r.faltante, const Dinero.pesos(300), reason: 'lo que ya se pasó: 2300 − 2000, no el proyectado');
     });
   });
 
   group('calcularRebalanceo — holguras y top 3 (§2.5)', () {
     final objetivo = _cat('salidas', 'Salidas/Diversión', presupuesto: const Dinero.pesos(2000));
-    final pronosticoObjetivo =
-        _pron('salidas', observado: const Dinero.pesos(2300), p50: const Dinero.pesos(2600));
+    final estadoObjetivo = _e(objetivo, observado: const Dinero.pesos(2300), p50: const Dinero.pesos(2600));
 
     test('ordena las candidatas de mayor a menor holgura y se queda con las 3 mayores', () {
       final categorias = [
@@ -73,19 +50,15 @@ void main() {
         _cat('terapia', 'Terapia', presupuesto: const Dinero.pesos(500)),
         _cat('limpieza', 'Limpieza', presupuesto: const Dinero.pesos(800)),
       ];
-      final pronosticos = [
-        _pron('super', observado: const Dinero.pesos(4000), p50: const Dinero.pesos(5000)), // holgura 1000
-        _pron('auto', observado: const Dinero.pesos(3000), p50: const Dinero.pesos(3200)), // holgura 1600
-        _pron('terapia', observado: const Dinero.pesos(400), p50: const Dinero.pesos(450)), // holgura 50
-        _pron('limpieza', observado: const Dinero.pesos(800), p50: const Dinero.pesos(800)), // holgura 0, excluida
+      final otras = [
+        _e(categorias[0], observado: const Dinero.pesos(4000), p50: const Dinero.pesos(5000)), // holgura 1000
+        _e(categorias[1], observado: const Dinero.pesos(3000), p50: const Dinero.pesos(3200)), // holgura 1600
+        _e(categorias[2], observado: const Dinero.pesos(400), p50: const Dinero.pesos(450)), // holgura 50
+        _e(categorias[3], observado: const Dinero.pesos(800), p50: const Dinero.pesos(800)), // holgura 0, excluida
+        estadoObjetivo, // la propia categoría nunca se presta a sí misma
       ];
 
-      final r = calcularRebalanceo(
-        categoriaObjetivo: objetivo,
-        pronosticoObjetivo: pronosticoObjetivo,
-        otrasCategorias: categorias,
-        otrosPronosticos: pronosticos,
-      );
+      final r = calcularRebalanceo(objetivo: estadoObjetivo, otras: otras);
 
       expect(r, isNotNull);
       expect(r!.candidatas, hasLength(3));
@@ -102,28 +75,12 @@ void main() {
         5,
         (i) => _cat('c$i', 'Cat $i', presupuesto: const Dinero.pesos(1000)),
       );
-      final pronosticos = [
+      final otras = [
         for (var i = 0; i < 5; i++)
-          _pron('c$i', observado: const Dinero.pesos(100), p50: Dinero.pesos(100 * (i + 1))),
+          _e(categorias[i], observado: const Dinero.pesos(100), p50: Dinero.pesos(100 * (i + 1))),
       ];
-      final r = calcularRebalanceo(
-        categoriaObjetivo: objetivo,
-        pronosticoObjetivo: pronosticoObjetivo,
-        otrasCategorias: categorias,
-        otrosPronosticos: pronosticos,
-      );
+      final r = calcularRebalanceo(objetivo: estadoObjetivo, otras: otras);
       expect(r!.candidatas, hasLength(3));
-    });
-
-    test('una categoría sin pronóstico calculado no entra como candidata', () {
-      final categorias = [_cat('sin_pronostico', 'Otros', presupuesto: const Dinero.pesos(1000))];
-      final r = calcularRebalanceo(
-        categoriaObjetivo: objetivo,
-        pronosticoObjetivo: pronosticoObjetivo,
-        otrasCategorias: categorias,
-        otrosPronosticos: const [], // sin match para 'sin_pronostico'
-      );
-      expect(r!.candidatas, isEmpty);
     });
   });
 

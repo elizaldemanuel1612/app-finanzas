@@ -54,6 +54,8 @@ Cuando una categoría ya se pasó y no hay forma de recuperar dentro de ella, la
 Holgura_c = Presupuesto_c − Pronóstico_c    (solo si > 0)
 ```
 
+**Una sola recomendación (2026-11-15, rediseño Etapa 0).** `Pronóstico_c` es siempre el P50 del MPC (`docs/modelo-pronostico-ciclo.md`), el mismo en Inicio, Análisis y el detalle de categoría (`domain/pronostico/pronostico_del_ciclo.dart`, `estadosDeVariables`). La salida de cada categoría que se pasó la da un solo motor, `calcularCoberturas` (`domain/presupuesto/cobertura_excesos.dart`): las excedidas de mayor a menor exceso toman la categoría con más holgura que quede, sin ofrecer dos veces el mismo dinero; el monto sugerido es lo que **ya** se pasó (`Gastado_c − Presupuesto_c`, igual a "Te pasaste por $X"), no el faltante proyectado. Antes Análisis usaba el ritmo lineal y el detalle el MPC, y sugerían orígenes y montos distintos.
+
 Se ofrecen las 3 mayores. La holgura es la **sugerencia** de cuánto mover, no un límite (2026-11-06): el usuario puede mover más mientras la categoría tenga presupuesto sin gastar (`Disponible_c = Presupuesto_c − Gastado_c`), y la app solo le avisa que podría quedarse corta. El usuario decide, candidata por candidata, cuánto mover de cada una; nunca se rebalancea solo ni con un reparto automático. El movimiento es **temporal**: es un ajuste vigente solo para el ciclo en curso, nunca cambia el presupuesto base de ninguna categoría (`CategoriaVariable.presupuestoMensualCentavos` permanece intacto para todos los ciclos futuros). Se guarda como un delta acumulable — un mismo ciclo puede tener varios rebalanceos, y cada uno se suma a los anteriores en vez de reemplazarlos.
 
 ### 2.5.1 Reajuste al cambiar el ingreso base

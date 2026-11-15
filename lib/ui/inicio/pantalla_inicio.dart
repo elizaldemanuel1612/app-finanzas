@@ -21,6 +21,7 @@ import '../../domain/objetivos/progreso_objetivos.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/apartado_estimado.dart';
+import '../../domain/pronostico/pronostico_del_ciclo.dart';
 import '../../domain/presupuesto/disponible_por_dia.dart';
 import '../../domain/presupuesto/meta_base.dart';
 import '../../domain/rollups/calcular_rollups.dart';
@@ -275,9 +276,10 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
   Future<_DatosInicio> _cargarDatos() async {
     final categorias = await widget.categoriaRepositorio.listarActivas();
-    final movimientos = await widget.movimientoRepositorio.listarPorCiclo(
-      _ciclo.id,
-    );
+    // Todos: el pronóstico (MPC) necesita el historial; los totales del
+    // ciclo filtran por `cicloId` en los rollups.
+    final todos = await widget.movimientoRepositorio.listarTodos();
+    final movimientos = [for (final m in todos) if (m.cicloId == _ciclo.id) m];
     final extras = await widget.ingresoExtraRepositorio.listarPorCiclo(
       _ciclo.id,
     );
@@ -329,16 +331,21 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
     final metaBase = calcularMetaBase(perfil: _perfil, categorias: categorias);
     final metaDelCiclo = calcularMetaDelCiclo(metaBase: metaBase, ingresos: ingresos);
-    // Ciclo en curso: estimado, no `ingreso − gastado` (spec §5.6.1).
-    final hoyDia = DateTime.now();
+    // Ciclo en curso: estimado, no `ingreso − gastado` (spec §5.6.1), con
+    // el mismo pronóstico (MPC) que Análisis y el detalle de categoría
+    // (docs/rediseno/plan-rediseno.md, Etapa 0).
+    final estados = estadosDeVariables(
+      categorias: categoriasEfectivas,
+      movimientos: todos,
+      ciclo: _ciclo,
+      hoy: DateTime.now(),
+    );
     final apartadoEstimado = calcularApartadoEstimado(
       ingreso: ingresos.total,
       presupuestoFijas: presupuestoFijas,
       gastadoFijas: gastadoFijas,
       presupuestoVariables: presupuestoVariables,
-      gastadoVariables: gastadoVariables,
-      diaDelCiclo: _ciclo.diasDelCiclo - _ciclo.diasParaTerminar(hoyDia),
-      diasDelCiclo: _ciclo.diasDelCiclo,
+      proyeccionVariables: proyeccionTotal(estados),
     );
 
     return _DatosInicio(

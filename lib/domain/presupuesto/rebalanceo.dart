@@ -1,8 +1,8 @@
 import '../../core/money.dart';
 import '../../core/result.dart';
 import '../modelos/categoria.dart';
-import '../pronostico/pronostico_categoria.dart';
 import 'ajuste_presupuesto_ciclo.dart';
+import 'cobertura_excesos.dart';
 
 /// Una categoría con holgura proyectada (addendum-v3-ajuste-y-ux.md §2.5):
 /// `Holgura_c = Presupuesto_c − Pronóstico_c`, solo cuando es positiva.
@@ -30,12 +30,16 @@ final class CandidataRebalanceo {
 final class Rebalanceo {
   final String categoriaObjetivoId;
 
-  /// Cuánto le falta a la categoría objetivo para cubrir lo que el MPC
-  /// proyecta que va a costar el resto del ciclo.
+  /// Lo que ya se pasó la categoría objetivo (gastado − presupuesto): la
+  /// misma cifra que "Te pasaste por $X" y que el exceso de
+  /// `calcularCoberturas` (`docs/rediseno/plan-rediseno.md`, Etapa 0: una
+  /// sola recomendación por problema). Antes era el faltante proyectado
+  /// por el MPC, y el detalle y Análisis sugerían montos distintos.
   final Dinero faltante;
 
   /// Las 3 categorías con más holgura, de mayor a menor (§2.5: "se
-  /// ofrecen las 3 mayores").
+  /// ofrecen las 3 mayores"). La holgura es el mismo sobrante (presupuesto
+  /// − P50 del MPC) que usa `calcularCoberturas`, con el mismo orden.
   final List<CandidataRebalanceo> candidatas;
 
   const Rebalanceo({
@@ -47,7 +51,7 @@ final class Rebalanceo {
 
 /// `null` si no aplica: la categoría objetivo todavía no se pasó de su
 /// presupuesto ("no hay forma de recuperar dentro de ella" implica que
-/// ya se pasó — spec §2.5), o el pronóstico no proyecta faltante alguno.
+/// ya se pasó — spec §2.5).
 ///
 /// No excluye categorías `esNecesaria` de la lista de candidatas: el
 /// guardarraíl de "piso digno" (§2.6) protege el *plan de ajuste* (no
@@ -56,40 +60,25 @@ final class Rebalanceo {
 /// preste esa holgura — el número ya viene de una proyección real, no
 /// de un recorte forzado.
 Rebalanceo? calcularRebalanceo({
-  required CategoriaVariable categoriaObjetivo,
-  required PronosticoCategoria pronosticoObjetivo,
-  required List<CategoriaVariable> otrasCategorias,
-  required List<PronosticoCategoria> otrosPronosticos,
+  required EstadoVariable objetivo,
+  required List<EstadoVariable> otras,
 }) {
-  final presupuestoObjetivo = categoriaObjetivo.presupuestoMensualCentavos.centavos;
-  if (pronosticoObjetivo.observado.centavos <= presupuestoObjetivo) return null;
-
-  final faltanteCentavos = pronosticoObjetivo.pronosticoP50.centavos - presupuestoObjetivo;
-  if (faltanteCentavos <= 0) return null;
-
-  final pronosticoPorId = {for (final p in otrosPronosticos) p.categoriaId: p};
-  final candidatas = <CandidataRebalanceo>[];
-  for (final c in otrasCategorias) {
-    if (c.id == categoriaObjetivo.id) continue;
-    final pronostico = pronosticoPorId[c.id];
-    if (pronostico == null) continue;
-    final holguraCentavos = c.presupuestoMensualCentavos.centavos - pronostico.pronosticoP50.centavos;
-    if (holguraCentavos > 0) {
-      final disponibleCentavos = c.presupuestoMensualCentavos.centavos - pronostico.observado.centavos;
-      candidatas.add(CandidataRebalanceo(
-        categoria: c,
-        holgura: Dinero(holguraCentavos),
-        // El pronóstico nunca queda por debajo de lo gastado, así que
-        // disponible ≥ holgura > 0.
-        disponible: Dinero(disponibleCentavos),
-      ));
-    }
-  }
-  candidatas.sort((a, b) => b.holgura.centavos.compareTo(a.holgura.centavos));
+  if (!objetivo.exceso.esPositivo) return null;
+  final candidatas = [
+    for (final e in otras)
+      if (e.categoria.id != objetivo.categoria.id && e.sobrante.esPositivo)
+        CandidataRebalanceo(
+          categoria: e.categoria,
+          holgura: e.sobrante,
+          // El cierre estimado nunca queda por debajo de lo gastado, así que
+          // disponible ≥ holgura > 0.
+          disponible: e.disponible,
+        ),
+  ]..sort((a, b) => b.holgura.compareTo(a.holgura));
 
   return Rebalanceo(
-    categoriaObjetivoId: categoriaObjetivo.id,
-    faltante: Dinero(faltanteCentavos),
+    categoriaObjetivoId: objetivo.categoria.id,
+    faltante: objetivo.exceso,
     candidatas: candidatas.take(3).toList(),
   );
 }

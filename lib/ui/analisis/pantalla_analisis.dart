@@ -10,6 +10,7 @@ import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
+import '../../domain/analisis/ciclo_comparable.dart';
 import '../../domain/analisis/corte_pareto.dart';
 import '../../domain/analisis/presupuestos_del_cierre.dart';
 import '../../domain/analisis/recomendaciones.dart';
@@ -187,9 +188,12 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
     final anterior = calculadora.calcularPara(
       ciclo.fechaInicio.subtract(const Duration(days: 1)),
     );
+    // "Contra el ciclo pasado" solo con un ciclo cerrado y completo
+    // (docs/rediseno/plan-rediseno.md, Etapa 0).
+    final comparable = cicloComparable(anterior: anterior, guardados: guardados, movimientos: movimientos);
     final reporte = calcularReporteAnalisis(
       ciclo: ciclo,
-      cicloAnterior: anterior,
+      cicloAnterior: comparable ? anterior : null,
       movimientos: movimientos,
       categorias: efectivas,
       hoy: DateTime.now(),

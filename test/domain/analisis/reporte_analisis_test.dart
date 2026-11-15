@@ -4,6 +4,8 @@ import 'package:app_finanzas/domain/analisis/reporte_analisis.dart';
 import 'package:app_finanzas/domain/modelos/categoria.dart';
 import 'package:app_finanzas/domain/modelos/estado_movimiento.dart';
 import 'package:app_finanzas/domain/modelos/movimiento.dart';
+import 'package:app_finanzas/domain/pronostico/historico_desde_movimientos.dart';
+import 'package:app_finanzas/domain/pronostico/pronostico_del_ciclo.dart';
 import 'package:test/test.dart';
 
 Ciclo _ciclo(String id, DateTime inicio, DateTime fin) =>
@@ -67,14 +69,15 @@ ReporteAnalisis _reporte(List<Movimiento> ms, {DateTime? hoy, Ciclo? anterior}) 
     );
 
 void main() {
-  test('totales, proyección lineal de variables y presupuestos activos', () {
-    final r = _reporte([
+  test('totales, pronóstico MPC de variables y presupuestos activos', () {
+    final ms = [
       _mov(DateTime(2026, 10, 1), 5000, 'vivienda'),
       _mov(DateTime(2026, 10, 2), 1000, 'super'),
       _mov(DateTime(2026, 10, 3), 1000, 'salidas', medio: MedioPago.efectivo),
       _mov(DateTime(2026, 10, 4), 999, 'super', estado: EstadoMovimiento.anulado),
       _mov(DateTime(2026, 10, 4), 999, 'no-existe'),
-    ]);
+    ];
+    final r = _reporte(ms);
     expect(r.diaDelCiclo, 20);
     expect(r.diasDelCiclo, 31);
     expect(r.diasRestantes, 11);
@@ -84,7 +87,20 @@ void main() {
     expect(r.presupuestoVariables, const Dinero.pesos(6000), reason: 'sin la archivada');
     expect(r.presupuestoFijas, const Dinero.pesos(5000));
     expect(r.promedioDiarioVariables, const Dinero.pesos(100));
-    expect(r.proyeccionVariables, const Dinero.pesos(3100));
+    // El cierre estimado es el MPC de cada variable (una sola verdad,
+    // docs/rediseno/plan-rediseno.md Etapa 0), no el ritmo lineal (3,100).
+    expect(r.variables.map((e) => e.categoria.id), ['super', 'salidas']);
+    for (final e in r.variables) {
+      final p50 = pronosticoDeCategoria(
+        categoria: e.categoria,
+        todos: ms,
+        ciclo: _oct,
+        hoy: DateTime(2026, 10, 20, 18),
+      ).pronosticoP50;
+      expect(e.proyeccion, p50 < e.gastado ? e.gastado : p50);
+    }
+    expect(r.proyeccionVariables, proyeccionTotal(r.variables));
+    expect(r.variables.first.gastado, const Dinero.pesos(1000));
     expect(r.conTarjeta, const Dinero.pesos(6000));
     expect(r.enEfectivo, const Dinero.pesos(1000));
     expect(r.sinMovimientos, isFalse);

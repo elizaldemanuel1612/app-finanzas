@@ -16,9 +16,11 @@ import '../../domain/modelos/movimiento.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/plan_de_ajuste.dart';
+import '../../domain/presupuesto/cobertura_excesos.dart';
 import '../../domain/presupuesto/rebalanceo.dart';
 import '../../domain/pronostico/historico_desde_movimientos.dart';
 import '../../domain/pronostico/pronostico_categoria.dart';
+import '../../domain/pronostico/pronostico_del_ciclo.dart';
 import '../../domain/rollups/calcular_rollups.dart';
 import '../../domain/rollups/estado_ritmo.dart';
 import '../captura/pantalla_captura.dart';
@@ -138,6 +140,7 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
     PronosticoCategoria? pronostico;
     PlanDeAjuste? plan;
     Rebalanceo? rebalanceo;
+    Cobertura? cobertura;
     final hoy = DateTime.now();
     if (categoriaEfectiva is CategoriaVariable) {
       pronostico = pronosticoDeCategoria(
@@ -160,39 +163,32 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
         hoy: hoy,
       );
 
-      // El rebalanceo solo necesita mirar las demás categorías cuando el
-      // plan de ajuste ya no alcanza (ya se pasó del presupuesto) — no
-      // vale la pena calcular el pronóstico de todas las categorías en
-      // cada visita si de entrada no aplica.
+      // Solo si ya se pasó: entonces mira todas las variables con el mismo
+      // pronóstico (MPC) y el mismo motor de cobertura que Inicio y Análisis
+      // (docs/rediseno/plan-rediseno.md, Etapa 0: una sola recomendación).
       if (pronostico.observado.centavos >
           categoriaEfectiva.presupuestoMensualCentavos.centavos) {
-        final otrasCategoriasBase =
-            (await widget.categoriaRepositorio.listarActivas())
-                .where((c) => c.id != categoriaEfectiva.id)
-                .toList();
         // Pasan también por el ajuste del ciclo: una categoría que ya
         // prestó presupuesto en un rebalanceo anterior de este mismo
         // ciclo debe aparecer con menos holgura en el siguiente — los
         // ajustes se acumulan, nunca se reemplazan (§2.5).
-        final otrasCategorias = presupuestosEfectivosParaCiclo(
-          base: otrasCategoriasBase,
-          ajustesDelCiclo: ajustes,
-        ).whereType<CategoriaVariable>().toList();
-        final otrosPronosticos = [
-          for (final c in otrasCategorias)
-            pronosticoDeCategoria(
-              categoria: c,
-              todos: todos,
-              ciclo: widget.ciclo,
-              hoy: hoy,
-            ),
-        ];
-        rebalanceo = calcularRebalanceo(
-          categoriaObjetivo: categoriaEfectiva,
-          pronosticoObjetivo: pronostico,
-          otrasCategorias: otrasCategorias,
-          otrosPronosticos: otrosPronosticos,
+        final otrasBase = (await widget.categoriaRepositorio.listarActivas())
+            .where((c) => c.id != categoriaEfectiva.id)
+            .toList();
+        final estados = estadosDeVariables(
+          categorias: [
+            categoriaEfectiva,
+            ...presupuestosEfectivosParaCiclo(base: otrasBase, ajustesDelCiclo: ajustes),
+          ],
+          movimientos: todos,
+          ciclo: widget.ciclo,
+          hoy: hoy,
         );
+        final propio = estados.firstWhere((e) => e.categoria.id == categoriaEfectiva.id);
+        rebalanceo = calcularRebalanceo(objetivo: propio, otras: estados);
+        cobertura = calcularCoberturas(estados)
+            .where((c) => c.categoria.id == categoriaEfectiva.id)
+            .firstOrNull;
       }
     }
 
@@ -201,6 +197,7 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
       pronostico: pronostico,
       plan: plan,
       rebalanceo: rebalanceo,
+      cobertura: cobertura,
       categoriaEfectiva: categoriaEfectiva,
       deltaCategoria: deltaCategoria,
     );
@@ -371,11 +368,13 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
           const SizedBox(height: 12),
           _TarjetaPlanDeAjuste(plan: plan),
         ],
-        if (rebalanceo != null && rebalanceo.candidatas.isNotEmpty) ...[
+        if (datos.cobertura case final cobertura?) ...[
           const SizedBox(height: 12),
-          _TarjetaRebalanceo(
-            rebalanceo: rebalanceo,
-            onAplicar: () => _abrirMoverPresupuesto(rebalanceo),
+          _TarjetaCobertura(
+            cobertura: cobertura,
+            onAplicar: rebalanceo != null && rebalanceo.candidatas.isNotEmpty
+                ? () => _abrirMoverPresupuesto(rebalanceo)
+                : null,
           ),
         ],
         const SizedBox(height: 20),
@@ -429,6 +428,9 @@ class _DatosDetalle {
   final PronosticoCategoria? pronostico;
   final PlanDeAjuste? plan;
   final Rebalanceo? rebalanceo;
+
+  /// La salida de "te pasaste": la misma que Inicio y Análisis.
+  final Cobertura? cobertura;
   final Categoria categoriaEfectiva;
   final Dinero? deltaCategoria;
 
@@ -437,6 +439,7 @@ class _DatosDetalle {
     required this.pronostico,
     required this.plan,
     required this.rebalanceo,
+    required this.cobertura,
     required this.categoriaEfectiva,
     required this.deltaCategoria,
   });
@@ -544,18 +547,20 @@ class _TarjetaPlanDeAjuste extends StatelessWidget {
   }
 }
 
-/// addendum-v3-ajuste-y-ux.md §2.5: cuando la categoría ya se pasó del
-/// presupuesto y el Plan de Ajuste ya no alcanza, ofrece mover
-/// presupuesto desde las 3 categorías con más holgura proyectada. El
-/// usuario decide — nunca se rebalancea solo.
-class _TarjetaRebalanceo extends StatelessWidget {
-  final Rebalanceo rebalanceo;
-  final VoidCallback onAplicar;
+/// addendum-v3-ajuste-y-ux.md §2.5: la categoría ya se pasó; de dónde
+/// cubrirlo, con el mismo motor que Inicio y Análisis (`calcularCoberturas`).
+/// El usuario decide — nunca se rebalancea solo.
+class _TarjetaCobertura extends StatelessWidget {
+  final Cobertura cobertura;
 
-  const _TarjetaRebalanceo({required this.rebalanceo, required this.onAplicar});
+  /// `null` si ninguna categoría tiene de dónde prestar.
+  final VoidCallback? onAplicar;
+
+  const _TarjetaCobertura({required this.cobertura, required this.onAplicar});
 
   @override
   Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
     return Card(
       color: ColoresApp.coralSuave,
       child: Padding(
@@ -563,51 +568,18 @@ class _TarjetaRebalanceo extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Rebalanceo sugerido',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: ColoresApp.tinta,
-              ),
-            ),
+            Text('Te pasaste por ${cobertura.exceso.formateado()}', style: textos.titleMedium),
             const SizedBox(height: 6),
-            Text(
-              'Ya se pasó del presupuesto y falta ${rebalanceo.faltante.formateado()} este ciclo.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Cuánto te sugerimos mover de cada una:',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelSmall
-                  ?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            for (final c in rebalanceo.candidatas)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${c.categoria.emoji} ${c.categoria.nombre}',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    Text(
-                      c.holgura.formateado(),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
+            Text(cobertura.frase, style: textos.bodySmall),
+            if (onAplicar != null) ...[
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: onAplicar,
+                child: Text(
+                  cobertura.origen == null ? 'Mover presupuesto' : 'Cubrir con ${cobertura.origen!.nombre}',
                 ),
               ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: onAplicar,
-              child: const Text('Mover presupuesto'),
-            ),
+            ],
           ],
         ),
       ),
