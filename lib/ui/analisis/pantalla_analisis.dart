@@ -74,7 +74,11 @@ class PantallaAnalisis extends StatefulWidget {
   final String? nombre;
   final VoidCallback? alAbrirAjustes;
 
+  /// Abre los gastos de una categoría en un ciclo (Gastos ya filtrado).
+  final void Function(String cicloId, String categoriaId)? alVerMovimientos;
+
   const PantallaAnalisis({
+    this.alVerMovimientos,
     super.key,
     required this.perfil,
     required this.ciclo,
@@ -322,6 +326,7 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
         ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
         cuentaRepositorio: widget.cuentaRepositorio,
         movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio,
+        alVerMovimientos: widget.alVerMovimientos,
       );
     } else if (datos == null) {
       cuerpo = const CargandoPantalla(formas: [

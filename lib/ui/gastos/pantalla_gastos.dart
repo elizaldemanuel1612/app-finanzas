@@ -68,6 +68,9 @@ class PantallaGastos extends StatefulWidget {
   final VoidCallback? alAbrirAjustes;
   final VoidCallback? alRegistrar;
 
+  /// Abre ya filtrada por esta categoría (desde un ciclo de Historial).
+  final String? categoriaInicial;
+
   const PantallaGastos({
     super.key,
     required this.cicloId,
@@ -81,6 +84,7 @@ class PantallaGastos extends StatefulWidget {
     this.nombre,
     this.alAbrirAjustes,
     this.alRegistrar,
+    this.categoriaInicial,
   });
 
   @override
@@ -91,7 +95,7 @@ class _PantallaGastosState extends State<PantallaGastos> {
   _DatosGastos? _datos;
   final _busquedaControlador = TextEditingController();
   String _busqueda = '';
-  Set<String> _filtroCategorias = {};
+  late Set<String> _filtroCategorias = {?widget.categoriaInicial};
   Set<String> _filtroCuentas = {};
 
   /// El ciclo que se está viendo; arranca en el que recibe la pantalla.

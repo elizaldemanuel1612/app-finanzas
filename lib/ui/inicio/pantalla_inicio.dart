@@ -468,6 +468,26 @@ class _PantallaInicioState extends State<PantallaInicio> {
   }
 
   /// Desde Análisis: abre una categoría por id.
+  /// Desde un ciclo de Historial: sus gastos de esa categoría, en Gastos ya
+  /// filtrado (con flecha para volver al ciclo).
+  Future<void> _irAGastosDe(String cicloId, String categoriaId) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaGastos(
+          cicloId: cicloId,
+          categoriaInicial: categoriaId,
+          perfil: _perfil,
+          categoriaRepositorio: widget.categoriaRepositorio,
+          movimientoRepositorio: widget.movimientoRepositorio,
+          reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
+          cicloRepositorio: widget.cicloRepositorio,
+          documentos: widget.almacenLocal.directorio,
+          cuentaRepositorio: widget.almacenLocal.cuentas,
+        ),
+      ),
+    );
+  }
+
   /// Del aviso de pago a la tarjeta, donde está "Pagar esta tarjeta".
   Future<void> _irACuenta(Cuenta cuenta) async {
     await Navigator.of(context).push(
@@ -520,6 +540,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
           movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
           cicloRepositorio: widget.cicloRepositorio,
           alVerCategoria: _irADetallePorId,
+          alVerMovimientos: _irAGastosDe,
           alVerGastos: () => _elegirPestana(Pestana.gastos),
           alVerMeta: _irAMeta,
           nombre: _nombre,
