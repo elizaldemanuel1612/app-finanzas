@@ -1,7 +1,6 @@
 import 'package:app_finanzas/core/money.dart';
 import 'package:app_finanzas/domain/ciclo_de_vida/alcance.dart';
 import 'package:app_finanzas/domain/ciclo_de_vida/evolucion_ciclos.dart';
-import 'package:app_finanzas/domain/rollups/estado_ritmo.dart';
 import 'package:app_finanzas/ui/comun/barra_ritmo.dart';
 import 'package:app_finanzas/ui/comun/grafica_evolucion.dart';
 import 'package:flutter/material.dart';
@@ -33,7 +32,7 @@ PuntoEvolucion _puntoCerrado({
     );
 
 void main() {
-  testWidgets('BarraRitmo expone la categoría, el estado y los porcentajes', (tester) async {
+  testWidgets('BarraRitmo dice qué mide, cuánto llevas y su veredicto', (tester) async {
     final handle = tester.ensureSemantics();
 
     await tester.pumpWidget(
@@ -42,8 +41,9 @@ void main() {
           body: BarraRitmo(
             porcentajeUsado: 0.8,
             avanceCiclo: 0.5,
-            estado: EstadoRitmo.excedido,
             descripcion: 'Súper/Comida',
+            gastado: Dinero.pesos(800),
+            presupuesto: Dinero.pesos(1000),
           ),
         ),
       ),
@@ -51,8 +51,7 @@ void main() {
 
     expect(
       find.bySemanticsLabel(
-        'Ritmo de Súper/Comida: Excedido. Llevas 80% del presupuesto; '
-        'a estas alturas del ciclo deberías ir en 50%.',
+        'Súper/Comida: gastaste ochocientos pesos de mil pesos. Vas un poco rápido.',
       ),
       findsOneWidget,
     );

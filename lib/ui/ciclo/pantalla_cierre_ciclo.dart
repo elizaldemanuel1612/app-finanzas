@@ -19,7 +19,6 @@ import '../../domain/modelos/ciclo_guardado.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/modelos/snapshot_ciclo.dart';
 import '../../domain/presupuesto/meta_base.dart';
-import '../../domain/rollups/estado_ritmo.dart';
 import '../comun/barra_ritmo.dart';
 import '../comun/formato_fecha.dart';
 import '../comun/tema.dart';
@@ -483,8 +482,6 @@ class _TarjetaRenglon extends StatelessWidget {
     final porcentajeUsado = renglon.presupuestoCentavos.esCero
         ? null
         : renglon.realCentavos.centavos / renglon.presupuestoCentavos.centavos;
-    final estado = calcularEstadoRitmo(porcentajeUsado: porcentajeUsado);
-
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -511,7 +508,6 @@ class _TarjetaRenglon extends StatelessWidget {
               BarraRitmo(
                 porcentajeUsado: porcentajeUsado,
                 avanceCiclo: 1.0,
-                estado: estado,
                 descripcion: renglon.nombre,
               ),
             ],

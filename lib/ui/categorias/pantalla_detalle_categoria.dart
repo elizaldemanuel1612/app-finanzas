@@ -275,10 +275,6 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
     final esFija = widget.categoria is CategoriaFija;
     final pagado = rollup.conteoMovimientos > 0;
     final estado = calcularEstadoRitmo(porcentajeUsado: rollup.porcentajeUsado);
-    final vaRapido = vaMuyRapido(
-      porcentajeUsado: rollup.porcentajeUsado,
-      avanceCiclo: widget.avanceCiclo,
-    );
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -345,9 +341,7 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
                     BarraRitmo(
                       porcentajeUsado: rollup.porcentajeUsado ?? 0,
                       avanceCiclo: widget.avanceCiclo,
-                      estado: estado,
                       descripcion: widget.categoria.nombre,
-                      vaMuyRapido: vaRapido,
                     ),
                   ],
                 ],

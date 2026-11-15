@@ -58,7 +58,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: PantallaTemaGuia(tema: temaRitmo)));
     await tester.pumpAndSettle();
 
-    expect(find.bySemanticsLabel(RegExp('Ritmo de este ejemplo')), findsWidgets);
+    expect(find.bySemanticsLabel(RegExp('este ejemplo:')), findsWidgets);
     handle.dispose();
   });
 }

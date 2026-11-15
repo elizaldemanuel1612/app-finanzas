@@ -757,10 +757,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
             final estado = calcularEstadoRitmo(
               porcentajeUsado: rollup?.porcentajeUsado,
             );
-            final vaRapido = vaMuyRapido(
-              porcentajeUsado: rollup?.porcentajeUsado,
-              avanceCiclo: _avanceCiclo,
-            );
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: InkWell(
@@ -823,9 +819,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                       BarraRitmo(
                         porcentajeUsado: rollup?.porcentajeUsado ?? 0,
                         avanceCiclo: _avanceCiclo,
-                        estado: estado,
                         descripcion: c.nombre,
-                        vaMuyRapido: vaRapido,
                       ),
                       const SizedBox(height: 8),
                       Row(

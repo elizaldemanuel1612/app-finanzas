@@ -156,21 +156,17 @@ class _EjemploVivo extends StatelessWidget {
       EjemploGuia.barraVasBien => const BarraRitmo(
         porcentajeUsado: 0.35,
         avanceCiclo: 0.5,
-        estado: EstadoRitmo.vaBien,
         descripcion: 'este ejemplo',
       ),
       EjemploGuia.barraExcedido => const BarraRitmo(
         porcentajeUsado: 1.0,
         avanceCiclo: 0.5,
-        estado: EstadoRitmo.excedido,
         descripcion: 'este ejemplo',
       ),
       EjemploGuia.barraProyeccion => const BarraRitmo(
         porcentajeUsado: 0.62,
         avanceCiclo: 0.5,
-        estado: EstadoRitmo.justo,
         descripcion: 'este ejemplo',
-        vaMuyRapido: true,
       ),
       EjemploGuia.tarjetaAtencion => const _TarjetaAtencionEjemplo(),
       EjemploGuia.chipsDeFecha => const _ChipsDeFechaEjemplo(),
@@ -233,7 +229,6 @@ class _TarjetaAtencionEjemplo extends StatelessWidget {
         const BarraRitmo(
           porcentajeUsado: 1.0,
           avanceCiclo: 0.5,
-          estado: estado,
           descripcion: 'Súper, en este ejemplo',
         ),
       ],

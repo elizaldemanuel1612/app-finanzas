@@ -1,105 +1,332 @@
 import 'dart:math' as math;
 
-/// Hex crudos de la paleta (dirección visual premium, 2026-10-25),
-/// separados de `tema.dart` a propósito: este archivo **no importa
-/// Flutter** (`dart:math` es Dart puro, no Flutter), así que
-/// `test/ui_contraste_test.dart` puede probarlo con `dart test` sin
-/// `flutter_test` ni árbol de widgets — el mismo truco de
-/// `arquitectura_test.dart` para domain/core, aplicado a un archivo de
-/// `ui/` (Fase 6, Bloque 4.1).
+/// Hex crudos de la paleta, separados de `tema.dart` a propósito: este
+/// archivo **no importa Flutter** (`dart:math` es Dart puro), así que
+/// `test/ui_contraste_test.dart` lo prueba con `dart test` sin árbol de
+/// widgets (Fase 6, Bloque 4.1).
 ///
-/// Los sufijos `Texto` son variantes oscurecidas de los colores brillantes
-/// (`verde`, `ambar`, `coral`), pensadas **solo para texto** — WCAG AA
-/// (4.5:1) sobre fondo blanco o `Suave`. Los colores brillantes se quedan
-/// tal cual para barras, gráficas y fondos con ícono blanco encima, donde
-/// el umbral es 3:1, no 4.5:1 (paquete-construccion-final.md §11).
+/// Rediseño (2026-11-15): los valores son los tokens semánticos de
+/// `docs/rediseno/design-system/tokens.json`, uno a uno y con el mismo nombre
+/// en camelCase (`texto-2` → `texto2`). Cada estado tiene versión de
+/// gráfica (3:1: `exito`, `atencion`, `peligro`) y de texto (4.5:1:
+/// `exitoTexto`…). `atencion` quedó en #D18306 en claro para pasar 3:1
+/// sobre blanco.
 abstract final class PaletaHex {
-  // Dirección visual premium (2026-10-25): azul noche como color principal,
-  // oro como acento solo en momentos clave, fondo marfil cálido.
-  static const fondo = 0xFFFCFAF7; // Marfil
-  static const tarjeta = 0xFFFFFFFF;
-  static const tinta = 0xFF0B1F3B; // Azul Noche: texto y CTA principal
+  /// Fondo de toda pantalla (marfil / noche).
+  static const fondo = 0xFFFCFAF7;
 
-  /// Texto secundario: 5.53:1 sobre `fondo` (AA).
-  static const medio = 0xFF5F6484;
-  static const linea = 0xFFE6E8EE; // Gris Niebla
+  /// Tarjetas, hojas inferiores, grupos de renglones.
+  static const superficie = 0xFFFFFFFF;
 
-  static const azul = 0xFF0B1F3B; // Azul Noche: botones, selección
-  static const azulMarino = 0xFF143A66; // superficies oscuras secundarias
-  static const azulSuave = 0xFFE9EEF6; // fondo de chips/selección
+  /// Campos, pista de controles segmentados, skeleton.
+  static const superficieHundida = 0xFFF4F1EC;
 
-  /// Oro Centenario: solo gráfico (2.1:1 sobre blanco). Texto azul noche
-  /// encima pasa (7.84:1); para texto dorado usar `oroTexto`.
+  /// Bordes finos (1 px) de tarjetas y separadores de renglón. Decorativo: no lleva contraste.
+  static const borde = 0xFFE6E8EE;
+
+  /// Borde de campos, chips sin seleccionar y controles: 3:1 contra superficie.
+  static const bordeControl = 0xFF8A93A6;
+
+  /// Texto principal y cifras.
+  static const texto = 0xFF0B1F3B;
+
+  /// Texto secundario: etiquetas, fechas, subtítulos. AA sobre fondo y superficie.
+  static const texto2 = 0xFF5A6478;
+
+  /// Solo controles deshabilitados (exentos de contraste).
+  static const textoDesactivado = 0xFFA3AAB8;
+
+  /// Botón primario, selección (chip, segmento, pestaña activa).
+  static const accion = 0xFF0B1F3B;
+
+  /// Texto e íconos sobre accion.
+  static const sobreAccion = 0xFFFFFFFF;
+
+  /// Botón primario presionado.
+  static const accionPresionada = 0xFF1C3A66;
+
+  /// Anillo de foco de 2 px, separado 2 px del control.
+  static const foco = 0xFF2F6FDB;
+
+  /// Acento: botón ＋, ícono de meta, emblema. Nunca texto ni gráficas.
   static const oro = 0xFFD4AF37;
-  static const oroSuave = 0xFFF8F0D8;
+
+  /// Ícono sobre oro (8:1).
+  static const sobreOro = 0xFF0B1F3B;
+
+  /// Única forma de texto dorado (insignia Premium).
   static const oroTexto = 0xFF7A5C0A;
 
-  static const verde = 0xFF16A34A;
-  static const verdeSuave = 0xFFDCFCE7;
-  static const verdeTexto = 0xFF15803D;
+  /// Tarjeta héroe: una por pantalla como máximo.
+  static const heroeFondo = 0xFF0B1F3B;
 
-  static const ambar = 0xFFF59E0B;
-  static const ambarSuave = 0xFFFEF3C7;
-  static const ambarTexto = 0xFF92400E;
+  /// Texto principal sobre heroe-fondo.
+  static const heroeTexto = 0xFFF7F4EE;
 
-  static const coral = 0xFFEF4444;
-  static const coralSuave = 0xFFFEE2E2;
-  static const coralTexto = 0xFFB91C1C;
+  /// Texto secundario sobre heroe-fondo.
+  static const heroeTexto2 = 0xFFAEB9CC;
 
-  /// Dinero que tienes y dinero que debes en las cuentas (2026-11-06): un
-  /// verde salvia y un rojo ladrillo, más apagados que `verdeTexto` y
-  /// `coralTexto`, para cifras que se ven todo el tiempo sin gritar.
+  /// Pista de barras dentro del héroe.
+  static const heroePista = 0xFF2A3F63;
+
+  /// Relleno de barras y gráficas: vas bien.
+  static const exito = 0xFF16A34A;
+
+  /// Texto de estado positivo.
+  static const exitoTexto = 0xFF15803D;
+
+  /// Fondo de chip o banner positivo.
+  static const exitoFondo = 0xFFEAF6EE;
+
+  /// Relleno de barras: vas rápido. Refinado desde #F59E0B para llegar a 3:1 sobre blanco.
+  static const atencion = 0xFFD18306;
+
+  /// Texto de atención.
+  static const atencionTexto = 0xFF92400E;
+
+  /// Fondo de banner o chip de atención.
+  static const atencionFondo = 0xFFFDF3E1;
+
+  /// Relleno de barras: te pasaste (segmento de exceso).
+  static const peligro = 0xFFEF4444;
+
+  /// Texto de peligro.
+  static const peligroTexto = 0xFFB91C1C;
+
+  /// Fondo de banner o chip de peligro.
+  static const peligroFondo = 0xFFFDECEC;
+
+  /// Texto de aviso informativo (ciclo cerrado).
+  static const infoTexto = 0xFF1F4E8C;
+
+  /// Fondo de aviso informativo.
+  static const infoFondo = 0xFFEAF1FB;
+
+  /// Estado positivo dentro del héroe.
+  static const heroeExito = 0xFF5BE08C;
+
+  /// Estado de atención dentro del héroe.
+  static const heroeAtencion = 0xFFFFC94D;
+
+  /// Estado de peligro dentro del héroe.
+  static const heroePeligro = 0xFFFF8A8A;
+
+  /// Serie 1 de gráficas (categoría principal).
+  static const graf1 = 0xFF1F4E8C;
+
+  /// Serie 2.
+  static const graf2 = 0xFF2B8C7E;
+
+  /// Serie 3.
+  static const graf3 = 0xFFB8661F;
+
+  /// Serie 4.
+  static const graf4 = 0xFF7A5DB0;
+
+  /// Serie 'Otros' y ciclo anterior.
+  static const graf5 = 0xFF8A93A6;
+
+  /// Pista de barras de ritmo, progreso y proporción.
+  static const grafPista = 0xFFECE9E3;
+
+  /// Líneas guía de ejes.
+  static const grafGuia = 0xFFE6E8EE;
+
+  /// La marca de ritmo: línea de 2 px donde deberías ir hoy.
+  static const marcaRitmo = 0xFF0B1F3B;
+
+  /// Velo detrás de hojas y diálogos.
+  static const velo = 0x660B1F3B;
+
+  // Nombres de antes del rediseño, como alias de los tokens: así las
+  // referencias `ColoresApp.x` existentes siguen funcionando mientras se
+  // migran pantalla por pantalla. Lo nuevo usa los nombres de arriba.
+  static const tarjeta = superficie;
+  static const tinta = texto;
+  static const medio = texto2;
+  static const linea = borde;
+  static const azul = accion;
+  static const azulSuave = infoFondo;
+  static const sobreAzul = sobreAccion;
+  static const pista = grafPista;
+  static const verde = exito;
+  static const verdeSuave = exitoFondo;
+  static const verdeTexto = exitoTexto;
+  static const ambar = atencion;
+  static const ambarSuave = atencionFondo;
+  static const ambarTexto = atencionTexto;
+  static const coral = peligro;
+  static const coralSuave = peligroFondo;
+  static const coralTexto = peligroTexto;
+
+  /// Fondo tenue del ícono de la meta (no está en tokens.json: es el halo
+  /// del único acento dorado).
+  static const oroSuave = 0xFFF8F0D8;
+
+  /// Lo que tienes y lo que debes en las cuentas, en tonos apagados
+  /// (2026-11-06). El rediseño pide montos neutros en `texto`; se quedan
+  /// para las pantallas que aún no migran.
   static const aFavor = 0xFF2E7D5B;
   static const enContra = 0xFFB4534B;
 
-  /// Texto e íconos encima de `azul` (botones, selección).
-  static const sobreAzul = 0xFFFFFFFF;
-
-  /// Fondo de las barras de avance (lo que falta por recorrer).
-  static const pista = 0xFFEDEFF6;
-
-  /// Azul noche de marca, igual en los dos modos: degradados del login,
-  /// la bienvenida y las tarjetas héroe, siempre con texto blanco encima.
+  /// Azul noche de marca, igual en los dos modos: login, bienvenida y
+  /// emblema, siempre con texto claro encima.
   static const noche = 0xFF0B1F3B;
+  static const azulMarino = 0xFF143A66;
 }
 
-/// Modo oscuro (2026-10-26): mismos nombres que [PaletaHex], con los
-/// pares de texto en AA (4.5:1) sobre `fondo`, `tarjeta` y los `Suave`
-/// (lo vigila `test/ui_contraste_test.dart`). `azul` pasa a azul hielo
-/// porque se usa como texto y como fondo de selección: ningún azul oscuro
-/// se lee sobre fondo oscuro, así que el texto encima (`sobreAzul`) pasa
-/// a azul noche.
+/// Modo oscuro: los mismos tokens en su valor `oscuro`.
 abstract final class PaletaHexOscura {
+  /// Fondo de toda pantalla (marfil / noche).
   static const fondo = 0xFF0A1424;
-  static const tarjeta = 0xFF13213A;
-  static const tinta = 0xFFEEF1F7;
-  static const medio = 0xFFA9B2C9;
-  static const linea = 0xFF26354F;
 
-  static const azul = 0xFF8DB4F2;
-  static const azulSuave = 0xFF1B2D4A;
+  /// Tarjetas, hojas inferiores, grupos de renglones.
+  static const superficie = 0xFF13213A;
 
+  /// Campos, pista de controles segmentados, skeleton.
+  static const superficieHundida = 0xFF0F1B30;
+
+  /// Bordes finos (1 px) de tarjetas y separadores de renglón. Decorativo: no lleva contraste.
+  static const borde = 0xFF22345A;
+
+  /// Borde de campos, chips sin seleccionar y controles: 3:1 contra superficie.
+  static const bordeControl = 0xFF6A7FA6;
+
+  /// Texto principal y cifras.
+  static const texto = 0xFFEEF1F7;
+
+  /// Texto secundario: etiquetas, fechas, subtítulos. AA sobre fondo y superficie.
+  static const texto2 = 0xFFA9B4C8;
+
+  /// Solo controles deshabilitados (exentos de contraste).
+  static const textoDesactivado = 0xFF5B6B88;
+
+  /// Botón primario, selección (chip, segmento, pestaña activa).
+  static const accion = 0xFF8DB4F2;
+
+  /// Texto e íconos sobre accion.
+  static const sobreAccion = 0xFF0A1424;
+
+  /// Botón primario presionado.
+  static const accionPresionada = 0xFFB3CDF7;
+
+  /// Anillo de foco de 2 px, separado 2 px del control.
+  static const foco = 0xFF8DB4F2;
+
+  /// Acento: botón ＋, ícono de meta, emblema. Nunca texto ni gráficas.
   static const oro = 0xFFD4AF37;
+
+  /// Ícono sobre oro (8:1).
+  static const sobreOro = 0xFF0B1F3B;
+
+  /// Única forma de texto dorado (insignia Premium).
+  static const oroTexto = 0xFFE2C467;
+
+  /// Tarjeta héroe: una por pantalla como máximo.
+  static const heroeFondo = 0xFF1A2F55;
+
+  /// Texto principal sobre heroe-fondo.
+  static const heroeTexto = 0xFFF7F4EE;
+
+  /// Texto secundario sobre heroe-fondo.
+  static const heroeTexto2 = 0xFFB9C4D8;
+
+  /// Pista de barras dentro del héroe.
+  static const heroePista = 0xFF2E4670;
+
+  /// Relleno de barras y gráficas: vas bien.
+  static const exito = 0xFF4ADE80;
+
+  /// Texto de estado positivo.
+  static const exitoTexto = 0xFF4ADE80;
+
+  /// Fondo de chip o banner positivo.
+  static const exitoFondo = 0xFF12301F;
+
+  /// Relleno de barras: vas rápido. Refinado desde #F59E0B para llegar a 3:1 sobre blanco.
+  static const atencion = 0xFFFBBF24;
+
+  /// Texto de atención.
+  static const atencionTexto = 0xFFFBBF24;
+
+  /// Fondo de banner o chip de atención.
+  static const atencionFondo = 0xFF33260C;
+
+  /// Relleno de barras: te pasaste (segmento de exceso).
+  static const peligro = 0xFFF87171;
+
+  /// Texto de peligro.
+  static const peligroTexto = 0xFFFCA5A5;
+
+  /// Fondo de banner o chip de peligro.
+  static const peligroFondo = 0xFF3A1519;
+
+  /// Texto de aviso informativo (ciclo cerrado).
+  static const infoTexto = 0xFF8DB4F2;
+
+  /// Fondo de aviso informativo.
+  static const infoFondo = 0xFF16294A;
+
+  /// Estado positivo dentro del héroe.
+  static const heroeExito = 0xFF5BE08C;
+
+  /// Estado de atención dentro del héroe.
+  static const heroeAtencion = 0xFFFFC94D;
+
+  /// Estado de peligro dentro del héroe.
+  static const heroePeligro = 0xFFFF8A8A;
+
+  /// Serie 1 de gráficas (categoría principal).
+  static const graf1 = 0xFF8DB4F2;
+
+  /// Serie 2.
+  static const graf2 = 0xFF5CC7B5;
+
+  /// Serie 3.
+  static const graf3 = 0xFFE8A15C;
+
+  /// Serie 4.
+  static const graf4 = 0xFFB39DE6;
+
+  /// Serie 'Otros' y ciclo anterior.
+  static const graf5 = 0xFF6B7A93;
+
+  /// Pista de barras de ritmo, progreso y proporción.
+  static const grafPista = 0xFF22345A;
+
+  /// Líneas guía de ejes.
+  static const grafGuia = 0xFF22345A;
+
+  /// La marca de ritmo: línea de 2 px donde deberías ir hoy.
+  static const marcaRitmo = 0xFFEEF1F7;
+
+  /// Velo detrás de hojas y diálogos.
+  static const velo = 0x99000000;
+
+  // Nombres de antes del rediseño, como alias de los tokens: así las
+  // referencias `ColoresApp.x` existentes siguen funcionando mientras se
+  // migran pantalla por pantalla. Lo nuevo usa los nombres de arriba.
+  static const tarjeta = superficie;
+  static const tinta = texto;
+  static const medio = texto2;
+  static const linea = borde;
+  static const azul = accion;
+  static const azulSuave = infoFondo;
+  static const sobreAzul = sobreAccion;
+  static const pista = grafPista;
+  static const verde = exito;
+  static const verdeSuave = exitoFondo;
+  static const verdeTexto = exitoTexto;
+  static const ambar = atencion;
+  static const ambarSuave = atencionFondo;
+  static const ambarTexto = atencionTexto;
+  static const coral = peligro;
+  static const coralSuave = peligroFondo;
+  static const coralTexto = peligroTexto;
+
   static const oroSuave = 0xFF2C2615;
-  static const oroTexto = 0xFFE6C65C;
-
-  static const verde = 0xFF22C55E;
-  static const verdeSuave = 0xFF0F2A1C;
-  static const verdeTexto = 0xFF4ADE80;
-
-  static const ambar = 0xFFF59E0B;
-  static const ambarSuave = 0xFF2F2410;
-  static const ambarTexto = 0xFFFBBF24;
-
-  static const coral = 0xFFEF4444;
-  static const coralSuave = 0xFF351819;
-  static const coralTexto = 0xFFF87171;
-
   static const aFavor = 0xFF7CC4A0;
   static const enContra = 0xFFE39A92;
-
-  static const sobreAzul = 0xFF0B1F3B;
-  static const pista = 0xFF22314B;
 }
 
 /// Fórmula de contraste WCAG 2.x (luminancia relativa + razón), aritmética
