@@ -5,6 +5,7 @@ import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
+import '../../domain/cuentas/fechas_tarjeta.dart';
 import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/perfil.dart';
@@ -16,6 +17,7 @@ import '../comun/renglon_app.dart';
 import '../comun/tarjeta_app.dart';
 import '../comun/tema.dart';
 import 'color_saldo.dart';
+import 'frase_pago.dart';
 import 'hoja_transferencia.dart';
 import 'pantalla_detalle_cuenta.dart';
 import 'pantalla_editar_cuenta.dart';
@@ -55,6 +57,9 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
   );
   bool _verArchivadas = false;
 
+  /// El pago que toca de cada tarjeta con corte y fecha de pago.
+  Map<String, PagoTarjeta> _pagos = const {};
+
   /// Un punto por ciclo (spec §7.3.3); con menos de dos no hay gráfica.
   List<PatrimonioDeCiclo> _porCiclo = const [];
 
@@ -72,6 +77,10 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
     if (!mounted) return;
     setState(() {
       _cuentas = [for (final c in cuentas) (c, saldoDe(c, gastos, abonos))];
+      final hoy = DateTime.now();
+      _pagos = {
+        for (final c in cuentas) c.id: ?pagoDeTarjeta(c, gastos, abonos, hoy: hoy),
+      };
       _patrimonio = calcularPatrimonio(cuentas, gastos, abonos);
       _porCiclo = patrimonioPorCiclo(
         cuentas: cuentas,
@@ -123,7 +132,7 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
       children: [
         EncabezadoSeccion(titulo: titulo, dato: dato),
         TarjetaApp.lista(renglones: [
-          for (final (c, saldo) in cuentas) _FilaCuenta(cuenta: c, saldo: saldo, alTocar: () => _abrir(c)),
+          for (final (c, saldo) in cuentas) _FilaCuenta(cuenta: c, saldo: saldo, pago: _pagos[c.id], alTocar: () => _abrir(c)),
         ]),
       ],
     );
@@ -195,7 +204,7 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
                 ),
                 if (_verArchivadas)
                   TarjetaApp.lista(renglones: [
-                    for (final (c, saldo) in archivadas) _FilaCuenta(cuenta: c, saldo: saldo, alTocar: () => _abrir(c)),
+                    for (final (c, saldo) in archivadas) _FilaCuenta(cuenta: c, saldo: saldo, pago: _pagos[c.id], alTocar: () => _abrir(c)),
                   ]),
               ],
             ],
@@ -291,27 +300,32 @@ class _HeroePatrimonio extends StatelessWidget {
 class _FilaCuenta extends StatelessWidget {
   final Cuenta cuenta;
   final Dinero? saldo;
+  final PagoTarjeta? pago;
   final VoidCallback alTocar;
 
-  const _FilaCuenta({required this.cuenta, required this.saldo, required this.alTocar});
+  const _FilaCuenta({required this.cuenta, required this.saldo, required this.alTocar, this.pago});
 
   @override
   Widget build(BuildContext context) {
     final s = saldo;
     final lectura = s == null ? null : lecturaDeSaldo(cuenta, s);
     final disponible = lectura?.disponible;
+    final p = pago;
+    final linea = p == null ? null : lineaDePago(p);
+    final base = cuenta.tipo == TipoCuenta.debito && !cuenta.llevaSaldo
+        ? 'Débito · define su saldo'
+        : cuenta.tipo == TipoCuenta.credito && disponible != null
+            ? (disponible.esNegativo
+                ? 'Te pasaste del límite por ${enPesos(disponible.absoluto)}'
+                : 'Te quedan ${enPesos(disponible)} de crédito')
+            : cuenta.tipo.etiqueta == cuenta.nombre
+                ? null
+                : cuenta.tipo.etiqueta;
     return RenglonApp(
       emoji: cuenta.emoji,
       titulo: cuenta.nombre,
-      subtitulo: cuenta.tipo == TipoCuenta.debito && !cuenta.llevaSaldo
-          ? 'Débito · define su saldo'
-          : cuenta.tipo == TipoCuenta.credito && disponible != null
-              ? (disponible.esNegativo
-                  ? 'Te pasaste del límite por ${enPesos(disponible.absoluto)}'
-                  : 'Te quedan ${enPesos(disponible)} de crédito')
-              : cuenta.tipo.etiqueta == cuenta.nombre
-                  ? null
-                  : cuenta.tipo.etiqueta,
+      // La fecha de pago va primero: es lo que hay que hacer.
+      subtitulo: linea == null ? base : (base == null || base == cuenta.tipo.etiqueta ? linea : '$linea · $base'),
       monto: lectura == null
           ? null
           : cuenta.tipo == TipoCuenta.credito

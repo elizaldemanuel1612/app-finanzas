@@ -16,6 +16,10 @@ import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/estado_movimiento.dart';
 import '../../domain/modelos/movimiento.dart';
 import '../../domain/modelos/perfil.dart';
+import '../../domain/cuentas/fechas_tarjeta.dart';
+import '../../domain/modelos/cuenta.dart';
+import '../cuentas/frase_pago.dart';
+import '../cuentas/pantalla_detalle_cuenta.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/apartado_estimado.dart';
 import '../../domain/presupuesto/cobertura_excesos.dart';
@@ -34,6 +38,7 @@ import '../captura/pantalla_captura.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../categorias/pantalla_detalle_categoria.dart';
 import '../comun/avatar_ajustes.dart';
+import '../comun/borde_para_regresar.dart';
 import '../comun/aviso.dart';
 import '../comun/aviso_gesto.dart';
 import '../comun/barra_ritmo.dart';
@@ -247,6 +252,12 @@ class _PantallaInicioState extends State<PantallaInicio> {
       apartadoEstimado: apartadoEstimado,
       coberturas: calcularCoberturas(estados),
       hayGastos: movimientos.any((m) => m.estado == EstadoMovimiento.activo),
+      pagoUrgente: pagoMasUrgente(
+        await widget.almacenLocal.cuentas.listarTodas(),
+        todos,
+        await widget.almacenLocal.movimientosCuenta.listarTodos(),
+        hoy: hoy,
+      ),
       disponibleHoy: calcularDisponiblePorDia(
         presupuestoVariables: presupuestoVariables,
         gastadoVariables: gastadoVariables,
@@ -263,8 +274,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
     // varios movimientos de golpe y regresa un sentinel (true).
     _capturaAbierta = true;
     final registrado = await Navigator.of(context).push<Object?>(
+      // Sin fullscreenDialog: así iOS deja deslizar desde el borde para
+      // cerrarla, igual que cualquier otra pantalla.
       MaterialPageRoute(
-        fullscreenDialog: true,
         builder: (_) => PantallaCaptura(
           perfil: _perfil,
           categoriaRepositorio: widget.categoriaRepositorio,
@@ -404,6 +416,23 @@ class _PantallaInicioState extends State<PantallaInicio> {
   }
 
   /// Desde Análisis: abre una categoría por id.
+  /// Del aviso de pago a la tarjeta, donde está "Pagar esta tarjeta".
+  Future<void> _irACuenta(Cuenta cuenta) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaDetalleCuenta(
+          cuenta: cuenta,
+          perfil: _perfil,
+          cuentaRepositorio: widget.almacenLocal.cuentas,
+          movimientoRepositorio: widget.movimientoRepositorio,
+          movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
+          ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+        ),
+      ),
+    );
+    _cargar();
+  }
+
   Future<void> _irADetallePorId(String id) async {
     final categoria = (await widget.categoriaRepositorio.listarTodas()).where((c) => c.id == id).firstOrNull;
     if (categoria != null && mounted) await _irADetalle(categoria);
@@ -464,7 +493,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
         if (!salio) _elegirPestana(Pestana.inicio);
       },
       child: Scaffold(
-        body: pestana,
+        body: _pestana == Pestana.inicio
+            ? pestana
+            : BordeParaRegresar(alRegresar: () => _elegirPestana(Pestana.inicio), child: pestana),
         bottomNavigationBar: BarraNavegacion(
           actual: _pestana,
           alElegir: _elegirPestana,
@@ -555,7 +586,22 @@ class _PantallaInicioState extends State<PantallaInicio> {
         ),
       ),
       // Un solo banner: el más urgente, con su salida (componentes/Aviso.md).
-      if (urgente != null)
+      // Un pago de tarjeta por vencer va antes que un exceso: tiene fecha.
+      if (datos.pagoUrgente case final pago?)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: Builder(builder: (context) {
+            final frases = frasesDePago(pago);
+            return Aviso(
+              tono: frases.tono,
+              titulo: frases.titulo,
+              apoyo: frases.apoyo,
+              accion: 'Ver ${pago.cuenta.nombre}',
+              onAccion: () => _irACuenta(pago.cuenta),
+            );
+          }),
+        )
+      else if (urgente != null)
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
           child: Aviso(
@@ -925,6 +971,9 @@ class BarraNavegacion extends StatelessWidget {
 
   const BarraNavegacion({super.key, required this.actual, required this.alElegir, required this.alRegistrar});
 
+  /// Barra flotante en cápsula (estilo de las apps de iOS, como WhatsApp):
+  /// las pestañas en una burbuja con la activa resaltada y el ＋ dorado al
+  /// centro, dentro de la misma cápsula.
   @override
   Widget build(BuildContext context) {
     final p = ColoresApp.actual;
@@ -936,22 +985,36 @@ class BarraNavegacion extends StatelessWidget {
           button: true,
           label: etiqueta,
           excludeSemantics: true,
-          child: InkResponse(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () => alElegir(pestana),
-            child: SizedBox(
-              height: 64,
+            child: AnimatedContainer(
+              duration: Duracion.rapida,
+              margin: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: activo ? p.accion.withValues(alpha: p.esOscura ? 0.22 : 0.12) : Colors.transparent,
+                borderRadius: BorderRadius.circular(Radios.pill),
+              ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(activo ? iconoActivo : icono, color: activo ? p.texto : p.texto2),
-                  const SizedBox(height: 2),
-                  Text(
-                    etiqueta,
-                    maxLines: 1,
-                    style: Theme.of(context).textTheme.etiqueta.copyWith(
-                          color: activo ? p.texto : p.texto2,
-                          fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
-                        ),
+                  Icon(activo ? iconoActivo : icono, size: 22, color: activo ? p.accion : p.texto2),
+                  const SizedBox(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    // En pantallas angostas "Patrimonio" no cabe completo:
+                    // se encoge un poco en vez de cortarse.
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        etiqueta,
+                        maxLines: 1,
+                        style: Theme.of(context).textTheme.etiqueta.copyWith(
+                              color: activo ? p.accion : p.texto2,
+                              fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -961,46 +1024,56 @@ class BarraNavegacion extends StatelessWidget {
       );
     }
 
-    return DecoratedBox(
-      decoration: BoxDecoration(color: p.superficie, border: Border(top: BorderSide(color: p.borde))),
+    return ColoredBox(
+      color: p.fondo,
       child: SafeArea(
         top: false,
+        minimum: const EdgeInsets.only(bottom: 4),
         // Alto fijo: las etiquetas crecen con el texto del sistema, acotadas.
         child: MediaQuery.withClampedTextScaling(
           maxScaleFactor: 1.3,
-          child: SizedBox(
-            height: 64,
-            child: Row(
-              children: [
-                destino(Pestana.inicio, Icons.home_outlined, Icons.home_rounded, 'Inicio'),
-                destino(Pestana.gastos, Icons.receipt_long_outlined, Icons.receipt_long_rounded, 'Gastos'),
-                SizedBox(
-                  width: 76,
-                  child: Center(
-                    child: Semantics(
-                      button: true,
-                      label: 'Registrar gasto',
-                      excludeSemantics: true,
-                      child: GestureDetector(
-                        onTap: alRegistrar,
-                        child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(color: p.oro, shape: BoxShape.circle, boxShadow: sombraFab(p)),
-                          child: Icon(Icons.add_rounded, size: 32, color: p.sobreOro),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 0),
+            child: SizedBox(
+              height: 56,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: p.superficie,
+                  borderRadius: BorderRadius.circular(Radios.pill),
+                  border: Border.all(color: p.borde),
+                  boxShadow: sombra1(p),
+                ),
+                child: Row(
+                  children: [
+                    destino(Pestana.inicio, Icons.home_outlined, Icons.home_rounded, 'Inicio'),
+                    destino(Pestana.gastos, Icons.receipt_long_outlined, Icons.receipt_long_rounded, 'Gastos'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Semantics(
+                        button: true,
+                        label: 'Registrar gasto',
+                        excludeSemantics: true,
+                        child: GestureDetector(
+                          onTap: alRegistrar,
+                          child: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(color: p.oro, shape: BoxShape.circle, boxShadow: sombraFab(p)),
+                            child: Icon(Icons.add_rounded, size: 30, color: p.sobreOro),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                    destino(Pestana.analisis, Icons.insights_outlined, Icons.insights_rounded, 'Análisis'),
+                    destino(
+                      Pestana.patrimonio,
+                      Icons.account_balance_wallet_outlined,
+                      Icons.account_balance_wallet_rounded,
+                      'Patrimonio',
+                    ),
+                  ],
                 ),
-                destino(Pestana.analisis, Icons.insights_outlined, Icons.insights_rounded, 'Análisis'),
-                destino(
-                  Pestana.patrimonio,
-                  Icons.account_balance_wallet_outlined,
-                  Icons.account_balance_wallet_rounded,
-                  'Patrimonio',
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -1026,6 +1099,9 @@ class _DatosInicio {
   final bool hayGastos;
   final Dinero disponibleHoy;
 
+  /// La tarjeta que hay que pagar pronto o que se pasó (spec §7.3.1).
+  final PagoTarjeta? pagoUrgente;
+
   const _DatosInicio({
     required this.hayCategorias,
     required this.rollupPorCategoria,
@@ -1040,5 +1116,6 @@ class _DatosInicio {
     required this.coberturas,
     required this.hayGastos,
     required this.disponibleHoy,
+    this.pagoUrgente,
   });
 }

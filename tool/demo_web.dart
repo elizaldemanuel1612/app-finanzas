@@ -75,6 +75,9 @@ Future<void> main() async {
     saldoInicial: const Dinero.pesos(-4500),
     fechaSaldoInicial: inicioCiclo,
     limite: const Dinero.pesos(20000),
+    // Para ver el aviso de pago: cortó hace unos días y vence en tres.
+    diaCorte: DateTime.now().subtract(const Duration(days: 4)).day,
+    diaPago: DateTime.now().add(const Duration(days: 3)).day,
   ));
   await almacen.cuentas.guardar(Cuenta(
     id: 'cetes',
