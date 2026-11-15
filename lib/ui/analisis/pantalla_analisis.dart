@@ -11,6 +11,7 @@ import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/analisis/ciclo_comparable.dart';
+import '../../domain/analisis/gastos_recurrentes.dart';
 import '../../domain/analisis/corte_pareto.dart';
 import '../../domain/analisis/presupuestos_del_cierre.dart';
 import '../../domain/analisis/recomendaciones.dart';
@@ -28,6 +29,7 @@ import '../comun/aviso_gesto.dart';
 import '../comun/guia_rapida.dart';
 import '../comun/selector_ciclo.dart';
 import '../comun/tema.dart';
+import '../comun/formato_fecha.dart';
 import '../comun/tarjeta_app.dart';
 import '../comun/renglon_app.dart';
 import '../comun/formato_dinero.dart';
@@ -121,6 +123,9 @@ class _Datos {
   /// La salida de cada categoría que se pasó: la misma de Inicio y Categoría.
   final List<Cobertura> coberturas;
 
+  /// Lo que se repite en todo el historial, con el emoji de su categoría.
+  final List<({GastoRecurrente gasto, String emoji})> recurrentes;
+
   const _Datos(
     this.reporte,
     this.recomendaciones,
@@ -132,6 +137,7 @@ class _Datos {
     this.ciclos,
     this.apartadoEstimado,
     this.coberturas,
+    this.recurrentes,
   );
 
 }
@@ -271,6 +277,10 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
             proyeccionVariables: reporte.proyeccionVariables,
           ),
           calcularCoberturas(reporte.variables),
+          [
+            for (final g in detectarRecurrentes(movimientos, hoy: DateTime.now()))
+              (gasto: g, emoji: todas.where((c) => c.id == g.categoriaId).firstOrNull?.emoji ?? '🔁'),
+          ],
         ));
   }
 
@@ -564,6 +574,23 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
             titulo: '${r.dondeMasGastas.first.descripcion}: ${enPesos(r.dondeMasGastas.first.total)}',
           ),
           _DondeMasGastas(reporte: r),
+        ],
+        // Suscripciones y pagos periódicos de todo el historial (spec §5.7).
+        if (datos.recurrentes.isNotEmpty) ...[
+          _Conclusion(
+            etiqueta: 'Lo que se repite',
+            titulo: 'Suma ${enPesos(totalAlAnio([for (final x in datos.recurrentes) x.gasto]))} al año',
+          ),
+          TarjetaApp.lista(renglones: [
+            for (final (:gasto, :emoji) in datos.recurrentes)
+              RenglonApp(
+                emoji: emoji,
+                titulo: gasto.nombre,
+                subtitulo: '${gasto.frecuencia.etiqueta} · próximo ${fechaCorta(gasto.proximo)}',
+                monto: enPesos(gasto.monto),
+                abajo: Text('${enPesos(gasto.alAnio)} al año', style: Theme.of(context).textTheme.etiqueta),
+              ),
+          ]),
         ],
         _Conclusion(etiqueta: 'Cómo pagas', titulo: pago),
         _TarjetaYEfectivo(reporte: r),

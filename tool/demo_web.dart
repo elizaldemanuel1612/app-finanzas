@@ -148,6 +148,13 @@ Future<void> main() async {
   await gasto(12, 'salidas', 540, 'Cine');
   await gasto(35, 'super', 2100, 'Súper del mes pasado');
   await gasto(40, 'salidas', 900, 'Salida del mes pasado');
+  // Pagos que se repiten, para ver "Lo que se repite" en Análisis → Detalle.
+  for (final dias in [4, 34, 65, 95]) {
+    await gasto(dias, 'salidas', 219, 'Netflix');
+  }
+  for (final dias in [10, 40, 71]) {
+    await gasto(dias, 'salidas', 129, 'Spotify');
+  }
   // El ciclo pasado, cerrado: para ver en Gastos cómo se consulta uno.
   final pasado = calculadora.calcularPara(hoy.subtract(const Duration(days: 40)));
   await almacen.ciclos.guardar(CicloGuardado(

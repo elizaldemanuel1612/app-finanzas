@@ -266,6 +266,11 @@ const _temaCiclos = TemaGuia(
       'el total, cuánto al mes en promedio, mes por mes, por categoría y, si '
       'ya registrabas entonces, contra las mismas fechas del año anterior.',
     ),
+    Parrafo(
+      'Y en Análisis → Detalle, **Lo que se repite** junta lo que pagas cada '
+      'semana, quincena, mes o año con la misma descripción —Netflix, el '
+      'gimnasio, la colegiatura—, cuándo toca el próximo y cuánto suma al año.',
+    ),
   ],
 );
 
