@@ -100,3 +100,8 @@ sesión" en Google Auth Platform → Configuración y quitar la excepción.
 Recordatorios (fijas por vencer, "no has registrado hoy"),
 presupuesto compartido en pareja (el modelo `cuentas/{cuentaId}/miembros`
 ya lo permite), subir fotos de tickets a la nube.
+
+- **Leer el ticket automáticamente** (total y productos desde la foto, con
+  ML Kit en el dispositivo o IA): pendiente para el futuro por decisión del
+  usuario (2026-11-15); hoy la foto es solo adjunto.
+- **Descartado (2026-11-15):** aviso de saldo bajo en cuentas.
