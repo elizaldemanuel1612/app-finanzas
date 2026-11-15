@@ -53,6 +53,11 @@ final class AlmacenLocal {
   /// no se sincroniza; "Eliminar cuenta" lo borra.
   final ArchivoTexto candado;
 
+  /// Complementos de IA (spec §6.5): proveedor y clave de API del usuario.
+  /// Del dispositivo, como el candado: no se sincroniza; "Eliminar cuenta"
+  /// lo borra.
+  final ArchivoTexto ia;
+
   /// `false` en la web: no hay sistema de archivos para fotos de tickets.
   final bool admiteFotos;
 
@@ -76,6 +81,7 @@ final class AlmacenLocal {
         },
         ArchivoTextoDisco(File('${directorio.path}/nube.json')),
         ArchivoTextoDisco(File('${directorio.path}/candado.json')),
+        ArchivoTextoDisco(File('${directorio.path}/ia.json')),
         admiteFotos: true,
       );
 
@@ -87,15 +93,17 @@ final class AlmacenLocal {
     required Map<String, ArchivoTexto> archivos,
     required ArchivoTexto estadoNube,
     required ArchivoTexto candado,
+    ArchivoTexto? ia,
     required bool admiteFotos,
   }) =>
-      AlmacenLocal._(directorio, archivos, estadoNube, candado, admiteFotos: admiteFotos);
+      AlmacenLocal._(directorio, archivos, estadoNube, candado, ia ?? ArchivoTextoMemoria(), admiteFotos: admiteFotos);
 
   /// Con los archivos que se le den (pruebas).
   factory AlmacenLocal.sobre(Map<String, ArchivoTexto> archivos) =>
-      AlmacenLocal._(Directory('memoria'), archivos, ArchivoTextoMemoria(), ArchivoTextoMemoria(), admiteFotos: false);
+      AlmacenLocal._(Directory('memoria'), archivos, ArchivoTextoMemoria(), ArchivoTextoMemoria(), ArchivoTextoMemoria(),
+          admiteFotos: false);
 
-  AlmacenLocal._(this.directorio, this.archivos, this.estadoNube, this.candado, {required this.admiteFotos})
+  AlmacenLocal._(this.directorio, this.archivos, this.estadoNube, this.candado, this.ia, {required this.admiteFotos})
       : categorias = CategoriaRepositorioArchivo.sobre(archivos['categorias.json']!),
         movimientos = MovimientoRepositorioArchivo.sobre(archivos['movimientos.json']!),
         perfil = PerfilRepositorioArchivo.sobre(archivos['perfil.json']!),
@@ -118,6 +126,7 @@ final class AlmacenLocal {
     }
     await estadoNube.borrar();
     await candado.borrar();
+    await ia.borrar();
     if (!admiteFotos) return;
     final tickets = Directory('${directorio.path}/tickets');
     if (await tickets.exists()) await tickets.delete(recursive: true);

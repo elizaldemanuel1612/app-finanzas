@@ -2,7 +2,8 @@
 // la web en Safari del simulador (gestos, modo oscuro). No se publica:
 //   flutter build web --wasm -t tool/demo_web.dart -o <carpeta>
 // `?modo=oscuro` o `?modo=claro` en la URL fija la apariencia;
-// `?pantalla=importar` abre directo la importación de CSV;
+// `?pantalla=importar` abre directo la importación de CSV; `?pantalla=ia`,
+// los complementos de IA;
 // `?corte=15` cambia el día de corte (para ver un ciclo a la mitad).
 import 'package:app_finanzas/core/ciclo.dart';
 import 'package:app_finanzas/core/money.dart';
@@ -19,6 +20,8 @@ import 'package:app_finanzas/domain/modelos/movimiento.dart';
 import 'package:app_finanzas/domain/modelos/perfil.dart';
 import 'package:app_finanzas/ui/comun/apariencia.dart';
 import 'package:app_finanzas/ui/comun/tema.dart';
+import 'package:app_finanzas/ui/ia/pantalla_complementos_ia.dart';
+import 'package:app_finanzas/ui/ia/servicio_ia_app.dart';
 import 'package:app_finanzas/ui/importacion/pantalla_importar.dart';
 import 'package:app_finanzas/ui/inicio/pantalla_inicio.dart';
 import 'package:flutter/material.dart';
@@ -182,7 +185,9 @@ Future<void> main() async {
       supportedLocales: const [Locale('es', 'MX')],
       locale: const Locale('es', 'MX'),
       builder: (context, child) => SincronizarPaleta(child: child!),
-      home: Uri.base.queryParameters['pantalla'] == 'importar'
+      home: Uri.base.queryParameters['pantalla'] == 'ia'
+          ? PantallaComplementosIA(servicio: servicioIADe(almacen))
+          : Uri.base.queryParameters['pantalla'] == 'importar'
           ? PantallaImportar(
               perfil: perfil,
               categoriaRepositorio: almacen.categorias,

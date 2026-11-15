@@ -105,3 +105,8 @@ ya lo permite), subir fotos de tickets a la nube.
   ML Kit en el dispositivo o IA): pendiente para el futuro por decisión del
   usuario (2026-11-15); hoy la foto es solo adjunto.
 - **Descartado (2026-11-15):** aviso de saldo bajo en cuentas.
+- **"Iniciar sesión con ChatGPT" (pendiente del usuario, 2026-11-15):** para que
+  quien tenga ChatGPT Plus/Pro use su plan en la app, hay que solicitar a OpenAI
+  entrar a su programa (vista previa limitada desde 2026-09-29). Mientras, ChatGPT
+  se conecta con clave de API (spec §6.5). Apple Intelligence está escrito pero
+  **falta probarlo en el iPhone** con la app nativa.

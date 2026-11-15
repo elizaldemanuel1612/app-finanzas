@@ -293,6 +293,24 @@ Cada vez que corriges una sugerencia, se guarda en `reglas_aprendidas` (`patrón
 ### 6.4 [NUEVO] Tope de costo mensual
 Límite configurable de llamadas a la IA por mes. Si se alcanza, la app sigue funcionando perfectamente con reglas e historial (niveles 1 y 2). Nunca hay una sorpresa en la factura.
 
+### 6.5 [NUEVO] Complementos de IA: cada quien conecta la suya (2026-11-15)
+Reemplaza la idea de una Cloud Function con la llave de la app: **la app no paga ni guarda ninguna IA**. Cada usuario conecta la suya en **Ajustes → Complementos de IA**, como los complementos de una suite de oficina:
+
+| Complemento | Cómo se conecta | Dónde funciona |
+|---|---|---|
+| **Apple Intelligence** | Sin cuenta ni clave: el modelo de Apple corre en el iPhone (Foundation Models, iOS 26+, con Apple Intelligence activo). Gratis y privado. | Solo app de iPhone |
+| **Gemini** | Clave de API de Google AI Studio (tiene uso gratuito). | iPhone, Android y web |
+| **ChatGPT** | Clave de API de OpenAI (se cobra en la cuenta de API del usuario, aparte de ChatGPT Plus). "Iniciar sesión con ChatGPT" (programa de OpenAI de 2026-09) queda para cuando OpenAI apruebe la app. | iPhone, Android y web |
+| **Claude** | Clave de API de Anthropic (se cobra aparte de Claude Pro: Anthropic no permite usar la suscripción en otras apps desde 2026-02). | iPhone, Android y web |
+
+- **La clave vive solo en el dispositivo** (`ia.json` junto al candado, §7.3): no se respalda en Drive ni sale a ningún servidor de la app. La app llama directo a la IA del usuario. "Eliminar cuenta" la borra.
+- **Conectar = probar.** Al pegar la clave, la app pide la lista de modelos del proveedor y elige uno rápido y barato (`domain/ia/proveedor_ia.dart`, `elegirModelo`); si la clave no sirve, lo dice en palabras y no se guarda.
+- **Un complemento activo a la vez.** Se puede tener varios conectados y elegir cuál usa la app.
+- **Usos:**
+  1. **Asistente "Pregúntale a tu IA"** (Ajustes → Ayuda y la guía por temas): conversación que contesta **solo con base en la guía por temas** (`lib/ui/ayuda/instructivo_ia.dart` arma el instructivo con todo `contenido_guia.dart`): dónde está cada botón y cómo se hace cada cosa. No ve los datos del usuario, no da asesoría financiera ni de inversión y, si algo no está en la guía, lo dice.
+  2. **Nivel 3 de la cascada** (§6.1, interruptor "Sugerir categorías con IA", apagado por omisión): al escribir la nota de un gasto que reglas e historial no resolvieron, la IA sugiere la categoría con su confianza; se aplican los umbrales de §6.3 y solo **resalta** la categoría ("Sugerida por tu IA"): nunca guarda sola. Se manda solo la nota y los nombres de las categorías.
+- **Sin IA o sin red, nada cambia** (regla #17): la captura nunca espera a la IA.
+
 ---
 
 ## 7. Seguridad y multiusuario

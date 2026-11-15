@@ -306,6 +306,19 @@ const _temaTusDatos = TemaGuia(
       'Eliminar tu cuenta borra ese historial de este dispositivo — la '
       'app te ofrece exportar antes, por si acaso.',
     ),
+    Subtitulo('Complementos de IA'),
+    Parrafo(
+      'En Ajustes → **Complementos de IA** conectas tu propia IA: Apple '
+      'Intelligence en el iPhone (gratis, sin clave), o una clave de API de '
+      'Gemini, ChatGPT o Claude. La clave se queda solo en tu teléfono y la '
+      'app le habla directo a tu IA; nunca ve tus gastos ni tus saldos.',
+    ),
+    Vinetas([
+      '**Pregúntale a tu IA** (en Ajustes → Ayuda y arriba en esta guía) te '
+          'contesta cómo hacer algo o dónde está un botón, con base en esta guía.',
+      '**Sugerir categorías**: al escribir la nota de un gasto que la app no '
+          'reconoce, tu IA resalta la categoría que cree; tú decides al tocarla.',
+    ]),
   ],
 );
 

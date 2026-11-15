@@ -20,6 +20,7 @@ import '../../domain/cuentas/fechas_tarjeta.dart';
 import '../../domain/modelos/cuenta.dart';
 import '../cuentas/frase_pago.dart';
 import '../cuentas/pantalla_detalle_cuenta.dart';
+import '../ia/servicio_ia_app.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/apartado_estimado.dart';
 import '../../domain/presupuesto/cobertura_excesos.dart';
@@ -335,6 +336,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
           cicloRepositorio: widget.cicloRepositorio,
           documentos: widget.almacenLocal.directorio,
           iniciarDictado: iniciarDictado,
+          servicioIA: servicioIADe(widget.almacenLocal),
           cuentaRepositorio: widget.almacenLocal.cuentas,
           ajustePresupuestoCicloRepositorio: widget.ajustePresupuestoCicloRepositorio,
         ),

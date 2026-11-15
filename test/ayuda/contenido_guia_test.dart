@@ -48,6 +48,9 @@ const _citasLiteralesDeLaApp = [
   'Nuevo objetivo',
   'Llevas ahorrado',
   'Cambiar fecha',
+  'Complementos de IA',
+  'Pregúntale a tu IA',
+  'Sugerir categorías',
 ];
 
 const _vocabularioProhibido = [
