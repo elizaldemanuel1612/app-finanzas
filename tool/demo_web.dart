@@ -91,6 +91,26 @@ Future<void> main() async {
     saldoInicial: const Dinero.pesos(30000),
     fechaSaldoInicial: DateTime(inicioCiclo.year, inicioCiclo.month - 3, 5),
   ));
+  // Un apartado dentro de BBVA (spec §7.3.5), donde se junta el viaje.
+  await almacen.cuentas.guardar(Cuenta(
+    id: 'bbva-viaje',
+    nombre: 'Viaje',
+    emoji: '✈️',
+    tipo: TipoCuenta.ahorro,
+    llevaSaldo: true,
+    saldoInicial: const Dinero.cero(),
+    fechaSaldoInicial: inicioCiclo,
+    cuentaPadreId: 'bbva',
+  ));
+  await almacen.movimientosCuenta.guardar(MovimientoCuenta(
+    clientId: 'demo-apartado',
+    cuentaId: 'bbva',
+    cuentaDestinoId: 'bbva-viaje',
+    fecha: inicioCiclo,
+    monto: const Dinero.pesos(7000),
+    tipo: TipoMovimientoCuenta.transferencia,
+    entra: false,
+  ));
   // Ingresos con categoría (spec §7.3.4), para ver Análisis → Ingresos.
   for (final (i, (dias, pesos, categoria, nota)) in const [
     (2, 22000, 'ing-nomina', 'Quincena'),
@@ -136,7 +156,7 @@ Future<void> main() async {
     nombre: 'Viaje a Japón',
     emoji: '🗾',
     monto: const Dinero.pesos(60000),
-    cuentaId: 'cetes',
+    cuentaId: 'bbva-viaje',
     creado: inicioCiclo,
     fechaLimite: DateTime(inicioCiclo.year, inicioCiclo.month + 8, 15),
   ));

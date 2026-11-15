@@ -8,6 +8,7 @@ import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
+import '../../domain/cuentas/apartados.dart';
 import '../../domain/cuentas/fechas_tarjeta.dart';
 import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/categoria_ingreso.dart';
@@ -20,9 +21,12 @@ import '../../domain/reglas/creacion_ingreso_extra.dart';
 import '../categorias/editor_categoria_ingreso.dart';
 import '../comun/aviso.dart';
 import '../comun/formato_dinero.dart';
+import '../comun/renglon_app.dart';
+import '../comun/tarjeta_app.dart';
 import '../comun/tema.dart';
 import 'color_saldo.dart';
 import 'frase_pago.dart';
+import 'hoja_apartado.dart';
 import 'hoja_transferencia.dart';
 import 'pantalla_editar_cuenta.dart';
 import '../comun/hoja.dart';
@@ -68,6 +72,12 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
   PagoTarjeta? _pago;
   Dinero _gastadoCiclo = const Dinero.cero();
   List<_Renglon>? _renglones;
+
+  /// Apartados (spec §7.3.5): los de esta cuenta con su saldo, lo que hay
+  /// contando todos, y la cuenta donde vive si esta es un apartado.
+  List<(Cuenta, Dinero?)> _apartados = const [];
+  Dinero? _total;
+  Cuenta? _padre;
 
   @override
   void initState() {
@@ -122,6 +132,9 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
       _pago = pagoDeTarjeta(cuenta, gastos, abonos, hoy: DateTime.now());
       _gastadoCiclo = Dinero(suyos.where((g) => g.cicloId == ciclo.id).fold(0, (s, g) => s + g.monto.centavos));
       _renglones = renglones.take(60).toList();
+      _apartados = [for (final a in apartadosDe(cuenta, cuentas)) (a, saldoDe(a, gastos, abonos))];
+      _total = totalConApartados(cuenta, cuentas, gastos, abonos);
+      _padre = cuentas.where((c) => c.id == cuenta.cuentaPadreId).firstOrNull;
     });
   }
 
@@ -163,6 +176,46 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
       repositorio: widget.movimientoCuentaRepositorio,
       origenId: esCredito ? null : _cuenta.id,
       destinoId: esCredito ? _cuenta.id : null,
+    );
+    if (hecha == true) await _cargar();
+  }
+
+  Future<void> _nuevoApartado() async {
+    final creado = await mostrarHojaNuevoApartado(
+      context,
+      padre: _cuenta,
+      disponible: _saldo,
+      cuentaRepositorio: widget.cuentaRepositorio,
+      movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio,
+    );
+    if (creado == true) await _cargar();
+  }
+
+  Future<void> _abrirApartado(Cuenta apartado) async {
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => PantallaDetalleCuenta(
+        cuenta: apartado,
+        perfil: widget.perfil,
+        cuentaRepositorio: widget.cuentaRepositorio,
+        movimientoRepositorio: widget.movimientoRepositorio,
+        movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio,
+        ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+        categoriaIngresoRepositorio: widget.categoriaIngresoRepositorio,
+      ),
+    ));
+    await _cargar();
+  }
+
+  /// Guardar en este apartado (desde su cuenta) o sacar de él (a su cuenta).
+  Future<void> _moverConPadre({required bool guardar}) async {
+    final padre = _padre;
+    if (padre == null) return;
+    final hecha = await mostrarHojaTransferencia(
+      context,
+      cuentas: _cuentas,
+      repositorio: widget.movimientoCuentaRepositorio,
+      origenId: guardar ? padre.id : _cuenta.id,
+      destinoId: guardar ? _cuenta.id : padre.id,
     );
     if (hecha == true) await _cargar();
   }
@@ -240,6 +293,8 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
     final esEfectivoBase = _cuenta.id == idCuentaEfectivo;
     final esCredito = _cuenta.tipo == TipoCuenta.credito;
     final esAhorro = _cuenta.tipo == TipoCuenta.ahorro;
+    final apartado = _cuenta.esApartado;
+    final conApartados = _cuenta.puedeTenerApartados && _cuenta.activa && saldo != null;
     final lectura = saldo == null ? null : lecturaDeSaldo(_cuenta, saldo);
     return Scaffold(
       appBar: AppBar(
@@ -279,16 +334,41 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                                 : 'Disponible: ${disponible.formateado()} de ${_cuenta.limite!.formateado()}',
                             style: textos.bodySmall?.copyWith(color: disponible.esNegativo ? ColoresApp.coralTexto : null),
                           ),
+                        if (_apartados.isNotEmpty && _total != null)
+                          Text('Con tus apartados: ${_total!.formateado()}', style: textos.bodySmall),
                         if (saldo != null && saldo.esNegativo && !esCredito)
                           Text('Gastaste más de lo que tenías.', style: textos.bodySmall?.copyWith(color: ColoresApp.coralTexto)),
                         if (saldo != null) ...[
                           const SizedBox(height: 4),
                           Text(
-                            esAhorro
-                                ? 'Cuenta para tu patrimonio. Transfiérele lo que apartas y actualiza su valor cuando cambie.'
-                                : 'Gastado este ciclo: ${_gastadoCiclo.formateado()}',
+                            apartado
+                                ? 'Apartado en ${_padre?.nombre ?? 'otra cuenta'}. Guarda desde ella o saca para usarlo.'
+                                : esAhorro
+                                    ? 'Cuenta para tu patrimonio. Transfiérele lo que apartas y actualiza su valor cuando cambie.'
+                                    : 'Gastado este ciclo: ${_gastadoCiclo.formateado()}',
                             style: textos.bodySmall,
                           ),
+                          if (apartado && _padre != null) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () => _moverConPadre(guardar: true),
+                                    child: const Text('Guardar'),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () => _moverConPadre(guardar: false),
+                                    child: const Text('Sacar'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            TextButton(onPressed: _ajustar, child: const Text('Actualizar valor')),
+                          ] else ...[
                           const SizedBox(height: 12),
                           Row(
                             children: [
@@ -311,11 +391,12 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                               ),
                             ],
                           ),
+                          ],
                         ] else ...[
                           const SizedBox(height: 8),
                           TextButton(onPressed: _editar, child: Text(esCredito ? 'Llevar lo que debes' : 'Llevar su saldo')),
                         ],
-                        if (_cuentas.where((c) => c.activa).length > 1) ...[
+                        if (!apartado && _cuentas.where((c) => c.activa).length > 1) ...[
                           const SizedBox(height: 8),
                           OutlinedButton.icon(
                             onPressed: _transferir,
@@ -354,6 +435,39 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                     apoyo: 'Agrega los días y te avisamos cuánto pagar.',
                     accion: 'Agregar',
                     onAccion: _editar,
+                  ),
+                ],
+                if (conApartados) ...[
+                  EncabezadoSeccion(
+                    titulo: 'Apartados',
+                    dato: _apartados.isEmpty
+                        ? null
+                        : enPesos(Dinero(_apartados.fold<int>(0, (t, a) => t + (a.$2?.centavos ?? 0)))),
+                  ),
+                  if (_apartados.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+                      child: Text(
+                        'Separa tu dinero para algo —un viaje, tu fondo de emergencia— sin sacarlo de '
+                        '${_cuenta.nombre}, como en tu banco.',
+                        style: textos.etiqueta,
+                      ),
+                    )
+                  else
+                    TarjetaApp.lista(renglones: [
+                      for (final (a, s) in _apartados)
+                        RenglonApp(
+                          emoji: a.emoji,
+                          titulo: a.nombre,
+                          monto: s?.formateado(),
+                          onTap: () => _abrirApartado(a),
+                        ),
+                    ]),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _nuevoApartado,
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Nuevo apartado'),
                   ),
                 ],
                 const SizedBox(height: 12),

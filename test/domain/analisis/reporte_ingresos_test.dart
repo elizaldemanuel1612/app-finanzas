@@ -41,7 +41,8 @@ MovimientoCuenta _abono(
       cuentaDestinoId: tipo == TipoMovimientoCuenta.transferencia ? 'cetes' : null,
     );
 
-Movimiento _gasto(int pesos, DateTime fecha, {EstadoMovimiento estado = EstadoMovimiento.activo}) => Movimiento(
+Movimiento _gasto(int pesos, DateTime fecha, {EstadoMovimiento estado = EstadoMovimiento.activo, String? cuenta}) =>
+    Movimiento(
       clientId: 'g${_n++}',
       fecha: fecha,
       cicloId: 'c',
@@ -52,6 +53,7 @@ Movimiento _gasto(int pesos, DateTime fecha, {EstadoMovimiento estado = EstadoMo
       descripcion: 'x',
       estado: estado,
       origenCaptura: OrigenCaptura.manual,
+      cuentaId: cuenta,
     );
 
 void main() {
@@ -99,6 +101,27 @@ void main() {
     expect(r.quedo, Dinero.pesos(30500));
     expect(r.porcentajeGastado, 57);
     expect(r.fuenteDominante!.categoria!.id, 'ing-nomina');
+  });
+
+  test('filtro por cuenta: solo sus abonos y lo gastado con ellas; vacío = todas', () {
+    ReporteIngresos con(Set<String>? solo) => calcularReporteIngresos(
+          movimientosCuenta: [
+            _abono(30000, DateTime(2026, 11, 15), categoria: 'ing-nomina'),
+            _abono(8000, DateTime(2026, 11, 3), categoria: 'ing-rentas', cuenta: 'cetes'),
+          ],
+          categorias: categorias,
+          cuentas: cuentas,
+          gastos: [_gasto(1000, DateTime(2026, 11, 4), cuenta: 'bbva'), _gasto(500, DateTime(2026, 11, 4))],
+          rango: rango,
+          soloCuentas: solo,
+        );
+    final bbva = con({'bbva'});
+    expect(bbva.total, const Dinero.pesos(30000));
+    expect(bbva.porCuenta.single.cuenta.id, 'bbva');
+    expect(bbva.gastado, const Dinero.pesos(1000), reason: 'el gasto sin cuenta cae en la tarjeta base');
+    expect(con({'bbva', 'cetes'}).total, const Dinero.pesos(38000));
+    expect(con(const {}).total, const Dinero.pesos(38000));
+    expect(con(null).gastado, const Dinero.pesos(1500));
   });
 
   test('sin fuente dominante: repartido, un solo abono o todo sin categoría', () {

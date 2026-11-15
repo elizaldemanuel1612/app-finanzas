@@ -56,6 +56,11 @@ final class Cuenta {
   final int? diaCorte;
   final int? diaPago;
 
+  /// Si es un apartado (spec §7.3.5, 2026-11-15): la cuenta de débito o de
+  /// ahorro donde vive. Un apartado siempre es de ahorro. No cambia al
+  /// editar: mover un apartado a otra cuenta sería otra cosa.
+  final String? cuentaPadreId;
+
   const Cuenta({
     required this.id,
     required this.nombre,
@@ -68,7 +73,14 @@ final class Cuenta {
     this.limite,
     this.diaCorte,
     this.diaPago,
+    this.cuentaPadreId,
   });
+
+  /// Un apartado dentro de otra cuenta (spec §7.3.5).
+  bool get esApartado => cuentaPadreId != null;
+
+  /// Solo débito y ahorro que no sean ya apartados pueden tener apartados.
+  bool get puedeTenerApartados => !esApartado && (tipo == TipoCuenta.debito || tipo == TipoCuenta.ahorro);
 
   Cuenta copyWith({
     String? nombre,
@@ -96,6 +108,7 @@ final class Cuenta {
       limite: nuevoTipo != TipoCuenta.credito ? null : (limite != null ? limite() : this.limite),
       diaCorte: !credito ? null : (diaCorte != null ? diaCorte() : this.diaCorte),
       diaPago: !credito ? null : (diaPago != null ? diaPago() : this.diaPago),
+      cuentaPadreId: cuentaPadreId,
     );
   }
 
@@ -111,6 +124,7 @@ final class Cuenta {
         if (limite != null) 'limiteCentavos': limite!.centavos,
         if (diaCorte != null) 'diaCorte': diaCorte,
         if (diaPago != null) 'diaPago': diaPago,
+        if (cuentaPadreId != null) 'cuentaPadreId': cuentaPadreId,
       };
 
   factory Cuenta.fromJson(Map<String, dynamic> json) => Cuenta(
@@ -125,6 +139,7 @@ final class Cuenta {
         limite: json['limiteCentavos'] == null ? null : Dinero(json['limiteCentavos'] as int),
         diaCorte: json['diaCorte'] as int?,
         diaPago: json['diaPago'] as int?,
+        cuentaPadreId: json['cuentaPadreId'] as String?,
       );
 }
 

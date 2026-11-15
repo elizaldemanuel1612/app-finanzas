@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/money.dart';
 import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/objetivo_repositorio.dart';
+import '../../domain/cuentas/apartados.dart';
 import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/objetivo.dart';
 import '../comun/formato_dinero.dart';
@@ -47,6 +48,9 @@ class _PantallaEditarObjetivoState extends State<PantallaEditarObjetivo> {
 
   /// Las cuentas de ahorro activas; `null` mientras cargan.
   List<Cuenta>? _cuentas;
+
+  /// Todas, para nombrar un apartado con su cuenta ("Viaje · BBVA").
+  List<Cuenta> _todas = const [];
   String? _error;
   bool _guardando = false;
 
@@ -68,6 +72,7 @@ class _PantallaEditarObjetivoState extends State<PantallaEditarObjetivo> {
     final todas = await widget.cuentaRepositorio.listarTodas();
     if (!mounted) return;
     setState(() {
+      _todas = todas;
       _cuentas = [
         for (final c in todas)
           if (c.tipo == TipoCuenta.ahorro && (c.activa || c.id == _cuentaId)) c,
@@ -196,7 +201,8 @@ class _PantallaEditarObjetivoState extends State<PantallaEditarObjetivo> {
                 const LinearProgressIndicator()
               else if (cuentas.isEmpty)
                 Text(
-                  'Necesitas una cuenta de ahorro o inversión: el avance del objetivo es lo que haya en ella.',
+                  'Necesitas una cuenta de ahorro o inversión, o un apartado en tu débito: el avance del objetivo '
+                  'es lo que haya en ella. Los apartados se crean desde el detalle de la cuenta.',
                   style: textos.bodySmall,
                 )
               else
@@ -206,7 +212,7 @@ class _PantallaEditarObjetivoState extends State<PantallaEditarObjetivo> {
                   children: [
                     for (final c in cuentas)
                       ChoiceChip(
-                        label: Text('${c.emoji} ${c.nombre}'),
+                        label: Text('${c.emoji} ${nombreConCuenta(c, _todas)}'),
                         selected: c.id == _cuentaId,
                         onSelected: (_) => setState(() => _cuentaId = c.id),
                       ),

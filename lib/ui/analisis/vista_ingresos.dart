@@ -7,6 +7,7 @@ import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/analisis/reporte_ingresos.dart';
 import '../../domain/analisis/resumen_periodo.dart';
+import '../../domain/modelos/cuenta.dart';
 import '../comun/esqueleto.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/formato_fecha.dart';
@@ -52,6 +53,11 @@ class _VistaIngresosState extends State<VistaIngresos> {
   late RangoFechas _rango = RangoFechas(widget.ciclo.fechaInicio, widget.ciclo.fechaFin);
   ReporteIngresos? _reporte;
 
+  /// Filtro por cuenta (spec §7.3.4): vacío = todas. Se ofrecen las que no
+  /// son de crédito y están activas.
+  Set<String> _filtro = {};
+  List<Cuenta> _cuentas = const [];
+
   @override
   void initState() {
     super.initState();
@@ -59,14 +65,33 @@ class _VistaIngresosState extends State<VistaIngresos> {
   }
 
   Future<void> _cargar() async {
+    final cuentas = await widget.cuentaRepositorio.listarTodas();
     final reporte = calcularReporteIngresos(
       movimientosCuenta: await widget.movimientoCuentaRepositorio.listarTodos(),
       categorias: await widget.categoriaIngresoRepositorio.listarTodas(),
-      cuentas: await widget.cuentaRepositorio.listarTodas(),
+      cuentas: cuentas,
       gastos: await widget.movimientoRepositorio.listarTodos(),
       rango: _rango,
+      soloCuentas: _filtro,
     );
-    if (mounted) setState(() => _reporte = reporte);
+    if (!mounted) return;
+    setState(() {
+      _reporte = reporte;
+      _cuentas = [for (final c in cuentas) if (c.activa && c.tipo != TipoCuenta.credito) c];
+    });
+  }
+
+  /// Una cuenta entra o sale del filtro; sin ninguna, son todas.
+  Future<void> _alternarCuenta(String? id) async {
+    setState(() {
+      if (id == null) {
+        _filtro = {};
+      } else {
+        _filtro = {..._filtro};
+        if (!_filtro.remove(id)) _filtro.add(id);
+      }
+    });
+    await _cargar();
   }
 
   Future<void> _elegir(_Atajo atajo) async {
@@ -131,6 +156,30 @@ class _VistaIngresosState extends State<VistaIngresos> {
         ],
       ),
     );
+    // Solo con más de una cuenta hay algo que filtrar.
+    final porCuenta = _cuentas.length < 2
+        ? null
+        : SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+            child: Row(
+              children: [
+                FilterChip(
+                  label: const Text('Todas las cuentas'),
+                  selected: _filtro.isEmpty,
+                  onSelected: (_) => _alternarCuenta(null),
+                ),
+                for (final c in _cuentas) ...[
+                  const SizedBox(width: 8),
+                  FilterChip(
+                    label: Text('${c.emoji} ${c.nombre}'),
+                    selected: _filtro.contains(c.id),
+                    onSelected: (_) => _alternarCuenta(c.id),
+                  ),
+                ],
+              ],
+            ),
+          );
     final quedo = r.quedo;
     final gastadoPorciento = r.porcentajeGastado;
     final dominante = r.fuenteDominante;
@@ -142,6 +191,7 @@ class _VistaIngresosState extends State<VistaIngresos> {
       padding: const EdgeInsets.only(bottom: 32),
       children: [
         atajos,
+        ?porCuenta,
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
           child: TarjetaApp(
@@ -196,6 +246,10 @@ class _VistaIngresosState extends State<VistaIngresos> {
                   if (gastadoPorciento != null) ...[
                     const SizedBox(height: 10),
                     Text('De cada \$100 que entraron, gastaste \$$gastadoPorciento.', style: textos.etiqueta),
+                  ],
+                  if (_filtro.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text('Solo cuenta lo que gastaste con las cuentas elegidas.', style: textos.etiqueta),
                   ],
                 ],
               ),

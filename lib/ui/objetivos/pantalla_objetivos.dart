@@ -5,6 +5,7 @@ import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../data/repositorios/objetivo_repositorio.dart';
+import '../../domain/cuentas/apartados.dart';
 import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/objetivo.dart';
@@ -236,6 +237,9 @@ class _PantallaObjetivosState extends State<PantallaObjetivos> {
                   _TarjetaObjetivo(
                     progreso: x,
                     cuenta: _cuentas[x.objetivo.cuentaId],
+                    nombreDeCuenta: _cuentas[x.objetivo.cuentaId] == null
+                        ? null
+                        : nombreConCuenta(_cuentas[x.objetivo.cuentaId]!, _cuentas.values.toList()),
                     alTocar: () => _editar(x.objetivo),
                   ),
                 OutlinedButton.icon(onPressed: _editar, icon: const Icon(Icons.add), label: const Text('Nuevo objetivo')),
@@ -266,9 +270,12 @@ class _PantallaObjetivosState extends State<PantallaObjetivos> {
 class _TarjetaObjetivo extends StatelessWidget {
   final ProgresoObjetivo progreso;
   final Cuenta? cuenta;
+
+  /// "Viaje · BBVA débito" si la cuenta es un apartado (spec §7.3.5).
+  final String? nombreDeCuenta;
   final VoidCallback alTocar;
 
-  const _TarjetaObjetivo({required this.progreso, required this.cuenta, required this.alTocar});
+  const _TarjetaObjetivo({required this.progreso, required this.cuenta, required this.alTocar, this.nombreDeCuenta});
 
   @override
   Widget build(BuildContext context) {
@@ -312,7 +319,7 @@ class _TarjetaObjetivo extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(x.objetivo.nombre, overflow: TextOverflow.ellipsis, style: textos.cuerpoFuerte),
-                      if (cuenta != null) Text(cuenta!.nombre, style: textos.etiqueta),
+                      if (cuenta != null) Text(nombreDeCuenta ?? cuenta!.nombre, style: textos.etiqueta),
                     ],
                   ),
                 ),

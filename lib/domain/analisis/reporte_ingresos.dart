@@ -89,13 +89,19 @@ final class ReporteIngresos {
 /// Ingreso = abono activo a una cuenta que no sea de crédito (ahí un abono
 /// baja la deuda), con fecha en [rango]. Transferencias y ajustes no
 /// cuentan: no es dinero nuevo.
+///
+/// Con [soloCuentas] (spec §7.3.4, filtro por cuenta) solo entran los
+/// abonos a esas cuentas y, en "contra lo gastado", lo gastado con ellas.
+/// `null` o vacío = todas.
 ReporteIngresos calcularReporteIngresos({
   required List<MovimientoCuenta> movimientosCuenta,
   required List<CategoriaIngreso> categorias,
   required List<Cuenta> cuentas,
   required List<Movimiento> gastos,
   required RangoFechas rango,
+  Set<String>? soloCuentas,
 }) {
+  final filtro = soloCuentas == null || soloCuentas.isEmpty ? null : soloCuentas;
   final cuentaPorId = {for (final c in cuentas) c.id: c};
   final categoriaPorId = {for (final c in categorias) c.id: c};
   final abonos = [
@@ -104,7 +110,8 @@ ReporteIngresos calcularReporteIngresos({
           m.estado == EstadoMovimientoCuenta.activo &&
           rango.contiene(m.fecha) &&
           cuentaPorId[m.cuentaId] != null &&
-          cuentaPorId[m.cuentaId]!.tipo != TipoCuenta.credito)
+          cuentaPorId[m.cuentaId]!.tipo != TipoCuenta.credito &&
+          (filtro == null || filtro.contains(m.cuentaId)))
         m,
   ];
 
@@ -159,7 +166,10 @@ ReporteIngresos calcularReporteIngresos({
     mesMasAlto: masAlto,
     mayor: mayor,
     gastado: Dinero(gastos
-        .where((g) => g.estado == EstadoMovimiento.activo && rango.contiene(g.fecha))
+        .where((g) =>
+            g.estado == EstadoMovimiento.activo &&
+            rango.contiene(g.fecha) &&
+            (filtro == null || filtro.contains(cuentaDe(g))))
         .fold<int>(0, (s, g) => s + g.monto.centavos)),
   );
 }

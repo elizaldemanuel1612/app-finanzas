@@ -385,7 +385,18 @@ Las categorías de siempre son de **gasto**. Aparte existe un catálogo de **cat
 - **Dónde se administran.** En la misma pantalla de Categorías (Ajustes → Tu plan → Categorías y presupuestos), con un selector **Gastos | Ingresos** arriba; el ＋ crea del tipo que se está viendo.
 - **Abonos.** `MovimientoCuenta.categoriaIngresoId` (opcional, solo abonos). Al registrar un abono se elige la categoría entre las **de ingreso** activas (se puede crear una ahí mismo) y se escribe la nota, como en un gasto. En una tarjeta de crédito no se pide: un abono ahí baja la deuda, no es dinero que entra. Al registrar un **gasto** solo se ofrecen categorías de gasto. Los abonos de antes quedan "Sin categoría".
 - **Análisis → Ingresos** (quinta vista, `domain/analisis/reporte_ingresos.dart`, `calcularReporteIngresos`). Ingreso = abono activo a una cuenta que no sea de crédito, con fecha en el rango (transferencias y ajustes no cuentan: no es dinero nuevo). Rango: **Este ciclo** (por omisión), Este año, Últimos 12 meses o Elegir fechas. Muestra: total, cuántos abonos y promedio por mes; **contra lo gastado** en las mismas fechas (cuánto quedó y qué parte de lo que entró se gastó); **por categoría** (monto y %; si una sola pasa de 80 %, lo dice: se depende de una fuente); **mes por mes** (≤ 13 meses); **a qué cuenta entró**; y el ingreso más grande. Solo consulta.
+- **Filtro por cuenta (2026-11-15):** chips con las cuentas que no son de crédito; se puede elegir una, varias o todas (por omisión). Con filtro, todo el reporte —incluido "contra lo gastado", que entonces solo cuenta lo gastado con esas cuentas— se limita a ellas.
 - No reemplaza al ingreso base ni a los ingresos extra del ciclo (§5.6.1), que siguen siendo los del presupuesto; un abono puede seguir marcándose "También es ingreso de este ciclo".
+
+### 7.3.5 [NUEVO] Apartados dentro de una cuenta (2026-11-15)
+
+Por qué: muchos bancos (y Cetes) dejan separar el dinero en "apartados" o "cajitas" dentro de la misma cuenta; el usuario quiere juntar ahí sus objetivos sin abrir otra cuenta.
+
+- Un **apartado** es una cuenta de ahorro (`TipoCuenta.ahorro`) con `Cuenta.cuentaPadreId`: la cuenta de débito o de ahorro donde vive. No hay apartados de apartados, ni de efectivo o crédito. Siempre lleva saldo y no se paga con él (como toda cuenta de ahorro).
+- **El dinero se mueve con transferencias** entre la cuenta y su apartado ("Guardar" y "Sacar"), igual que en el banco: lo que se guarda deja de estar disponible en la cuenta. Al crear el apartado se puede pasar de una vez lo que ya tiene. El saldo se calcula siempre (§7.3.1), nunca se guarda.
+- **Patrimonio:** el apartado cuenta como ahorro (`sumaDeAhorros`), y su cuenta solo con lo que queda disponible: el total no cambia al guardar o sacar.
+- **Pantallas:** el detalle de una cuenta de débito o de ahorro lista sus apartados, con "Nuevo apartado", y dice cuánto hay en total sumando lo apartado. En Tus cuentas los apartados van en "Ahorro", cada uno con la cuenta donde vive. El detalle de un apartado ofrece "Guardar" (desde su cuenta) y "Sacar" (a su cuenta) y "Actualizar valor" (rendimientos).
+- **Objetivos (§7.3.3):** un objetivo se puede juntar en un apartado; se muestra como "Viaje · BBVA débito".
 
 ### 7.4 [NUEVO] Exportación y portabilidad
 Exportar todo a Excel/CSV cuando quieras. No quedas atrapado en la app — y te da una red de seguridad psicológica al abandonar el Excel.

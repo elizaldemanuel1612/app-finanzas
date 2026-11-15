@@ -395,16 +395,24 @@ const _temaPatrimonioYObjetivos = TemaGuia(
       'lo corriges con **Actualizar valor**. Al cerrar un ciclo, la app te '
       'ofrece pasar lo apartado a tu ahorro.',
     ),
+    Subtitulo('Apartados'),
+    Parrafo(
+      'Como en tu banco o en CETES, puedes separar dinero dentro de una '
+      'cuenta de débito o de ahorro: entra a la cuenta y toca **Nuevo '
+      'apartado**. Lo que guardas deja de estar disponible en la cuenta pero '
+      'sigue siendo tuyo; desde el apartado usas **Guardar** y **Sacar** para '
+      'moverlo. Tu patrimonio no cambia.',
+    ),
     Subtitulo('Objetivos'),
     Parrafo(
       'En Patrimonio → Objetivos creas un **Nuevo objetivo** ("Viaje", '
       '"Fondo de emergencias") con su monto, su fecha y la cuenta de ahorro '
-      'donde vive. Su avance es el saldo de esa cuenta: no hay que '
+      'o el apartado donde vive. Su avance es el saldo de esa cuenta: no hay que '
       'registrarlo aparte. Arriba ves **Llevas ahorrado** de todos juntos.',
     ),
     Parrafo(
       'Cada objetivo te dice si vas a tiempo o lento para llegar a su fecha y '
-      'cuánto apartar por ciclo. Si ya pasó la fecha, **Cambiar fecha** lo '
+      'cuánto apartar en cada ciclo, según los días que quedan de cada uno. Si ya pasó la fecha, **Cambiar fecha** lo '
       'pone al día.',
     ),
   ],

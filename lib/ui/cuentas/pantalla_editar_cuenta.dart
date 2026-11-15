@@ -44,7 +44,9 @@ class _PantallaEditarCuentaState extends State<PantallaEditarCuenta> {
   bool _guardando = false;
 
   /// El efectivo base no cambia de tipo: es "el efectivo".
-  bool get _tipoFijo => widget.existente?.id == idCuentaEfectivo;
+  /// El efectivo base siempre es efectivo, y un apartado siempre es ahorro
+  /// (spec §7.3.5).
+  bool get _tipoFijo => widget.existente?.id == idCuentaEfectivo || (widget.existente?.esApartado ?? false);
 
   bool get _llevaSaldo => _tipo.siempreLlevaSaldo || _llevaSaldoElegido;
 
