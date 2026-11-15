@@ -18,12 +18,11 @@ import '../comun/aviso.dart';
 import '../comun/chip_estado.dart';
 import '../comun/esqueleto.dart';
 import '../comun/formato_dinero.dart';
+import '../comun/formato_fecha.dart';
 import '../comun/renglon_app.dart';
 import '../comun/tarjeta_app.dart';
 import '../comun/tema.dart';
 import 'pantalla_editar_objetivo.dart';
-
-const _meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 /// "3 ciclos", "1 ciclo".
 String _ciclos(int n) => '$n ${n == 1 ? 'ciclo' : 'ciclos'}';
@@ -41,9 +40,20 @@ String fraseDeObjetivo(ProgresoObjetivo p) {
           ? 'Faltan ${p.falta.formateado()}.'
           : 'Faltan ${p.falta.formateado()}: con lo que apartas por ciclo llegarías en ${_ciclos(alRitmo)}.';
     case EstadoObjetivo.enCamino:
+      // Repartido por los días de cada ciclo hasta la fecha (spec §7.3.3):
+      // si la fecha cae a 4 días de un corte, ese ciclo pide poco.
       final fecha = p.objetivo.fechaLimite!;
-      final base = 'Para ${_meses[fecha.month - 1]} ${fecha.year}: aparta ${p.porCiclo!.formateado()} por ciclo '
-          '(${p.ciclosRestantes == 1 ? 'queda' : 'quedan'} ${_ciclos(p.ciclosRestantes!)}).';
+      final r = p.reparto;
+      final anio = fecha.year == r.first.ciclo.fechaInicio.year ? '' : ' ${fecha.year}';
+      final cuando = 'Para el ${fechaCorta(fecha)}$anio';
+      final este = '${enPesos(r.first.monto)} en este ciclo';
+      final base = switch (r.length) {
+        1 => '$cuando: aparta $este.',
+        2 => '$cuando: aparta $este y ${enPesos(r[1].monto)} en el siguiente.',
+        _ => '$cuando: aparta $este y unos '
+            '${enPesos(r.skip(1).map((t) => t.monto).reduce((a, b) => a.centavos >= b.centavos ? a : b))} '
+            'en cada uno de los ${r.length - 1} siguientes.',
+      };
       return switch (p.alcanzaATiempo) {
         null => base,
         true => '$base Con lo que apartas hoy, llegas a tiempo.',
