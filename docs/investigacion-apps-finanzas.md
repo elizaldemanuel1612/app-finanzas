@@ -55,8 +55,8 @@ MAVfin ya evita las tres quejas grandes (no depende de bancos, no cobra, las cat
 | # | Qué | Estado |
 |---|---|---|
 | 1 | **Ahorro, inversiones y patrimonio:** dónde vive lo que se aparta y cuánto vale todo | **Hecho 2026-11-14** (spec §7.3.2) |
-| 2 | **Metas con nombre** ("Fondo de emergencia $100,000", "Viaje en junio"): progreso contra una cuenta de ahorro y cuánto apartar por ciclo para llegar a la fecha | Pendiente |
-| 3 | **Patrimonio en el tiempo:** gráfica por ciclo (el saldo ya se calcula desde los movimientos; falta poder calcularlo a una fecha) | Pendiente |
+| 2 | **Metas con nombre** ("Fondo de emergencia $100,000", "Viaje en junio"): progreso contra una cuenta de ahorro y cuánto apartar por ciclo para llegar a la fecha | **Hecho 2026-11-14** (spec §7.3.3) |
+| 3 | **Patrimonio en el tiempo:** gráfica por ciclo en Tus cuentas | **Hecho 2026-11-14** (spec §7.3.3) |
 | 4 | **Tarjeta de crédito: corte y fecha de pago,** con "paga antes del día X" en Inicio | Pendiente (segunda etapa de §7.3.1) |
 | 5 | **Resumen del año y rango de fechas** en Análisis | Pendiente |
 | 6 | **Gastos que se repiten** (suscripciones): detectarlos por descripción y monto, y cuánto suman al año | Pendiente |

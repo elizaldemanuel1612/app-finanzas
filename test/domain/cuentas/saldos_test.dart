@@ -1,3 +1,4 @@
+import 'package:app_finanzas/core/ciclo.dart';
 import 'package:app_finanzas/core/money.dart';
 import 'package:app_finanzas/domain/cuentas/saldos.dart';
 import 'package:app_finanzas/domain/modelos/categoria.dart';
@@ -362,6 +363,75 @@ void main() {
         cicloId: '2026-11',
       );
       expect(r.map((x) => x.cuenta.id), ['bbva']);
+    });
+  });
+
+  group('patrimonio por ciclo (spec §7.3.3)', () {
+    const calc = CalculadoraCiclo(1);
+    Cuenta cuenta(String id, TipoCuenta tipo, int saldo, DateTime desde, {bool activa = true}) => Cuenta(
+          id: id,
+          nombre: id,
+          emoji: '💳',
+          tipo: tipo,
+          llevaSaldo: true,
+          saldoInicial: Dinero.pesos(saldo),
+          fechaSaldoInicial: desde,
+          activa: activa,
+        );
+
+    test('un punto por ciclo desde la primera cuenta; cada una cuenta desde su fecha', () {
+      final cuentas = [
+        cuenta('bbva', TipoCuenta.debito, 1000, DateTime(2026, 9, 10)),
+        cuenta('cetes', TipoCuenta.ahorro, 5000, DateTime(2026, 10, 5)),
+        cuenta('amex', TipoCuenta.credito, -300, DateTime(2026, 11, 2)),
+        cuenta('vieja', TipoCuenta.debito, 99999, DateTime(2026, 1, 1), activa: false),
+        ...cuentasBase(DateTime(2026, 1, 1)),
+      ];
+      final gastos = [
+        _gasto(100, fecha: DateTime(2026, 9, 30, 20)),
+        _gasto(50, fecha: DateTime(2026, 10, 31, 23, 30)),
+        _gasto(25, fecha: DateTime(2026, 11, 20)), // después de hoy: aún no cuenta
+      ];
+      final puntos = patrimonioPorCiclo(
+        cuentas: cuentas,
+        gastos: gastos,
+        movimientosCuenta: const [],
+        hoy: DateTime(2026, 11, 14, 10),
+        calculadora: calc,
+      );
+      expect(puntos.map((p) => p.ciclo.id), ['2026-09', '2026-10', '2026-11']);
+      expect(puntos.map((p) => p.enCurso), [false, false, true]);
+      expect(puntos[0].patrimonio.total, const Dinero.pesos(900));
+      expect(puntos[1].patrimonio.total, const Dinero.pesos(850 + 5000));
+      expect(puntos[2].patrimonio.total, const Dinero.pesos(850 + 5000 - 300));
+      expect(puntos[2].patrimonio.deudas, const Dinero.pesos(300));
+    });
+
+    test('sin cuentas con saldo no hay puntos; con mucha historia, los últimos', () {
+      expect(
+        patrimonioPorCiclo(
+          cuentas: cuentasBase(DateTime(2026, 1, 1)),
+          gastos: const [],
+          movimientosCuenta: const [],
+          hoy: DateTime(2026, 11, 14),
+          calculadora: calc,
+        ),
+        isEmpty,
+      );
+      final futura = [cuenta('bbva', TipoCuenta.debito, 1, DateTime(2027, 1, 1))];
+      expect(
+        patrimonioPorCiclo(cuentas: futura, gastos: const [], movimientosCuenta: const [], hoy: DateTime(2026, 11, 14), calculadora: calc),
+        isEmpty,
+      );
+      final larga = patrimonioPorCiclo(
+        cuentas: [cuenta('bbva', TipoCuenta.debito, 1, DateTime(2025, 1, 15))],
+        gastos: const [],
+        movimientosCuenta: const [],
+        hoy: DateTime(2026, 11, 14),
+        calculadora: calc,
+        maximo: 3,
+      );
+      expect(larga.map((p) => p.ciclo.id), ['2026-09', '2026-10', '2026-11']);
     });
   });
 }

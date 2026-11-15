@@ -17,6 +17,7 @@ import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
 import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/cuenta.dart';
+import '../../domain/objetivos/progreso_objetivos.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/apartado_estimado.dart';
@@ -32,6 +33,7 @@ import '../analisis/pantalla_analisis.dart';
 import '../captura/pantalla_captura.dart';
 import '../cuentas/color_saldo.dart';
 import '../cuentas/pantalla_cuentas.dart';
+import '../objetivos/pantalla_objetivos.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../categorias/pantalla_detalle_categoria.dart';
 import '../ciclo/pantalla_ciclos_anteriores.dart';
@@ -189,6 +191,15 @@ class _PantallaInicioState extends State<PantallaInicio> {
     final cuentas = await widget.almacenLocal.cuentas.listarTodas();
     final gastos = await widget.movimientoRepositorio.listarTodos();
     final abonos = await widget.almacenLocal.movimientosCuenta.listarTodos();
+    final objetivos = calcularProgresoObjetivos(
+      objetivos: await widget.almacenLocal.objetivos.listarTodos(),
+      saldoPorCuenta: {
+        for (final c in cuentas)
+          if (c.tipo == TipoCuenta.ahorro) c.id: ?saldoDe(c, gastos, abonos),
+      },
+      hoy: DateTime.now(),
+      calculadora: _perfil.calculadoraCiclo,
+    );
     if (!mounted) return;
     setState(() {
       _saldos = [
@@ -197,7 +208,36 @@ class _PantallaInicioState extends State<PantallaInicio> {
             if (saldoDe(c, gastos, abonos) case final saldo?) (c, saldo),
       ];
       _patrimonio = calcularPatrimonio(cuentas, gastos, abonos);
+      _objetivos = objetivos;
     });
+  }
+
+  /// Resumen de los objetivos de ahorro (spec §7.3.3) para su renglón.
+  List<ProgresoObjetivo> _objetivos = const [];
+
+  /// "Viaje: 40 % · y 2 más", o la invitación a crear el primero.
+  String get _resumenObjetivos {
+    if (_objetivos.isEmpty) return 'Ponle nombre y monto a lo que quieres lograr';
+    // El primero que aún no se logra; si todos se lograron, el primero.
+    final p = _objetivos.where((o) => o.estado != EstadoObjetivo.logrado).firstOrNull ?? _objetivos.first;
+    final otros = _objetivos.length - 1;
+    return '${p.objetivo.nombre}: ${(p.avance * 100).floor()}%${otros > 0 ? ' · y $otros más' : ''}';
+  }
+
+  Future<void> _irAObjetivos() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaObjetivos(
+          perfil: _perfil,
+          objetivoRepositorio: widget.almacenLocal.objetivos,
+          cuentaRepositorio: widget.almacenLocal.cuentas,
+          movimientoRepositorio: widget.movimientoRepositorio,
+          movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
+          categoriaRepositorio: widget.categoriaRepositorio,
+        ),
+      ),
+    );
+    await _cargar();
   }
 
   Future<void> _irACuentas() async {
@@ -619,6 +659,16 @@ class _PantallaInicioState extends State<PantallaInicio> {
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
             subtitle: const Text('Revisa cómo te fue en meses pasados'),
+            trailing: Icon(Icons.chevron_right, color: ColoresApp.medio),
+          ),
+        ),
+        Card(
+          margin: const EdgeInsets.only(top: 12),
+          child: ListTile(
+            onTap: _irAObjetivos,
+            leading: Icon(Icons.flag_outlined, color: ColoresApp.medio),
+            title: const Text('Objetivos de ahorro', style: TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(_resumenObjetivos),
             trailing: Icon(Icons.chevron_right, color: ColoresApp.medio),
           ),
         ),

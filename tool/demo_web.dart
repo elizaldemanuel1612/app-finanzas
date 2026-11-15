@@ -12,6 +12,8 @@ import 'package:app_finanzas/data/repositorios/local/almacen_local.dart';
 import 'package:app_finanzas/domain/modelos/categoria.dart';
 import 'package:app_finanzas/domain/modelos/ciclo_guardado.dart';
 import 'package:app_finanzas/domain/modelos/cuenta.dart';
+import 'package:app_finanzas/domain/modelos/movimiento_cuenta.dart';
+import 'package:app_finanzas/domain/modelos/objetivo.dart';
 import 'package:app_finanzas/domain/modelos/estado_movimiento.dart';
 import 'package:app_finanzas/domain/modelos/movimiento.dart';
 import 'package:app_finanzas/domain/modelos/perfil.dart';
@@ -80,8 +82,37 @@ Future<void> main() async {
     emoji: '🌱',
     tipo: TipoCuenta.ahorro,
     llevaSaldo: true,
-    saldoInicial: const Dinero.pesos(42000),
-    fechaSaldoInicial: inicioCiclo,
+    saldoInicial: const Dinero.pesos(30000),
+    fechaSaldoInicial: DateTime(inicioCiclo.year, inicioCiclo.month - 3, 5),
+  ));
+  // Un aporte por ciclo, para que el patrimonio por ciclo tenga historia.
+  for (final (i, pesos) in const [3500, 4000, 4500].indexed) {
+    await almacen.movimientosCuenta.guardar(MovimientoCuenta(
+      clientId: 'demo-aporte-$i',
+      cuentaId: 'cetes',
+      fecha: DateTime(inicioCiclo.year, inicioCiclo.month - 2 + i, 2),
+      monto: Dinero.pesos(pesos),
+      tipo: TipoMovimientoCuenta.abono,
+      entra: true,
+      estado: EstadoMovimientoCuenta.activo,
+    ));
+  }
+  await almacen.objetivos.guardar(Objetivo(
+    id: 'fondo',
+    nombre: 'Fondo de emergencia',
+    emoji: '🛟',
+    monto: const Dinero.pesos(35000),
+    cuentaId: 'cetes',
+    creado: inicioCiclo,
+  ));
+  await almacen.objetivos.guardar(Objetivo(
+    id: 'viaje',
+    nombre: 'Viaje a Japón',
+    emoji: '🗾',
+    monto: const Dinero.pesos(60000),
+    cuentaId: 'cetes',
+    creado: inicioCiclo,
+    fechaLimite: DateTime(inicioCiclo.year, inicioCiclo.month + 8, 15),
   ));
   final hoy = DateTime.now();
   final calculadora = perfil.calculadoraCiclo;

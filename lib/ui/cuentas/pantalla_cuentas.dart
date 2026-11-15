@@ -9,6 +9,7 @@ import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/perfil.dart';
 import '../comun/guia_rapida.dart';
+import '../analisis/graficas_analisis.dart';
 import '../comun/tema.dart';
 import 'color_saldo.dart';
 import 'hoja_transferencia.dart';
@@ -46,6 +47,9 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
   );
   bool _verArchivadas = false;
 
+  /// Un punto por ciclo (spec §7.3.3); con menos de dos no hay gráfica.
+  List<PatrimonioDeCiclo> _porCiclo = const [];
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +65,14 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
     setState(() {
       _cuentas = [for (final c in cuentas) (c, saldoDe(c, gastos, abonos))];
       _patrimonio = calcularPatrimonio(cuentas, gastos, abonos);
+      _porCiclo = patrimonioPorCiclo(
+        cuentas: cuentas,
+        gastos: gastos,
+        movimientosCuenta: abonos,
+        hoy: DateTime.now(),
+        calculadora: widget.perfil.calculadoraCiclo,
+        maximo: 6,
+      );
     });
   }
 
@@ -142,6 +154,10 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
                     ),
                   ),
                 ),
+                if (_porCiclo.length > 1) ...[
+                  const SizedBox(height: 12),
+                  _TarjetaPatrimonioPorCiclo(_porCiclo),
+                ],
                 const SizedBox(height: 12),
                 Text(
                   'Al registrar un gasto eliges con cuál pagaste. Las de débito llevan su saldo; en las de crédito '
@@ -160,6 +176,58 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
                 ],
               ],
             ),
+    );
+  }
+}
+
+/// Cómo ha cambiado el patrimonio, ciclo a ciclo (spec §7.3.3).
+class _TarjetaPatrimonioPorCiclo extends StatelessWidget {
+  final List<PatrimonioDeCiclo> puntos;
+
+  const _TarjetaPatrimonioPorCiclo(this.puntos);
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final cambio = puntos.last.patrimonio.total - puntos.first.patrimonio.total;
+    final desde = puntos.first.ciclo.etiquetaConAnio;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Tu patrimonio por ciclo', style: textos.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              cambio.esCero
+                  ? 'Igual que al cierre de $desde.'
+                  : cambio.esPositivo
+                      ? 'Creció ${cambio.formateado()} desde el cierre de $desde.'
+                      : 'Bajó ${cambio.absoluto.formateado()} desde el cierre de $desde.',
+              style: textos.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: cambio.esNegativo ? ColoresApp.coralTexto : ColoresApp.verdeTexto,
+              ),
+            ),
+            const SizedBox(height: 12),
+            GraficaBarras(
+              valores: [for (final p in puntos) p.patrimonio.total],
+              etiquetas: [for (final p in puntos) p.ciclo.etiqueta],
+              atenuadas: {for (final (i, p) in puntos.indexed) if (p.enCurso) i},
+              conMontos: true,
+              descripcion: [
+                for (final p in puntos) '${p.ciclo.etiquetaConAnio} ${p.patrimonio.total.formateado()}',
+              ].join(', '),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Al cierre de cada ciclo; el que corre va en tono claro, a hoy. Cada cuenta entra desde que la diste de alta.',
+              style: textos.labelSmall,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

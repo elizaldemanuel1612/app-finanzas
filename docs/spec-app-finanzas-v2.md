@@ -343,6 +343,16 @@ Por qué: la app ya decía cuánto se aparta cada ciclo, pero ese dinero no viv�
 - **Conexión con el cierre del ciclo:** un ciclo cerrado con apartado positivo pregunta "¿Ya está en tu ahorro?" y ofrece "Pasarlo a mi ahorro": abre la transferencia hacia la cuenta de ahorro con el monto ya escrito; si aún no hay ninguna, primero la crea. Es una oferta, nunca automático.
 - No es asesoría: la app no recomienda instrumentos ni estima rendimientos; solo lleva lo que el usuario le dice que tiene.
 
+### 7.3.3 [NUEVO] Objetivos de ahorro y patrimonio por ciclo (2026-11-14)
+
+Por qué: las metas con nombre son de lo más elogiado y pedido en las apps de finanzas (`docs/investigacion-apps-finanzas.md`); la "meta de apartado" (§5.6) dice cuánto apartar cada ciclo, pero no para qué ni cuánto falta.
+
+- **Objetivo** (`domain/modelos/objetivo.dart`, en `objetivos.json`, se respalda en Drive por `id`): nombre, emoji, monto, fecha límite opcional y la **cuenta de ahorro** donde se junta. Se archiva, no se borra.
+- **El avance no se guarda: es el saldo de su cuenta de ahorro** (`calcularProgresoObjetivos`, `domain/objetivos/progreso_objetivos.dart`). Si varios objetivos comparten cuenta, el saldo los llena en orden de creación: el primero se completa antes de que el segundo reciba algo. Para sumarle se aporta a la cuenta (§7.3.2); no hay "abonos al objetivo" aparte que puedan descuadrarse.
+- **Con fecha:** ciclos que quedan (contando el que corre y el de la fecha, con `perfil.calculadoraCiclo`) y cuánto apartar por ciclo para llegar (hacia arriba al centavo). Se compara con lo que se aparta de siempre (`calcularMetaBase`, sin extras): "Con lo que apartas hoy, llegas a tiempo" o "llegarías en N ciclos". Fecha vencida sin juntarlo: se dice, y se pide una fecha nueva. **Sin fecha:** cuánto falta y en cuántos ciclos se llegaría a ese ritmo. Siempre con su frase (regla #23).
+- **Dónde:** renglón "Objetivos de ahorro" en Inicio (con el primero que aún no se logra) y en Ajustes → Tu plan. `lib/ui/objetivos/`.
+- **Patrimonio por ciclo** (`patrimonioPorCiclo`, `domain/cuentas/saldos.dart`): el patrimonio al cierre de cada ciclo y a hoy en el que corre, hasta 6, en "Tus cuentas", con "Creció/Bajó $X desde el cierre de …". Sale de los mismos movimientos (`saldoDe(…, hasta:)`), no de una foto guardada; cada cuenta entra desde su `fechaSaldoInicial`, así que dar de alta una cuenta se ve como un salto (se avisa al pie).
+
 ### 7.4 [NUEVO] Exportación y portabilidad
 Exportar todo a Excel/CSV cuando quieras. No quedas atrapado en la app — y te da una red de seguridad psicológica al abandonar el Excel.
 

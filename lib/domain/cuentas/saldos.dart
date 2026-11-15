@@ -1,3 +1,4 @@
+import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../modelos/categoria.dart';
 import '../modelos/cuenta.dart';
@@ -9,9 +10,19 @@ import '../modelos/movimiento_cuenta.dart';
 /// nunca se guarda, así editar o anular un gasto lo corrige solo. Cuenta lo
 /// que pasó desde [Cuenta.fechaSaldoInicial] (inclusive). `null` si la
 /// cuenta no lleva saldo.
-Dinero? saldoDe(Cuenta cuenta, List<Movimiento> gastos, List<MovimientoCuenta> movimientosCuenta) {
+///
+/// Con [hasta], el saldo como estaba ese momento (lo de después no cuenta);
+/// `null` si la cuenta aún no llevaba saldo entonces.
+Dinero? saldoDe(
+  Cuenta cuenta,
+  List<Movimiento> gastos,
+  List<MovimientoCuenta> movimientosCuenta, {
+  DateTime? hasta,
+}) {
   if (!cuenta.llevaSaldo) return null;
-  bool cuenta_(DateTime fecha) => !fecha.isBefore(cuenta.fechaSaldoInicial);
+  if (hasta != null && cuenta.fechaSaldoInicial.isAfter(hasta)) return null;
+  bool cuenta_(DateTime fecha) =>
+      !fecha.isBefore(cuenta.fechaSaldoInicial) && (hasta == null || !fecha.isAfter(hasta));
   var centavos = cuenta.saldoInicial.centavos;
   for (final m in movimientosCuenta) {
     if (m.toca(cuenta.id) && m.estado == EstadoMovimientoCuenta.activo && cuenta_(m.fecha)) {
@@ -29,21 +40,31 @@ Dinero? saldoDe(Cuenta cuenta, List<Movimiento> gastos, List<MovimientoCuenta> m
 /// Lo que hay para gastar: efectivo y débito que llevan saldo (las activas).
 /// Las de crédito no entran —lo que se debe va aparte, en [sumaDeDeudas]—
 /// ni las de ahorro, que van en [sumaDeAhorros].
-Dinero sumaDeSaldos(List<Cuenta> cuentas, List<Movimiento> gastos, List<MovimientoCuenta> movimientosCuenta) {
+Dinero sumaDeSaldos(
+  List<Cuenta> cuentas,
+  List<Movimiento> gastos,
+  List<MovimientoCuenta> movimientosCuenta, {
+  DateTime? hasta,
+}) {
   var centavos = 0;
   for (final c in cuentas) {
     if (!c.activa || c.tipo == TipoCuenta.credito || c.tipo == TipoCuenta.ahorro) continue;
-    centavos += saldoDe(c, gastos, movimientosCuenta)?.centavos ?? 0;
+    centavos += saldoDe(c, gastos, movimientosCuenta, hasta: hasta)?.centavos ?? 0;
   }
   return Dinero(centavos);
 }
 
 /// Lo que hay en las cuentas de ahorro e inversión activas (spec §7.3.2).
-Dinero sumaDeAhorros(List<Cuenta> cuentas, List<Movimiento> gastos, List<MovimientoCuenta> movimientosCuenta) {
+Dinero sumaDeAhorros(
+  List<Cuenta> cuentas,
+  List<Movimiento> gastos,
+  List<MovimientoCuenta> movimientosCuenta, {
+  DateTime? hasta,
+}) {
   var centavos = 0;
   for (final c in cuentas) {
     if (!c.activa || c.tipo != TipoCuenta.ahorro) continue;
-    centavos += saldoDe(c, gastos, movimientosCuenta)?.centavos ?? 0;
+    centavos += saldoDe(c, gastos, movimientosCuenta, hasta: hasta)?.centavos ?? 0;
   }
   return Dinero(centavos);
 }
@@ -64,29 +85,93 @@ final class Patrimonio {
   Dinero get total => disponible + ahorros - deudas;
 }
 
-Patrimonio calcularPatrimonio(List<Cuenta> cuentas, List<Movimiento> gastos, List<MovimientoCuenta> movimientosCuenta) =>
+Patrimonio calcularPatrimonio(
+  List<Cuenta> cuentas,
+  List<Movimiento> gastos,
+  List<MovimientoCuenta> movimientosCuenta, {
+  DateTime? hasta,
+}) =>
     Patrimonio(
-      disponible: sumaDeSaldos(cuentas, gastos, movimientosCuenta),
-      ahorros: sumaDeAhorros(cuentas, gastos, movimientosCuenta),
-      deudas: sumaDeDeudas(cuentas, gastos, movimientosCuenta),
+      disponible: sumaDeSaldos(cuentas, gastos, movimientosCuenta, hasta: hasta),
+      ahorros: sumaDeAhorros(cuentas, gastos, movimientosCuenta, hasta: hasta),
+      deudas: sumaDeDeudas(cuentas, gastos, movimientosCuenta, hasta: hasta),
     );
+
+/// El patrimonio al terminar un ciclo (o a hoy, en el que corre).
+final class PatrimonioDeCiclo {
+  final Ciclo ciclo;
+  final Patrimonio patrimonio;
+
+  /// El ciclo que corre: su cifra es la de hoy y todavía puede moverse.
+  final bool enCurso;
+
+  const PatrimonioDeCiclo({required this.ciclo, required this.patrimonio, required this.enCurso});
+}
+
+/// Cómo ha cambiado el patrimonio (spec §7.3.3): un punto por ciclo, del
+/// más viejo al que corre, desde que la primera cuenta empezó a llevar
+/// saldo. Cada cuenta cuenta desde su [Cuenta.fechaSaldoInicial], así que
+/// dar de alta una cuenta se ve como un salto. Como mucho [maximo] ciclos.
+List<PatrimonioDeCiclo> patrimonioPorCiclo({
+  required List<Cuenta> cuentas,
+  required List<Movimiento> gastos,
+  required List<MovimientoCuenta> movimientosCuenta,
+  required DateTime hoy,
+  required CalculadoraCiclo calculadora,
+  int maximo = 12,
+}) {
+  DateTime? primera;
+  for (final c in cuentas) {
+    if (!c.activa || !c.llevaSaldo) continue;
+    if (primera == null || c.fechaSaldoInicial.isBefore(primera)) primera = c.fechaSaldoInicial;
+  }
+  if (primera == null || primera.isAfter(hoy)) return const [];
+  final actual = calculadora.calcularPara(hoy);
+  final puntos = <PatrimonioDeCiclo>[];
+  var ciclo = calculadora.calcularPara(primera);
+  while (true) {
+    final enCurso = ciclo.id == actual.id;
+    // Fin del último día del ciclo, o este momento en el que corre.
+    final corte = enCurso
+        ? hoy
+        : DateTime(ciclo.fechaFin.year, ciclo.fechaFin.month, ciclo.fechaFin.day, 23, 59, 59, 999);
+    puntos.add(PatrimonioDeCiclo(
+      ciclo: ciclo,
+      patrimonio: calcularPatrimonio(cuentas, gastos, movimientosCuenta, hasta: corte),
+      enCurso: enCurso,
+    ));
+    if (enCurso) break;
+    ciclo = calculadora.calcularPara(ciclo.fechaFin.add(const Duration(days: 1)));
+  }
+  return puntos.length > maximo ? puntos.sublist(puntos.length - maximo) : puntos;
+}
 
 /// Lo que se debe en una tarjeta de crédito que lleva saldo: positivo
 /// mientras se debe; negativo si se pagó de más (saldo a favor). `null` si
 /// no es de crédito o no lleva saldo.
-Dinero? deudaDe(Cuenta cuenta, List<Movimiento> gastos, List<MovimientoCuenta> movimientosCuenta) {
+Dinero? deudaDe(
+  Cuenta cuenta,
+  List<Movimiento> gastos,
+  List<MovimientoCuenta> movimientosCuenta, {
+  DateTime? hasta,
+}) {
   if (cuenta.tipo != TipoCuenta.credito) return null;
-  final saldo = saldoDe(cuenta, gastos, movimientosCuenta);
+  final saldo = saldoDe(cuenta, gastos, movimientosCuenta, hasta: hasta);
   return saldo == null ? null : Dinero(-saldo.centavos);
 }
 
 /// Lo que se debe en todas las tarjetas de crédito activas (sin contar los
 /// saldos a favor).
-Dinero sumaDeDeudas(List<Cuenta> cuentas, List<Movimiento> gastos, List<MovimientoCuenta> movimientosCuenta) {
+Dinero sumaDeDeudas(
+  List<Cuenta> cuentas,
+  List<Movimiento> gastos,
+  List<MovimientoCuenta> movimientosCuenta, {
+  DateTime? hasta,
+}) {
   var centavos = 0;
   for (final c in cuentas) {
     if (!c.activa) continue;
-    final deuda = deudaDe(c, gastos, movimientosCuenta);
+    final deuda = deudaDe(c, gastos, movimientosCuenta, hasta: hasta);
     if (deuda != null && deuda.esPositivo) centavos += deuda.centavos;
   }
   return Dinero(centavos);

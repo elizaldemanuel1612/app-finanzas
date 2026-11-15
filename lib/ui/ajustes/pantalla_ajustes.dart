@@ -24,6 +24,7 @@ import '../ayuda/pantalla_guia.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../seguridad/pantalla_seguridad.dart';
 import '../cuentas/pantalla_cuentas.dart';
+import '../objetivos/pantalla_objetivos.dart';
 import '../comun/apariencia.dart';
 import '../comun/documento_legal.dart';
 import '../comun/formato_fecha.dart';
@@ -490,7 +491,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                 _Renglon(
                   icono: Icons.account_balance_wallet_outlined,
                   titulo: 'Tus cuentas',
-                  subtitulo: 'Tarjetas y efectivo, con su saldo',
+                  subtitulo: 'Tarjetas, efectivo y ahorro, con tu patrimonio',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => PantallaCuentas(
@@ -499,6 +500,23 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                         movimientoRepositorio: widget.almacenLocal.movimientos,
                         movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
                         ingresoExtraRepositorio: widget.almacenLocal.ingresosExtra,
+                      ),
+                    ),
+                  ),
+                ),
+                _Renglon(
+                  icono: Icons.flag_outlined,
+                  titulo: 'Objetivos de ahorro',
+                  subtitulo: 'Para qué ahorras y cuánto llevas',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PantallaObjetivos(
+                        perfil: _perfil,
+                        objetivoRepositorio: widget.almacenLocal.objetivos,
+                        cuentaRepositorio: widget.almacenLocal.cuentas,
+                        movimientoRepositorio: widget.almacenLocal.movimientos,
+                        movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
+                        categoriaRepositorio: widget.almacenLocal.categorias,
                       ),
                     ),
                   ),
