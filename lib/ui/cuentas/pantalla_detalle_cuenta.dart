@@ -3,18 +3,21 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/money.dart';
 import '../../core/result.dart';
+import '../../data/repositorios/categoria_ingreso_repositorio.dart';
 import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/cuentas/fechas_tarjeta.dart';
 import '../../domain/cuentas/saldos.dart';
+import '../../domain/modelos/categoria_ingreso.dart';
 import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/estado_movimiento.dart';
 import '../../domain/modelos/ingreso_extra.dart';
 import '../../domain/modelos/movimiento_cuenta.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/reglas/creacion_ingreso_extra.dart';
+import '../categorias/editor_categoria_ingreso.dart';
 import '../comun/aviso.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/tema.dart';
@@ -35,6 +38,10 @@ class PantallaDetalleCuenta extends StatefulWidget {
   final MovimientoCuentaRepositorio movimientoCuentaRepositorio;
   final IngresoExtraRepositorio ingresoExtraRepositorio;
 
+  /// Categorías de ingreso para los abonos (spec §7.3.4); sin él, el abono
+  /// no pide categoría.
+  final CategoriaIngresoRepositorio? categoriaIngresoRepositorio;
+
   const PantallaDetalleCuenta({
     super.key,
     required this.cuenta,
@@ -43,6 +50,7 @@ class PantallaDetalleCuenta extends StatefulWidget {
     required this.movimientoRepositorio,
     required this.movimientoCuentaRepositorio,
     required this.ingresoExtraRepositorio,
+    this.categoriaIngresoRepositorio,
   });
 
   @override
@@ -77,9 +85,15 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
         if (cuentaDe(g) == cuenta.id && g.estado == EstadoMovimiento.activo) g,
     ];
     final nombres = {for (final c in cuentas) c.id: c.nombre};
+    final deIngreso = {
+      for (final c in await widget.categoriaIngresoRepositorio?.listarTodas() ?? const <CategoriaIngreso>[]) c.id: c,
+    };
     String textoDe(MovimientoCuenta a) {
       final nota = a.nota.isEmpty ? '' : ' · ${a.nota}';
+      final categoria = deIngreso[a.categoriaIngresoId];
       return switch (a.tipo) {
+        // Con categoría de ingreso, ella es el título: "💼 Nómina · Quincena".
+        TipoMovimientoCuenta.abono when categoria != null => '${categoria.emoji} ${categoria.nombre}$nota',
         TipoMovimientoCuenta.abono => 'Abono$nota',
         // En ahorro e inversión un ajuste es lo que ganó o perdió de valor.
         TipoMovimientoCuenta.ajuste when cuenta.tipo == TipoCuenta.ahorro =>
@@ -133,6 +147,7 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
         perfil: widget.perfil,
         movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio,
         ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+        categoriaIngresoRepositorio: widget.categoriaIngresoRepositorio,
       ),
     );
     if (guardado == true) await _cargar();
@@ -371,12 +386,14 @@ class _HojaAbono extends StatefulWidget {
   final Perfil perfil;
   final MovimientoCuentaRepositorio movimientoCuentaRepositorio;
   final IngresoExtraRepositorio ingresoExtraRepositorio;
+  final CategoriaIngresoRepositorio? categoriaIngresoRepositorio;
 
   const _HojaAbono({
     required this.cuenta,
     required this.perfil,
     required this.movimientoCuentaRepositorio,
     required this.ingresoExtraRepositorio,
+    this.categoriaIngresoRepositorio,
   });
 
   @override
@@ -391,6 +408,31 @@ class _HojaAbonoState extends State<_HojaAbono> {
   bool _esIngreso = false;
   String? _error;
   bool _guardando = false;
+
+  /// Solo categorías de ingreso, y solo las activas (spec §7.3.4). En una
+  /// tarjeta de crédito no se piden: un abono ahí baja la deuda.
+  List<CategoriaIngreso> _categorias = const [];
+  String? _categoriaId;
+
+  bool get _pideCategoria => !_esCredito && widget.categoriaIngresoRepositorio != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_pideCategoria) _cargarCategorias();
+  }
+
+  Future<void> _cargarCategorias() async {
+    final todas = await widget.categoriaIngresoRepositorio!.listarTodas();
+    if (mounted) setState(() => _categorias = [for (final c in todas) if (c.activa) c]);
+  }
+
+  Future<void> _nuevaCategoria() async {
+    final creada = await mostrarEditorCategoriaIngreso(context, repositorio: widget.categoriaIngresoRepositorio!);
+    if (creada == null) return;
+    await _cargarCategorias();
+    if (mounted) setState(() => _categoriaId = creada.id);
+  }
 
   @override
   void dispose() {
@@ -408,6 +450,7 @@ class _HojaAbonoState extends State<_HojaAbono> {
     setState(() => _guardando = true);
     final ahora = DateTime.now();
     final nota = _nota.text.trim();
+    final categoria = _categorias.where((c) => c.id == _categoriaId).firstOrNull;
     String? ingresoId;
     if (_esIngreso) {
       final ingreso = crearIngresoExtra(
@@ -415,7 +458,7 @@ class _HojaAbonoState extends State<_HojaAbono> {
         fecha: ahora,
         calculadoraCiclo: widget.perfil.calculadoraCiclo,
         monto: monto,
-        etiqueta: nota.isEmpty ? 'Abono a ${widget.cuenta.nombre}' : nota,
+        etiqueta: nota.isNotEmpty ? nota : (categoria?.nombre ?? 'Abono a ${widget.cuenta.nombre}'),
         destino: DestinoExtra.apartado,
       );
       if (ingreso case Exito(:final valor)) {
@@ -432,15 +475,18 @@ class _HojaAbonoState extends State<_HojaAbono> {
       entra: true,
       nota: nota,
       ingresoExtraId: ingresoId,
+      categoriaIngresoId: categoria?.id,
     ));
     if (mounted) Navigator.of(context).pop(true);
   }
 
   @override
   Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
-      child: Column(
+      child: SingleChildScrollView(
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -453,6 +499,30 @@ class _HojaAbonoState extends State<_HojaAbono> {
             inputFormatters: formateadoresDeMonto,
             decoration: InputDecoration(labelText: _esCredito ? '¿Cuánto bajó tu deuda?' : '¿Cuánto entró?', prefixText: '\$ ', errorText: _error),
           ),
+          if (_pideCategoria) ...[
+            const SizedBox(height: 14),
+            Text('¿De dónde viene?', style: textos.etiqueta),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final c in _categorias)
+                  ChoiceChip(
+                    label: Text('${c.emoji} ${c.nombre}'),
+                    selected: _categoriaId == c.id,
+                    // Tocar la elegida la quita: la categoría es opcional.
+                    onSelected: (sel) => setState(() => _categoriaId = sel ? c.id : null),
+                  ),
+                ActionChip(
+                  avatar: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Nueva'),
+                  onPressed: _nuevaCategoria,
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+          ],
           const SizedBox(height: 8),
           TextField(
             controller: _nota,
@@ -472,6 +542,7 @@ class _HojaAbonoState extends State<_HojaAbono> {
           const SizedBox(height: 8),
           ElevatedButton(onPressed: _guardando ? null : _guardar, child: const Text('Guardar abono')),
         ],
+        ),
       ),
     );
   }

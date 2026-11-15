@@ -378,6 +378,15 @@ Por qué: las metas con nombre son de lo más elogiado y pedido en las apps de f
 - **Dónde:** renglón "Objetivos de ahorro" en Inicio (con el primero que aún no se logra) y en Ajustes → Tu plan. `lib/ui/objetivos/`.
 - **Patrimonio por ciclo** (`patrimonioPorCiclo`, `domain/cuentas/saldos.dart`): el patrimonio al cierre de cada ciclo y a hoy en el que corre, hasta 6, en "Tus cuentas", con "Creció/Bajó $X desde el cierre de …". Sale de los mismos movimientos (`saldoDe(…, hasta:)`), no de una foto guardada; cada cuenta entra desde su `fechaSaldoInicial`, así que dar de alta una cuenta se ve como un salto (se avisa al pie).
 
+### 7.3.4 [NUEVO] Categorías de ingreso e ingresos por categoría (2026-11-15)
+Las categorías de siempre son de **gasto**. Aparte existe un catálogo de **categorías de ingreso** (Nómina, Rentas, Inversiones…) para decir de dónde viene el dinero que entra a las cuentas.
+
+- **Modelo.** `CategoriaIngreso { id, nombre, emoji, activa }` en `categorias_ingreso.json` (se respalda en Drive, clave `id`). Sin presupuesto ni tipo: solo nombran el origen. Se archivan, no se borran. La primera vez se crean las sugeridas (Nómina, Rentas, Inversiones, Ventas, Regalos, Otros ingresos); el usuario las renombra, archiva o agrega.
+- **Dónde se administran.** En la misma pantalla de Categorías (Ajustes → Tu plan → Categorías y presupuestos), con un selector **Gastos | Ingresos** arriba; el ＋ crea del tipo que se está viendo.
+- **Abonos.** `MovimientoCuenta.categoriaIngresoId` (opcional, solo abonos). Al registrar un abono se elige la categoría entre las **de ingreso** activas (se puede crear una ahí mismo) y se escribe la nota, como en un gasto. En una tarjeta de crédito no se pide: un abono ahí baja la deuda, no es dinero que entra. Al registrar un **gasto** solo se ofrecen categorías de gasto. Los abonos de antes quedan "Sin categoría".
+- **Análisis → Ingresos** (quinta vista, `domain/analisis/reporte_ingresos.dart`, `calcularReporteIngresos`). Ingreso = abono activo a una cuenta que no sea de crédito, con fecha en el rango (transferencias y ajustes no cuentan: no es dinero nuevo). Rango: **Este ciclo** (por omisión), Este año, Últimos 12 meses o Elegir fechas. Muestra: total, cuántos abonos y promedio por mes; **contra lo gastado** en las mismas fechas (cuánto quedó y qué parte de lo que entró se gastó); **por categoría** (monto y %; si una sola pasa de 80 %, lo dice: se depende de una fuente); **mes por mes** (≤ 13 meses); **a qué cuenta entró**; y el ingreso más grande. Solo consulta.
+- No reemplaza al ingreso base ni a los ingresos extra del ciclo (§5.6.1), que siguen siendo los del presupuesto; un abono puede seguir marcándose "También es ingreso de este ciclo".
+
 ### 7.4 [NUEVO] Exportación y portabilidad
 Exportar todo a Excel/CSV cuando quieras. No quedas atrapado en la app — y te da una red de seguridad psicológica al abandonar el Excel.
 

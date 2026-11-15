@@ -239,6 +239,21 @@ const _temaIngresosYMeta = TemaGuia(
       'dejarla en "lo que sobre" de tus presupuestos — la opción por '
       'defecto si no configuras nada distinto.',
     ),
+    Subtitulo('Categorías de ingreso'),
+    Parrafo(
+      'Además de las categorías de gasto hay categorías de **ingreso**: de '
+      'dónde te entra dinero (Nómina, Rentas, Inversiones…). Están en la '
+      'misma pantalla de Categorías: arriba cambias entre **Gastos** e '
+      '**Ingresos**, y el + crea del tipo que estés viendo.',
+    ),
+    Parrafo(
+      'Al registrar un abono en una cuenta (Patrimonio → tu cuenta → '
+      '**Registrar abono**) eliges en **¿De dónde viene?** una categoría de '
+      'ingreso y, si quieres, escribes una nota. Al registrar un gasto solo '
+      'ves categorías de gasto. En Análisis → **Ingresos**, bajo **Te entraron**, '
+      'ves cuánto entró por cada categoría, contra lo que gastaste, mes por mes '
+      'y a qué cuenta.',
+    ),
   ],
 );
 

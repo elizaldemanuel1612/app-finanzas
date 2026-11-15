@@ -396,6 +396,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PantallaCategorias(
+          categoriaIngresoRepositorio: widget.almacenLocal.categoriasIngreso,
           categoriaRepositorio: widget.categoriaRepositorio,
           movimientoRepositorio: widget.movimientoRepositorio,
           reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
@@ -486,6 +487,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PantallaDetalleCuenta(
+          categoriaIngresoRepositorio: widget.almacenLocal.categoriasIngreso,
           cuenta: cuenta,
           perfil: _perfil,
           cuentaRepositorio: widget.almacenLocal.cuentas,
@@ -534,12 +536,14 @@ class _PantallaInicioState extends State<PantallaInicio> {
           cicloRepositorio: widget.cicloRepositorio,
           alVerCategoria: _irADetallePorId,
           alVerMovimientos: _irAGastosDe,
+          categoriaIngresoRepositorio: widget.almacenLocal.categoriasIngreso,
           alVerGastos: () => _elegirPestana(Pestana.gastos),
           alVerMeta: _irAMeta,
           nombre: _nombre,
           alAbrirAjustes: _irAAjustes,
         ),
       Pestana.patrimonio => PantallaPatrimonio(
+          categoriaIngresoRepositorio: widget.almacenLocal.categoriasIngreso,
           key: ValueKey('patrimonio-$_version'),
           perfil: _perfil,
           cuentaRepositorio: widget.almacenLocal.cuentas,

@@ -1,3 +1,4 @@
+import '../../data/repositorios/categoria_ingreso_repositorio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -43,6 +44,7 @@ import '../../domain/presupuesto/cobertura_excesos.dart';
 import '../../domain/presupuesto/apartado_estimado.dart';
 import '../../domain/analisis/frases_conclusion.dart';
 import 'graficas_analisis.dart';
+import 'vista_ingresos.dart';
 import 'vista_periodo.dart';
 
 /// Pestaña Análisis (spec-app-finanzas-v2.md §5.7): reportes y
@@ -77,7 +79,11 @@ class PantallaAnalisis extends StatefulWidget {
   /// Abre los gastos de una categoría en un ciclo (Gastos ya filtrado).
   final void Function(String cicloId, String categoriaId)? alVerMovimientos;
 
+  /// Con él (y los de cuentas) aparece la vista Ingresos (spec §7.3.4).
+  final CategoriaIngresoRepositorio? categoriaIngresoRepositorio;
+
   const PantallaAnalisis({
+    this.categoriaIngresoRepositorio,
     this.alVerMovimientos,
     super.key,
     required this.perfil,
@@ -148,7 +154,7 @@ class _Datos {
 
 /// Análisis › Resumen · Detalle · Historial (`docs/rediseno/plan-rediseno.md`,
 /// Etapa 5). Historial reemplaza a "Ciclos anteriores" de Inicio.
-enum _Vista { resumen, detalle, historial, periodo }
+enum _Vista { resumen, detalle, historial, periodo, ingresos }
 
 class _PantallaAnalisisState extends State<PantallaAnalisis> {
   _Datos? _datos;
@@ -293,23 +299,49 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
     final datos = _datos;
     final raiz = widget.alAbrirAjustes != null;
     final conHistorial = widget.cicloRepositorio != null;
-    final vista = !conHistorial && _vista == _Vista.historial ? _Vista.resumen : _vista;
-    final segmentado = Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-      child: SegmentedButton<_Vista>(
-        showSelectedIcon: false,
-        segments: [
-          const ButtonSegment(value: _Vista.resumen, label: Text('Resumen')),
-          const ButtonSegment(value: _Vista.detalle, label: Text('Detalle')),
-          if (conHistorial) const ButtonSegment(value: _Vista.historial, label: Text('Historial')),
-          const ButtonSegment(value: _Vista.periodo, label: Text('Periodo')),
-        ],
-        selected: {vista},
-        onSelectionChanged: (s) => _elegirVista(s.first),
+    final conIngresos = widget.categoriaIngresoRepositorio != null &&
+        widget.cuentaRepositorio != null &&
+        widget.movimientoCuentaRepositorio != null;
+    final vista = (!conHistorial && _vista == _Vista.historial) || (!conIngresos && _vista == _Vista.ingresos)
+        ? _Vista.resumen
+        : _vista;
+    // Cinco vistas: con relleno compacto caben en un teléfono normal; en uno
+    // muy angosto (o con letra grande) la fila se desplaza en vez de cortarse.
+    final segmentado = LayoutBuilder(
+      builder: (context, limites) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: limites.maxWidth - 24),
+          child: SegmentedButton<_Vista>(
+            showSelectedIcon: false,
+            style: const ButtonStyle(
+              padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 6)),
+              visualDensity: VisualDensity.compact,
+            ),
+            segments: [
+              const ButtonSegment(value: _Vista.resumen, label: Text('Resumen')),
+              const ButtonSegment(value: _Vista.detalle, label: Text('Detalle')),
+              if (conHistorial) const ButtonSegment(value: _Vista.historial, label: Text('Historial')),
+              const ButtonSegment(value: _Vista.periodo, label: Text('Periodo')),
+              if (conIngresos) const ButtonSegment(value: _Vista.ingresos, label: Text('Ingresos')),
+            ],
+            selected: {vista},
+            onSelectionChanged: (s) => _elegirVista(s.first),
+          ),
+        ),
       ),
     );
     final Widget cuerpo;
-    if (vista == _Vista.periodo) {
+    if (vista == _Vista.ingresos) {
+      cuerpo = VistaIngresos(
+        ciclo: widget.ciclo,
+        categoriaIngresoRepositorio: widget.categoriaIngresoRepositorio!,
+        cuentaRepositorio: widget.cuentaRepositorio!,
+        movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio!,
+        movimientoRepositorio: widget.movimientoRepositorio,
+      );
+    } else if (vista == _Vista.periodo) {
       cuerpo = VistaPeriodo(
         categoriaRepositorio: widget.categoriaRepositorio,
         movimientoRepositorio: widget.movimientoRepositorio,

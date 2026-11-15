@@ -41,7 +41,12 @@ final class ResultadoFusion {
 /// Clave de cada registro según el archivo de datos donde vive (§4.2.1).
 /// `null` para un archivo que no se sincroniza.
 String Function(Map<String, dynamic>)? claveDeArchivo(String nombre) => switch (nombre) {
-      'categorias.json' || 'ciclos.json' || 'ingresos.json' || 'cuentas.json' || 'objetivos.json' => (m) => m['id'] as String,
+      'categorias.json' ||
+      'ciclos.json' ||
+      'ingresos.json' ||
+      'cuentas.json' ||
+      'objetivos.json' ||
+      'categorias_ingreso.json' => (m) => m['id'] as String,
       'movimientos.json' || 'movimientos_cuenta.json' => (m) => m['clientId'] as String,
       'reglas_aprendidas.json' => (m) => m['patron'] as String,
       'ajustes_presupuesto_ciclo.json' => (m) => '${m['cicloId']}|${m['categoriaId']}|${m['cuando']}',

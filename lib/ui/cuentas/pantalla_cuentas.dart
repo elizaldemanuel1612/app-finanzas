@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/money.dart';
+import '../../data/repositorios/categoria_ingreso_repositorio.dart';
 import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
@@ -34,6 +35,10 @@ class PantallaCuentas extends StatefulWidget {
   /// Dentro de la pestaña Patrimonio, sin barra ni botón flotante propios.
   final bool embebida;
 
+  /// Categorías de ingreso para los abonos (spec §7.3.4); sin él, el abono
+  /// no pide categoría.
+  final CategoriaIngresoRepositorio? categoriaIngresoRepositorio;
+
   const PantallaCuentas({
     super.key,
     this.embebida = false,
@@ -42,6 +47,7 @@ class PantallaCuentas extends StatefulWidget {
     required this.movimientoRepositorio,
     required this.movimientoCuentaRepositorio,
     required this.ingresoExtraRepositorio,
+    this.categoriaIngresoRepositorio,
   });
 
   @override
@@ -119,6 +125,7 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
           movimientoRepositorio: widget.movimientoRepositorio,
           movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio,
           ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+          categoriaIngresoRepositorio: widget.categoriaIngresoRepositorio,
         ),
       ),
     );

@@ -49,6 +49,8 @@ const _citasLiteralesDeLaApp = [
   'Llevas ahorrado',
   'Cambiar fecha',
   'Complementos de IA',
+  '¿De dónde viene?',
+  'Te entraron',
   'Pregúntale a tu IA',
   'Sugerir categorías',
 ];

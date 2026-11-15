@@ -91,6 +91,26 @@ Future<void> main() async {
     saldoInicial: const Dinero.pesos(30000),
     fechaSaldoInicial: DateTime(inicioCiclo.year, inicioCiclo.month - 3, 5),
   ));
+  // Ingresos con categoría (spec §7.3.4), para ver Análisis → Ingresos.
+  for (final (i, (dias, pesos, categoria, nota)) in const [
+    (2, 22000, 'ing-nomina', 'Quincena'),
+    (17, 22000, 'ing-nomina', 'Quincena'),
+    (32, 22000, 'ing-nomina', 'Quincena'),
+    (10, 6500, 'ing-rentas', 'Renta del depa'),
+    (40, 6500, 'ing-rentas', 'Renta del depa'),
+    (6, 1800, 'ing-ventas', 'Vendí la bici'),
+  ].indexed) {
+    await almacen.movimientosCuenta.guardar(MovimientoCuenta(
+      clientId: 'demo-ingreso-$i',
+      cuentaId: 'bbva',
+      fecha: DateTime.now().subtract(Duration(days: dias)),
+      monto: Dinero.pesos(pesos),
+      tipo: TipoMovimientoCuenta.abono,
+      entra: true,
+      nota: nota,
+      categoriaIngresoId: categoria,
+    ));
+  }
   // Un aporte por ciclo, para que el patrimonio por ciclo tenga historia.
   for (final (i, pesos) in const [3500, 4000, 4500].indexed) {
     await almacen.movimientosCuenta.guardar(MovimientoCuenta(

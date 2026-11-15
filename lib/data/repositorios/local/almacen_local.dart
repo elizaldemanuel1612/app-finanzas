@@ -3,6 +3,7 @@ import 'dart:io';
 import '../../almacenamiento/archivo_texto.dart';
 import '../../almacenamiento/archivo_texto_disco.dart';
 import 'ajuste_presupuesto_ciclo_repositorio_archivo.dart';
+import 'categoria_ingreso_repositorio_archivo.dart';
 import 'categoria_repositorio_archivo.dart';
 import 'cuenta_repositorio_archivo.dart';
 import 'ciclo_repositorio_archivo.dart';
@@ -35,13 +36,14 @@ final class AlmacenLocal {
     'cuentas.json',
     'movimientos_cuenta.json',
     'objetivos.json',
+    'categorias_ingreso.json',
   ];
 
   /// Carpeta de la cuenta en el dispositivo (también de las fotos de
   /// tickets). En la web no existe en disco: es solo un nombre.
   final Directory directorio;
 
-  /// Los 10 "archivos" de datos por nombre — lo que sincroniza el respaldo
+  /// Los 11 "archivos" de datos por nombre — lo que sincroniza el respaldo
   /// (`data/nube/servicio_nube.dart`) y lo que borra [borrarTodo].
   final Map<String, ArchivoTexto> archivos;
 
@@ -71,6 +73,7 @@ final class AlmacenLocal {
   final CuentaRepositorioArchivo cuentas;
   final MovimientoCuentaRepositorioArchivo movimientosCuenta;
   final ObjetivoRepositorioArchivo objetivos;
+  final CategoriaIngresoRepositorioArchivo categoriasIngreso;
 
   /// En el teléfono: archivos dentro de [directorio].
   factory AlmacenLocal(Directory directorio) => AlmacenLocal._(
@@ -114,9 +117,10 @@ final class AlmacenLocal {
             AjustePresupuestoCicloRepositorioArchivo.sobre(archivos['ajustes_presupuesto_ciclo.json']!),
         cuentas = CuentaRepositorioArchivo.sobre(archivos['cuentas.json']!),
         movimientosCuenta = MovimientoCuentaRepositorioArchivo.sobre(archivos['movimientos_cuenta.json']!),
-        objetivos = ObjetivoRepositorioArchivo.sobre(archivos['objetivos.json']!);
+        objetivos = ObjetivoRepositorioArchivo.sobre(archivos['objetivos.json']!),
+        categoriasIngreso = CategoriaIngresoRepositorioArchivo.sobre(archivos['categorias_ingreso.json']!);
 
-  /// Borra los 10 JSON más el directorio de fotos de tickets
+  /// Borra los 11 JSON más el directorio de fotos de tickets
   /// (`data/almacenamiento/almacen_fotos.dart`) — todo lo que "eliminar
   /// cuenta" promete que desaparece. Ignora los archivos que ya no
   /// existen: borrar es idempotente, no un error si ya no había nada.

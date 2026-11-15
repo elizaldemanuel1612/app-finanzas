@@ -167,7 +167,7 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('Ritmo del ciclo'), findsOneWidget);
       // Recorre la pantalla completa para que cada bloque se construya.
-      await tester.scrollUntilVisible(find.text('Cómo pagas'), 300);
+      await tester.scrollUntilVisible(find.text('Cómo pagas'), 300, scrollable: find.byType(Scrollable).last);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });

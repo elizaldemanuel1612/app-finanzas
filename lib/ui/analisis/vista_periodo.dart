@@ -151,8 +151,8 @@ class _VistaPeriodoState extends State<VistaPeriodo> {
                   const SizedBox(height: 14),
                   Row(
                     children: [
-                      Expanded(child: _Dato(etiqueta: 'Fijos', valor: enPesos(r.fijas))),
-                      Expanded(child: _Dato(etiqueta: 'Variables', valor: enPesos(r.variables))),
+                      Expanded(child: DatoAnalisis(etiqueta: 'Fijos', valor: enPesos(r.fijas))),
+                      Expanded(child: DatoAnalisis(etiqueta: 'Variables', valor: enPesos(r.variables))),
                     ],
                   ),
                 ],
@@ -171,7 +171,7 @@ class _VistaPeriodoState extends State<VistaPeriodo> {
           ),
         ),
         if (r.meses.length > 1 && !r.vacio) ...[
-          _Titulo(
+          TituloAnalisis(
             etiqueta: 'Mes por mes',
             titulo: r.mesMasAlto == null
                 ? 'Tus meses'
@@ -192,7 +192,7 @@ class _VistaPeriodoState extends State<VistaPeriodo> {
           ),
         ],
         if (r.categorias.isNotEmpty) ...[
-          _Titulo(
+          TituloAnalisis(
             etiqueta: 'Por categoría',
             titulo: '${r.categorias.first.categoria.nombre} se llevó el ${r.categorias.first.porcentaje}%',
           ),
@@ -222,7 +222,7 @@ class _VistaPeriodoState extends State<VistaPeriodo> {
           ),
         ],
         if (r.mayorGasto case final mayor?) ...[
-          _Titulo(etiqueta: 'Tu gasto más grande', titulo: '${enPesos(mayor.monto)} en ${mayor.descripcion.isEmpty ? 'un solo gasto' : mayor.descripcion}'),
+          TituloAnalisis(etiqueta: 'Tu gasto más grande', titulo: '${enPesos(mayor.monto)} en ${mayor.descripcion.isEmpty ? 'un solo gasto' : mayor.descripcion}'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: TarjetaApp.lista(renglones: [
@@ -240,10 +240,10 @@ class _VistaPeriodoState extends State<VistaPeriodo> {
   }
 }
 
-class _Dato extends StatelessWidget {
+class DatoAnalisis extends StatelessWidget {
   final String etiqueta;
   final String valor;
-  const _Dato({required this.etiqueta, required this.valor});
+  const DatoAnalisis({super.key, required this.etiqueta, required this.valor});
 
   @override
   Widget build(BuildContext context) {
@@ -255,10 +255,10 @@ class _Dato extends StatelessWidget {
   }
 }
 
-class _Titulo extends StatelessWidget {
+class TituloAnalisis extends StatelessWidget {
   final String etiqueta;
   final String titulo;
-  const _Titulo({required this.etiqueta, required this.titulo});
+  const TituloAnalisis({super.key, required this.etiqueta, required this.titulo});
 
   @override
   Widget build(BuildContext context) {

@@ -67,6 +67,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PantallaCategorias(
+          categoriaIngresoRepositorio: widget.almacenLocal.categoriasIngreso,
           categoriaRepositorio: widget.almacenLocal.categorias,
           movimientoRepositorio: widget.almacenLocal.movimientos,
           reglasAprendidasRepositorio: widget.almacenLocal.reglasAprendidas,
