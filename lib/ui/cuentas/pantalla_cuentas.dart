@@ -39,8 +39,11 @@ class PantallaCuentas extends StatefulWidget {
 
 class _PantallaCuentasState extends State<PantallaCuentas> {
   List<(Cuenta, Dinero?)>? _cuentas;
-  Dinero _total = const Dinero.cero();
-  Dinero _deudas = const Dinero.cero();
+  Patrimonio _patrimonio = const Patrimonio(
+    disponible: Dinero.cero(),
+    ahorros: Dinero.cero(),
+    deudas: Dinero.cero(),
+  );
   bool _verArchivadas = false;
 
   @override
@@ -57,8 +60,7 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
     if (!mounted) return;
     setState(() {
       _cuentas = [for (final c in cuentas) (c, saldoDe(c, gastos, abonos))];
-      _total = sumaDeSaldos(cuentas, gastos, abonos);
-      _deudas = sumaDeDeudas(cuentas, gastos, abonos);
+      _patrimonio = calcularPatrimonio(cuentas, gastos, abonos);
     });
   }
 
@@ -99,6 +101,7 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
     final cuentas = _cuentas;
     final textos = Theme.of(context).textTheme;
     final activas = [for (final c in cuentas ?? const <(Cuenta, Dinero?)>[]) if (c.$1.activa) c];
+    final hayAhorro = activas.any((c) => c.$1.tipo == TipoCuenta.ahorro);
     final archivadas = [for (final c in cuentas ?? const <(Cuenta, Dinero?)>[]) if (!c.$1.activa) c];
     return Scaffold(
       appBar: AppBar(title: const Text('Tus cuentas')),
@@ -118,19 +121,17 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Total en tus cuentas', style: textos.bodySmall),
+                        Text('Tu patrimonio', style: textos.bodySmall),
                         Text(
-                          _total.formateado(),
-                          style: textos.displaySmall?.copyWith(color: colorDeDinero(_total)),
+                          _patrimonio.total.formateado(),
+                          style: textos.displaySmall?.copyWith(color: colorDeDinero(_patrimonio.total)),
                         ),
-                        Text('Suma de las que llevan saldo; las de crédito no entran.', style: textos.labelSmall),
-                        if (_deudas.esPositivo) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            'Debes en tarjetas: ${_deudas.formateado()}',
-                            style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: ColoresApp.enContra),
-                          ),
-                        ],
+                        Text('Lo que tienes menos lo que debes, en las cuentas que llevan saldo.', style: textos.labelSmall),
+                        const SizedBox(height: 10),
+                        _RenglonPatrimonio('Para gastar', 'Efectivo y débito', _patrimonio.disponible),
+                        _RenglonPatrimonio('Ahorro e inversiones', hayAhorro ? null : 'Agrega una cuenta de ahorro', _patrimonio.ahorros),
+                        if (_patrimonio.deudas.esPositivo)
+                          _RenglonPatrimonio('Debes en tarjetas', null, _patrimonio.deudas, resta: true),
                         const SizedBox(height: 12),
                         OutlinedButton.icon(
                           onPressed: activas.length < 2 ? null : _transferir,
@@ -144,7 +145,7 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
                 const SizedBox(height: 12),
                 Text(
                   'Al registrar un gasto eliges con cuál pagaste. Las de débito llevan su saldo; en las de crédito '
-          'puedes llevar lo que debes.',
+                  'puedes llevar lo que debes. En las de ahorro guardas lo que apartas.',
                   style: textos.bodySmall,
                 ),
                 const SizedBox(height: 12),
@@ -159,6 +160,46 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
                 ],
               ],
             ),
+    );
+  }
+}
+
+/// Un renglón del desglose del patrimonio: nombre, nota opcional y monto.
+class _RenglonPatrimonio extends StatelessWidget {
+  final String nombre;
+  final String? nota;
+  final Dinero monto;
+
+  /// Lo que se debe: va con signo menos y en el color de "en contra".
+  final bool resta;
+
+  const _RenglonPatrimonio(this.nombre, this.nota, this.monto, {this.resta = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(nombre, style: textos.bodySmall),
+                if (nota != null) Text(nota!, style: textos.labelSmall),
+              ],
+            ),
+          ),
+          Text(
+            '${resta ? '− ' : ''}${monto.formateado()}',
+            style: textos.bodySmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: resta ? ColoresApp.enContra : colorDeDinero(monto),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -84,7 +84,8 @@ enum GuiaRapida {
     PasoGuiaRapida(
       Icons.add_card,
       'Agrega tus tarjetas',
-      'Con el + das de alta tu débito, tu crédito o el efectivo. Al registrar un gasto eliges con cuál pagaste.',
+      'Con el + das de alta tu débito, tu crédito, el efectivo o tu ahorro e inversiones. Al registrar un gasto '
+          'eliges con cuál pagaste, y arriba ves tu patrimonio.',
     ),
     PasoGuiaRapida(
       Icons.account_balance_outlined,

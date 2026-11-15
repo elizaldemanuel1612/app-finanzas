@@ -182,16 +182,22 @@ class _PantallaInicioState extends State<PantallaInicio> {
   /// "Tus cuentas".
   List<(Cuenta, Dinero)> _saldos = const [];
 
+  /// Lo que se tiene menos lo que se debe (spec §7.3.2); `null` sin saldos.
+  Patrimonio? _patrimonio;
+
   Future<void> _cargarSaldos() async {
     final cuentas = await widget.almacenLocal.cuentas.listarTodas();
     final gastos = await widget.movimientoRepositorio.listarTodos();
     final abonos = await widget.almacenLocal.movimientosCuenta.listarTodos();
     if (!mounted) return;
-    setState(() => _saldos = [
-          for (final c in cuentas)
-            if (c.activa)
-              if (saldoDe(c, gastos, abonos) case final saldo?) (c, saldo),
-        ]);
+    setState(() {
+      _saldos = [
+        for (final c in cuentas)
+          if (c.activa)
+            if (saldoDe(c, gastos, abonos) case final saldo?) (c, saldo),
+      ];
+      _patrimonio = calcularPatrimonio(cuentas, gastos, abonos);
+    });
   }
 
   Future<void> _irACuentas() async {
@@ -404,6 +410,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
           movimientoRepositorio: widget.movimientoRepositorio,
           cicloRepositorio: widget.cicloRepositorio,
           ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+          cuentaRepositorio: widget.almacenLocal.cuentas,
+          movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
         ),
       ),
     );
@@ -654,6 +662,19 @@ class _PantallaInicioState extends State<PantallaInicio> {
                           ],
                         ),
                       ),
+                    // Con una sola cuenta el patrimonio es su saldo: no se repite.
+                    if (_patrimonio case final patrimonio? when _saldos.length > 1) ...[
+                      Divider(height: 16, color: ColoresApp.linea),
+                      Row(
+                        children: [
+                          Expanded(child: Text('Tu patrimonio', style: Theme.of(context).textTheme.bodySmall)),
+                          Text(
+                            patrimonio.total.formateado(),
+                            style: TextStyle(fontWeight: FontWeight.w800, color: colorDeDinero(patrimonio.total)),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

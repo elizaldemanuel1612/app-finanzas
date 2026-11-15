@@ -4,6 +4,8 @@ import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
+import '../../data/repositorios/cuenta_repositorio.dart';
+import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/ciclo_de_vida/evolucion_ciclos.dart';
@@ -32,6 +34,10 @@ class PantallaCiclosAnteriores extends StatefulWidget {
   final CicloRepositorio cicloRepositorio;
   final IngresoExtraRepositorio ingresoExtraRepositorio;
 
+  /// Para ofrecer, al cerrar, pasar lo apartado a una cuenta de ahorro.
+  final CuentaRepositorio? cuentaRepositorio;
+  final MovimientoCuentaRepositorio? movimientoCuentaRepositorio;
+
   const PantallaCiclosAnteriores({
     super.key,
     required this.perfil,
@@ -40,6 +46,8 @@ class PantallaCiclosAnteriores extends StatefulWidget {
     required this.movimientoRepositorio,
     required this.cicloRepositorio,
     required this.ingresoExtraRepositorio,
+    this.cuentaRepositorio,
+    this.movimientoCuentaRepositorio,
   });
 
   @override
@@ -116,6 +124,8 @@ class _PantallaCiclosAnterioresState extends State<PantallaCiclosAnteriores> {
           movimientoRepositorio: widget.movimientoRepositorio,
           cicloRepositorio: widget.cicloRepositorio,
           ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+          cuentaRepositorio: widget.cuentaRepositorio,
+          movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio,
         ),
       ),
     );

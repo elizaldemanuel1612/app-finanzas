@@ -26,17 +26,50 @@ Dinero? saldoDe(Cuenta cuenta, List<Movimiento> gastos, List<MovimientoCuenta> m
   return Dinero(centavos);
 }
 
-/// Lo que hay en todas las cuentas que llevan saldo (las activas): el total
-/// de "Tus cuentas". Las de crédito no entran: lo que se debe va aparte, en
-/// [sumaDeDeudas].
+/// Lo que hay para gastar: efectivo y débito que llevan saldo (las activas).
+/// Las de crédito no entran —lo que se debe va aparte, en [sumaDeDeudas]—
+/// ni las de ahorro, que van en [sumaDeAhorros].
 Dinero sumaDeSaldos(List<Cuenta> cuentas, List<Movimiento> gastos, List<MovimientoCuenta> movimientosCuenta) {
   var centavos = 0;
   for (final c in cuentas) {
-    if (!c.activa || c.tipo == TipoCuenta.credito) continue;
+    if (!c.activa || c.tipo == TipoCuenta.credito || c.tipo == TipoCuenta.ahorro) continue;
     centavos += saldoDe(c, gastos, movimientosCuenta)?.centavos ?? 0;
   }
   return Dinero(centavos);
 }
+
+/// Lo que hay en las cuentas de ahorro e inversión activas (spec §7.3.2).
+Dinero sumaDeAhorros(List<Cuenta> cuentas, List<Movimiento> gastos, List<MovimientoCuenta> movimientosCuenta) {
+  var centavos = 0;
+  for (final c in cuentas) {
+    if (!c.activa || c.tipo != TipoCuenta.ahorro) continue;
+    centavos += saldoDe(c, gastos, movimientosCuenta)?.centavos ?? 0;
+  }
+  return Dinero(centavos);
+}
+
+/// Todo lo que se tiene menos lo que se debe (spec §7.3.2).
+final class Patrimonio {
+  /// Efectivo y débito: [sumaDeSaldos].
+  final Dinero disponible;
+
+  /// Ahorro e inversiones: [sumaDeAhorros].
+  final Dinero ahorros;
+
+  /// Lo que se debe en tarjetas: [sumaDeDeudas].
+  final Dinero deudas;
+
+  const Patrimonio({required this.disponible, required this.ahorros, required this.deudas});
+
+  Dinero get total => disponible + ahorros - deudas;
+}
+
+Patrimonio calcularPatrimonio(List<Cuenta> cuentas, List<Movimiento> gastos, List<MovimientoCuenta> movimientosCuenta) =>
+    Patrimonio(
+      disponible: sumaDeSaldos(cuentas, gastos, movimientosCuenta),
+      ahorros: sumaDeAhorros(cuentas, gastos, movimientosCuenta),
+      deudas: sumaDeDeudas(cuentas, gastos, movimientosCuenta),
+    );
 
 /// Lo que se debe en una tarjeta de crédito que lleva saldo: positivo
 /// mientras se debe; negativo si se pagó de más (saldo a favor). `null` si
@@ -92,13 +125,14 @@ LecturaSaldo lecturaDeSaldo(Cuenta cuenta, Dinero saldo) {
 }
 
 /// Para elegir al registrar un gasto: las activas, la más usada primero
-/// (gastos activos); en empate, el orden de [cuentas].
+/// (gastos activos); en empate, el orden de [cuentas]. Las de ahorro no
+/// entran: no se paga con ellas.
 List<Cuenta> ordenarCuentasPorUso(List<Cuenta> cuentas, List<Movimiento> gastos) {
   final usos = <String, int>{};
   for (final g in gastos) {
     if (g.estado == EstadoMovimiento.activo) usos[cuentaDe(g)] = (usos[cuentaDe(g)] ?? 0) + 1;
   }
-  final activas = [for (final c in cuentas) if (c.activa) c];
+  final activas = [for (final c in cuentas) if (c.activa && c.tipo != TipoCuenta.ahorro) c];
   final posicion = {for (final (i, c) in activas.indexed) c.id: i};
   return activas
     ..sort((a, b) {
@@ -142,7 +176,8 @@ final class ResumenCuenta {
 }
 
 /// Por cuenta, lo gastado en el ciclo [cicloId], de mayor a menor. Entran
-/// las activas aunque no tengan gasto, y las archivadas que sí tengan.
+/// las activas aunque no tengan gasto, y las archivadas que sí tengan. Las
+/// de ahorro solo si tienen gasto: no se paga con ellas.
 List<ResumenCuenta> resumenPorCuenta({
   required List<Cuenta> cuentas,
   required List<Categoria> categorias,
@@ -159,7 +194,7 @@ List<ResumenCuenta> resumenPorCuenta({
   final resumenes = <ResumenCuenta>[];
   for (final c in cuentas) {
     final suyos = [for (final g in delCiclo) if (cuentaDe(g) == c.id) g];
-    if (!c.activa && suyos.isEmpty) continue;
+    if ((!c.activa || c.tipo == TipoCuenta.ahorro) && suyos.isEmpty) continue;
     final gastado = suyos.fold<int>(0, (s, g) => s + g.monto.centavos);
     final porCategoria = <String, int>{};
     for (final g in suyos) {

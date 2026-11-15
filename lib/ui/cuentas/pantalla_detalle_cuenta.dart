@@ -77,6 +77,9 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
       final nota = a.nota.isEmpty ? '' : ' · ${a.nota}';
       return switch (a.tipo) {
         TipoMovimientoCuenta.abono => 'Abono$nota',
+        // En ahorro e inversión un ajuste es lo que ganó o perdió de valor.
+        TipoMovimientoCuenta.ajuste when cuenta.tipo == TipoCuenta.ahorro =>
+          a.efectoEn(cuenta.id).esNegativo ? 'Baja de valor' : 'Rendimiento',
         TipoMovimientoCuenta.ajuste => 'Ajuste de saldo',
         TipoMovimientoCuenta.transferencia when a.cuentaId == cuenta.id =>
           'A ${nombres[a.cuentaDestinoId] ?? 'otra cuenta'}$nota',
@@ -130,9 +133,10 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
     if (guardado == true) await _cargar();
   }
 
-  /// En una de crédito, pagarla; en las demás, sacar de ella.
+  /// En una de crédito, pagarla; en una de ahorro, aportarle; en las demás,
+  /// sacar de ella.
   Future<void> _transferir() async {
-    final esCredito = _cuenta.tipo == TipoCuenta.credito;
+    final esCredito = _cuenta.tipo == TipoCuenta.credito || _cuenta.tipo == TipoCuenta.ahorro;
     final hecha = await mostrarHojaTransferencia(
       context,
       cuentas: _cuentas,
@@ -152,6 +156,7 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
       builder: (_) => _DialogoAjuste(
         saldo: esCredito ? Dinero(-actual.centavos) : actual,
         esCredito: esCredito,
+        esAhorro: _cuenta.tipo == TipoCuenta.ahorro,
         limite: limite,
       ),
     );
@@ -214,6 +219,7 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
     final saldo = _saldo;
     final esEfectivoBase = _cuenta.id == idCuentaEfectivo;
     final esCredito = _cuenta.tipo == TipoCuenta.credito;
+    final esAhorro = _cuenta.tipo == TipoCuenta.ahorro;
     final lectura = saldo == null ? null : lecturaDeSaldo(_cuenta, saldo);
     return Scaffold(
       appBar: AppBar(
@@ -257,21 +263,30 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                           Text('Gastaste más de lo que tenías.', style: textos.bodySmall?.copyWith(color: ColoresApp.coralTexto)),
                         if (saldo != null) ...[
                           const SizedBox(height: 4),
-                          Text('Gastado este ciclo: ${_gastadoCiclo.formateado()}', style: textos.bodySmall),
+                          Text(
+                            esAhorro
+                                ? 'Cuenta para tu patrimonio. Transfiérele lo que apartas y actualiza su valor cuando cambie.'
+                                : 'Gastado este ciclo: ${_gastadoCiclo.formateado()}',
+                            style: textos.bodySmall,
+                          ),
                           const SizedBox(height: 12),
                           Row(
                             children: [
                               Expanded(
                                 child: ElevatedButton(
                                   onPressed: _abonar,
-                                  child: Text(esCredito ? 'Abonar' : 'Registrar abono'),
+                                  child: Text(esCredito || esAhorro ? 'Abonar' : 'Registrar abono'),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: OutlinedButton(
                                   onPressed: _ajustar,
-                                  child: Text(esCredito ? 'Ajustar deuda' : 'Ajustar saldo'),
+                                  child: Text(esCredito
+                                      ? 'Ajustar deuda'
+                                      : esAhorro
+                                          ? 'Actualizar valor'
+                                          : 'Ajustar saldo'),
                                 ),
                               ),
                             ],
@@ -285,7 +300,11 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                           OutlinedButton.icon(
                             onPressed: _transferir,
                             icon: const Icon(Icons.swap_horiz_rounded),
-                            label: Text(_cuenta.tipo == TipoCuenta.credito ? 'Pagar esta tarjeta' : 'Transferir a otra cuenta'),
+                            label: Text(esCredito
+                                ? 'Pagar esta tarjeta'
+                                : esAhorro
+                                    ? 'Aportar desde otra cuenta'
+                                    : 'Transferir a otra cuenta'),
                           ),
                         ],
                       ],
@@ -435,11 +454,14 @@ class _DialogoAjuste extends StatefulWidget {
 
   final bool esCredito;
 
+  /// Ahorro o inversión: se pregunta cuánto vale hoy.
+  final bool esAhorro;
+
   /// Con límite, en crédito se puede ajustar escribiendo lo que se debe o
   /// el crédito disponible (2026-11-07).
   final Dinero? limite;
 
-  const _DialogoAjuste({required this.saldo, this.esCredito = false, this.limite});
+  const _DialogoAjuste({required this.saldo, this.esCredito = false, this.esAhorro = false, this.limite});
 
   @override
   State<_DialogoAjuste> createState() => _DialogoAjusteState();
@@ -475,7 +497,11 @@ class _DialogoAjusteState extends State<_DialogoAjuste> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.esCredito ? 'Ajustar lo que debes' : 'Ajustar saldo'),
+      title: Text(widget.esCredito
+          ? 'Ajustar lo que debes'
+          : widget.esAhorro
+              ? 'Actualizar valor'
+              : 'Ajustar saldo'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -497,8 +523,10 @@ class _DialogoAjusteState extends State<_DialogoAjuste> {
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
             decoration: InputDecoration(
-              labelText: !widget.esCredito
-                  ? '¿Cuánto dice tu banco?'
+              labelText: widget.esAhorro
+                  ? '¿Cuánto vale hoy?'
+                  : !widget.esCredito
+                      ? '¿Cuánto dice tu banco?'
                   : _porDisponible
                       ? 'Crédito disponible'
                       : 'Lo que debes según tu banco',

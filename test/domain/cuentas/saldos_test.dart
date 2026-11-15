@@ -299,4 +299,69 @@ void main() {
       expect(c.copyWith(tipo: TipoCuenta.debito).limite, isNull);
     });
   });
+
+  group('ahorro e inversión (spec §7.3.2)', () {
+    Cuenta ahorro([String id = 'cetes', int saldo = 5000]) => Cuenta(
+          id: id,
+          nombre: id,
+          emoji: '🌱',
+          tipo: TipoCuenta.ahorro,
+          llevaSaldo: true,
+          saldoInicial: Dinero.pesos(saldo),
+          fechaSaldoInicial: _desde,
+        );
+    Cuenta credito(int debe) => Cuenta(
+          id: 'amex',
+          nombre: 'Amex',
+          emoji: '💳',
+          tipo: TipoCuenta.credito,
+          llevaSaldo: true,
+          saldoInicial: Dinero.pesos(-debe),
+          fechaSaldoInicial: _desde,
+        );
+
+    test('siempre lleva saldo, como el débito', () {
+      expect(TipoCuenta.ahorro.siempreLlevaSaldo, isTrue);
+      expect(TipoCuenta.debito.siempreLlevaSaldo, isTrue);
+      expect(TipoCuenta.credito.siempreLlevaSaldo, isFalse);
+      expect(TipoCuenta.efectivo.siempreLlevaSaldo, isFalse);
+      final efectivo = cuentasBase(_desde).last;
+      expect(efectivo.llevaSaldo, isFalse);
+      expect(efectivo.copyWith(tipo: TipoCuenta.ahorro).llevaSaldo, isTrue);
+      expect(Cuenta.fromJson(ahorro().toJson()).tipo, TipoCuenta.ahorro);
+    });
+
+    test('patrimonio: para gastar + ahorro − lo que debes', () {
+      final cuentas = [_debito(), ahorro(), ahorro('vieja', 999).copyWith(activa: false), credito(3000)];
+      final transferencia = MovimientoCuenta(
+        clientId: 'transferencia-1',
+        cuentaId: 'bbva',
+        cuentaDestinoId: 'cetes',
+        fecha: DateTime(2026, 11, 3),
+        monto: const Dinero.pesos(400),
+        tipo: TipoMovimientoCuenta.transferencia,
+        entra: false,
+        estado: EstadoMovimientoCuenta.activo,
+      );
+      final p = calcularPatrimonio(cuentas, [_gasto(100)], [transferencia]);
+      expect(p.disponible, const Dinero.pesos(500), reason: '1000 − 100 de gasto − 400 que se fueron al ahorro');
+      expect(p.ahorros, const Dinero.pesos(5400));
+      expect(p.deudas, const Dinero.pesos(3000));
+      expect(p.total, const Dinero.pesos(2900));
+      expect(sumaDeSaldos(cuentas, const [], const []), const Dinero.pesos(1000), reason: 'el ahorro no es para gastar');
+    });
+
+    test('no se paga con ella: no sale al registrar ni en el análisis por cuenta', () {
+      final cuentas = [_debito(), ahorro()];
+      expect(ordenarCuentasPorUso(cuentas, const []).map((c) => c.id), ['bbva']);
+      final r = resumenPorCuenta(
+        cuentas: cuentas,
+        categorias: const [],
+        gastos: [_gasto(50)],
+        movimientosCuenta: const [],
+        cicloId: '2026-11',
+      );
+      expect(r.map((x) => x.cuenta.id), ['bbva']);
+    });
+  });
 }

@@ -5,7 +5,11 @@ import 'movimiento.dart';
 enum TipoCuenta {
   efectivo('Efectivo'),
   debito('Débito'),
-  credito('Crédito');
+  credito('Crédito'),
+
+  /// Ahorro o inversión (spec §7.3.2): dinero apartado. No se paga con
+  /// ella; se le transfiere y se ajusta su valor. Siempre lleva saldo.
+  ahorro('Ahorro');
 
   final String etiqueta;
 
@@ -13,6 +17,10 @@ enum TipoCuenta {
 
   /// El medio de pago de siempre, que sigue viviendo en cada movimiento.
   MedioPago get medio => this == TipoCuenta.efectivo ? MedioPago.efectivo : MedioPago.tarjeta;
+
+  /// Débito y ahorro no tienen sentido sin saldo; en efectivo y crédito es
+  /// opcional.
+  bool get siempreLlevaSaldo => this == TipoCuenta.debito || this == TipoCuenta.ahorro;
 }
 
 /// Ids de las dos cuentas que siempre existen. Los gastos de antes de las
@@ -70,10 +78,7 @@ final class Cuenta {
       nombre: nombre ?? this.nombre,
       emoji: emoji ?? this.emoji,
       tipo: nuevoTipo,
-      llevaSaldo: switch (nuevoTipo) {
-        TipoCuenta.debito => true,
-        TipoCuenta.credito || TipoCuenta.efectivo => llevaSaldo ?? this.llevaSaldo,
-      },
+      llevaSaldo: nuevoTipo.siempreLlevaSaldo || (llevaSaldo ?? this.llevaSaldo),
       saldoInicial: saldoInicial ?? this.saldoInicial,
       fechaSaldoInicial: fechaSaldoInicial ?? this.fechaSaldoInicial,
       activa: activa ?? this.activa,

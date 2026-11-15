@@ -42,6 +42,28 @@ Investigación rápida para decidir qué llevar a App Finanzas. Fuentes: reseña
 - Búsqueda por texto en Gastos.
 - Presupuesto compartido en pareja (requiere la nube).
 
+## Revisión general del 2026-11-14
+
+Segunda vuelta al mercado (comparativas 2026 de NerdWallet, CNBC Select, Experian, Rob Berger y resúmenes de hilos de Reddit; casi todas con afiliados o de blogs de otras apps: sirven de dirección, no de ranking). Lo que se repite:
+
+- **Lo más elogiado:** seguimiento de metas, patrimonio en un solo tablero (Empower, Monarch), "cuánto puedo gastar sin riesgo" (PocketGuard), detectar suscripciones (Rocket Money).
+- **Lo más criticado:** la sincronización con bancos que se rompe (la queja número uno), el precio, categorías rígidas, que el efectivo no se registre y que todo asuma un solo usuario.
+- **Lo que piden y falta en varias:** metas de ahorro con nombre, calendario de pagos, reportes por rango de fechas, sobres que pasan lo que sobra al siguiente mes.
+
+MAVfin ya evita las tres quejas grandes (no depende de bancos, no cobra, las categorías son del usuario) y ya tiene lo de "cuánto puedo gastar hoy". Lo que faltaba, en orden de valor:
+
+| # | Qué | Estado |
+|---|---|---|
+| 1 | **Ahorro, inversiones y patrimonio:** dónde vive lo que se aparta y cuánto vale todo | **Hecho 2026-11-14** (spec §7.3.2) |
+| 2 | **Metas con nombre** ("Fondo de emergencia $100,000", "Viaje en junio"): progreso contra una cuenta de ahorro y cuánto apartar por ciclo para llegar a la fecha | Pendiente |
+| 3 | **Patrimonio en el tiempo:** gráfica por ciclo (el saldo ya se calcula desde los movimientos; falta poder calcularlo a una fecha) | Pendiente |
+| 4 | **Tarjeta de crédito: corte y fecha de pago,** con "paga antes del día X" en Inicio | Pendiente (segunda etapa de §7.3.1) |
+| 5 | **Resumen del año y rango de fechas** en Análisis | Pendiente |
+| 6 | **Gastos que se repiten** (suscripciones): detectarlos por descripción y monto, y cuánto suman al año | Pendiente |
+| 7 | **Tema "Cuentas y patrimonio" en la guía por temas** (hoy la guía no habla de cuentas) | Pendiente |
+| 8 | **Lo que sobra pasa al siguiente ciclo** por categoría (sobres) | Por decidir: cambia cómo se entiende el presupuesto |
+| 9 | Recordatorios y presupuesto en pareja | En pausa: piden notificaciones nativas y nube |
+
 ## Fuentes
 - https://www.nerdwallet.com/finance/learn/best-budget-apps
 - https://www.forbes.com/advisor/banking/best-budgeting-apps/
@@ -53,3 +75,8 @@ Investigación rápida para decidir qué llevar a App Finanzas. Fuentes: reseña
 - https://www.pluxee.mx/blog/las-5-mejores-apps-para-finanzas-personales-y-control-de-gastos/
 - https://www.elimparcial.com/dinero/2025/02/20/las-mejores-aplicaciones-financieras-para-organizar-tu-dinero-en-mexico/
 - https://uxplanet.org/case-study-home-budget-app-ui-for-finance-7b0fb9780da3
+- https://www.cnbc.com/select/best-budgeting-apps
+- https://www.experian.com/blogs/ask-experian/best-budgeting-apps
+- https://robberger.com/personal-finance-software/
+- https://getfinny.app/blog/best-budget-apps-reddit-recommends-2026
+- https://marketing4ecommerce.mx/apps-de-finanzas-personales-y-ahorro-mexico/

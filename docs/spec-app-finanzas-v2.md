@@ -334,6 +334,15 @@ Aprobado de `docs/propuesta-cuentas.md` (fase A). Cada gasto dice de qué **cuen
 - **Deuda de la tarjeta de crédito (2026-11-06).** Opcional, como el saldo del efectivo: al activarlo se pide cuánto se debe hoy y, si se quiere, el límite. Es el mismo saldo calculado con el signo al revés (`saldoInicial` = −lo que se debía): cada gasto con la tarjeta sube lo que se debe; los pagos (transferencias desde otra cuenta), los abonos (un pago desde fuera o una devolución) y los ajustes lo corrigen. Con límite, el ajuste se puede hacer escribiendo **lo que se debe o el crédito disponible** —el que muestre el banco—; lo que se debe sale de límite − disponible (`deudaDesdeDisponible`, 2026-11-07). Se lee como **Debes $X** —o **A tu favor**, si se pagó de más— y, con límite, **Disponible**; pasado del límite va en coral (`deudaDe`, `lecturaDeSaldo`). Lo que se debe no entra al total de tus cuentas: va aparte, "Debes en tarjetas" (`sumaDeDeudas`). Lo que tienes va en verde salvia y lo que debes en rojo ladrillo (`aFavor`/`enContra` de la paleta, más apagados que `verdeTexto`/`coralTexto` porque se ven todo el tiempo; AA en los dos modos).
 - **Segunda etapa:** fechas de corte y de pago con recordatorio, aviso de saldo bajo, cuenta por voz.
 
+### 7.3.2 [NUEVO] Ahorro, inversiones y patrimonio (2026-11-14)
+
+Por qué: la app ya decía cuánto se aparta cada ciclo, pero ese dinero no vivía en ningún lado; el patrimonio en un solo número es de lo más elogiado en las apps mejor valoradas (`docs/investigacion-apps-finanzas.md`).
+
+- **Cuarto tipo de cuenta: `ahorro`** (ahorro o inversión: fondo, CETES, afore…). Siempre lleva saldo (`TipoCuenta.siempreLlevaSaldo`). **No se paga con ella:** no aparece al registrar un gasto ni en el análisis por cuenta. Se le **transfiere** desde otra cuenta ("Aportar a tu ahorro"; no cuenta como gasto) y su valor se corrige con **"Actualizar valor"**, que es el ajuste de siempre: en su historial se lee "Rendimiento" o "Baja de valor".
+- **Patrimonio** (`calcularPatrimonio`, `domain/cuentas/saldos.dart`) = para gastar (efectivo y débito, `sumaDeSaldos`) + ahorro e inversiones (`sumaDeAhorros`) − lo que se debe en tarjetas (`sumaDeDeudas`). Solo cuentas activas que llevan saldo. Encabeza "Tus cuentas" con su desglose y cierra la tarjeta de cuentas de Inicio (si hay más de una con saldo).
+- **Conexión con el cierre del ciclo:** un ciclo cerrado con apartado positivo pregunta "¿Ya está en tu ahorro?" y ofrece "Pasarlo a mi ahorro": abre la transferencia hacia la cuenta de ahorro con el monto ya escrito; si aún no hay ninguna, primero la crea. Es una oferta, nunca automático.
+- No es asesoría: la app no recomienda instrumentos ni estima rendimientos; solo lleva lo que el usuario le dice que tiene.
+
 ### 7.4 [NUEVO] Exportación y portabilidad
 Exportar todo a Excel/CSV cuando quieras. No quedas atrapado en la app — y te da una red de seguridad psicológica al abandonar el Excel.
 

@@ -74,6 +74,15 @@ Future<void> main() async {
     fechaSaldoInicial: inicioCiclo,
     limite: const Dinero.pesos(20000),
   ));
+  await almacen.cuentas.guardar(Cuenta(
+    id: 'cetes',
+    nombre: 'Cetes',
+    emoji: '🌱',
+    tipo: TipoCuenta.ahorro,
+    llevaSaldo: true,
+    saldoInicial: const Dinero.pesos(42000),
+    fechaSaldoInicial: inicioCiclo,
+  ));
   final hoy = DateTime.now();
   final calculadora = perfil.calculadoraCiclo;
   var n = 0;

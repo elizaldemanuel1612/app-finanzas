@@ -15,7 +15,10 @@ class PantallaEditarCuenta extends StatefulWidget {
   final CuentaRepositorio cuentaRepositorio;
   final Cuenta? existente;
 
-  const PantallaEditarCuenta({super.key, required this.cuentaRepositorio, this.existente});
+  /// Al crear: el tipo ya elegido (por ejemplo, ahorro desde el cierre del ciclo).
+  final TipoCuenta? tipoInicial;
+
+  const PantallaEditarCuenta({super.key, required this.cuentaRepositorio, this.existente, this.tipoInicial});
 
   @override
   State<PantallaEditarCuenta> createState() => _PantallaEditarCuentaState();
@@ -23,12 +26,14 @@ class PantallaEditarCuenta extends StatefulWidget {
 
 class _PantallaEditarCuentaState extends State<PantallaEditarCuenta> {
   late final _nombre = TextEditingController(text: widget.existente?.nombre ?? '');
-  late final _emoji = TextEditingController(text: widget.existente?.emoji ?? '💳');
+  late final _emoji = TextEditingController(
+    text: widget.existente?.emoji ?? (widget.tipoInicial == TipoCuenta.ahorro ? '🌱' : '💳'),
+  );
   final _saldo = TextEditingController();
   late final _limite = TextEditingController(
     text: widget.existente?.limite == null ? '' : textoEditableDeDinero(widget.existente!.limite!),
   );
-  late TipoCuenta _tipo = widget.existente?.tipo ?? TipoCuenta.debito;
+  late TipoCuenta _tipo = widget.existente?.tipo ?? widget.tipoInicial ?? TipoCuenta.debito;
 
   /// En efectivo y crédito llevar saldo es opcional: "traigo $800",
   /// "debo $3,000".
@@ -39,10 +44,7 @@ class _PantallaEditarCuentaState extends State<PantallaEditarCuenta> {
   /// El efectivo base no cambia de tipo: es "el efectivo".
   bool get _tipoFijo => widget.existente?.id == idCuentaEfectivo;
 
-  bool get _llevaSaldo => switch (_tipo) {
-        TipoCuenta.debito => true,
-        TipoCuenta.credito || TipoCuenta.efectivo => _llevaSaldoElegido,
-      };
+  bool get _llevaSaldo => _tipo.siempreLlevaSaldo || _llevaSaldoElegido;
 
   /// Pedir saldo: al crear, o si antes no llevaba (o era de otro tipo) y
   /// ahora sí. En crédito lo que se pide es lo que se debe.
@@ -154,7 +156,16 @@ class _PantallaEditarCuentaState extends State<PantallaEditarCuenta> {
                   for (final t in TipoCuenta.values) ButtonSegment(value: t, label: Text(t.etiqueta)),
                 ],
                 selected: {_tipo},
-                onSelectionChanged: _tipoFijo ? null : (s) => setState(() => _tipo = s.first),
+                // Sin la palomita: con cuatro tipos no cabría en un teléfono angosto.
+                showSelectedIcon: false,
+                onSelectionChanged: _tipoFijo
+                    ? null
+                    : (s) => setState(() {
+                          _tipo = s.first;
+                          // El emoji de fábrica sigue al tipo; uno elegido a mano se respeta.
+                          if (_emoji.text == '💳' && _tipo == TipoCuenta.ahorro) _emoji.text = '🌱';
+                          if (_emoji.text == '🌱' && _tipo != TipoCuenta.ahorro) _emoji.text = '💳';
+                        }),
               ),
               const SizedBox(height: 8),
               Text(
@@ -162,10 +173,13 @@ class _PantallaEditarCuentaState extends State<PantallaEditarCuenta> {
                   TipoCuenta.debito => 'Cada gasto con esta tarjeta se descuenta de su saldo, y puedes registrarle abonos.',
                   TipoCuenta.credito => 'Verás cuánto llevas gastado con ella en el ciclo y, si quieres, cuánto debes.',
                   TipoCuenta.efectivo => 'Si quieres, lleva la cuenta de cuánto traes.',
+                  TipoCuenta.ahorro =>
+                    'Tu ahorro o una inversión (fondo, CETES, afore…). No se paga con ella: le transfieres lo que '
+                        'apartas y ajustas su valor cuando cambie. Cuenta para tu patrimonio.',
                 },
                 style: textos.bodySmall,
               ),
-              if (_tipo != TipoCuenta.debito) ...[
+              if (!_tipo.siempreLlevaSaldo) ...[
                 const SizedBox(height: 8),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -188,7 +202,9 @@ class _PantallaEditarCuentaState extends State<PantallaEditarCuenta> {
                     prefixText: '\$ ',
                     helperText: _esCredito
                         ? 'Lo de tu app del banco. Los gastos de antes de hoy no se suman.'
-                        : 'Los gastos de antes de hoy no se descuentan.',
+                        : _tipo == TipoCuenta.ahorro
+                            ? 'Lo que vale hoy, según tu banco o casa de bolsa.'
+                            : 'Los gastos de antes de hoy no se descuentan.',
                     helperMaxLines: 2,
                   ),
                 ),

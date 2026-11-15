@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../core/ciclo.dart';
+import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
+import '../../data/repositorios/cuenta_repositorio.dart';
+import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
+import '../../domain/modelos/cuenta.dart';
+import '../cuentas/hoja_transferencia.dart';
+import '../cuentas/pantalla_editar_cuenta.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/ciclo_de_vida/alcance.dart';
@@ -42,6 +48,11 @@ class PantallaCierreCiclo extends StatefulWidget {
   final CicloRepositorio cicloRepositorio;
   final IngresoExtraRepositorio ingresoExtraRepositorio;
 
+  /// Para ofrecer, ya cerrado, pasar lo apartado a una cuenta de ahorro
+  /// (spec §7.3.2); sin ellos no se ofrece.
+  final CuentaRepositorio? cuentaRepositorio;
+  final MovimientoCuentaRepositorio? movimientoCuentaRepositorio;
+
   const PantallaCierreCiclo({
     super.key,
     required this.ciclo,
@@ -50,6 +61,8 @@ class PantallaCierreCiclo extends StatefulWidget {
     required this.movimientoRepositorio,
     required this.cicloRepositorio,
     required this.ingresoExtraRepositorio,
+    this.cuentaRepositorio,
+    this.movimientoCuentaRepositorio,
   });
 
   @override
@@ -122,6 +135,37 @@ class _PantallaCierreCicloState extends State<PantallaCierreCiclo> {
       Falla(:final mensaje) =>
         _DatosCierre(ciclo: cicloVigente, cicloGuardado: guardado, error: mensaje),
     };
+  }
+
+  /// Abre la transferencia hacia la cuenta de ahorro con lo apartado ya
+  /// escrito; si aún no hay ninguna, primero la crea.
+  Future<void> _pasarAAhorro(Dinero apartado) async {
+    final repoCuentas = widget.cuentaRepositorio!;
+    final repoMovimientos = widget.movimientoCuentaRepositorio;
+    bool esAhorro(Cuenta c) => c.activa && c.tipo == TipoCuenta.ahorro;
+    var cuentas = await repoCuentas.listarTodas();
+    if (!mounted) return;
+    if (!cuentas.any(esAhorro)) {
+      final creada = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => PantallaEditarCuenta(cuentaRepositorio: repoCuentas, tipoInicial: TipoCuenta.ahorro),
+        ),
+      );
+      if (creada != true || !mounted) return;
+      cuentas = await repoCuentas.listarTodas();
+      if (!mounted || !cuentas.any(esAhorro)) return;
+    }
+    if (repoMovimientos == null) return;
+    final hecha = await mostrarHojaTransferencia(
+      context,
+      cuentas: cuentas,
+      repositorio: repoMovimientos,
+      destinoId: cuentas.firstWhere(esAhorro).id,
+      montoInicial: apartado,
+    );
+    if (hecha == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Listo: ya cuenta en tu ahorro.')));
+    }
   }
 
   Future<void> _cerrar(SnapshotCiclo snapshot) async {
@@ -271,6 +315,32 @@ class _PantallaCierreCicloState extends State<PantallaCierreCiclo> {
                     ),
                   ),
                 ),
+                if (cerrado && snapshotCiclo.apartado.esPositivo && widget.cuentaRepositorio != null) ...[
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('¿Ya está en tu ahorro?', style: Theme.of(context).textTheme.titleMedium),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Apartaste ${snapshotCiclo.apartado.formateado()}. Pásalo a tu cuenta de ahorro o '
+                            'inversión para que cuente en tu patrimonio y no se quede a la mano.',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 8),
+                          OutlinedButton.icon(
+                            onPressed: () => _pasarAAhorro(snapshotCiclo.apartado),
+                            icon: const Icon(Icons.savings_outlined),
+                            label: const Text('Pasarlo a mi ahorro'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 Text('Presupuesto vs. real', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 10),

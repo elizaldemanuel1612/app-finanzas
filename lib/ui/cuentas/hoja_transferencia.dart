@@ -17,6 +17,7 @@ Future<bool?> mostrarHojaTransferencia(
   required MovimientoCuentaRepositorio repositorio,
   String? origenId,
   String? destinoId,
+  Dinero? montoInicial,
 }) {
   return showModalBottomSheet<bool>(
     context: context,
@@ -26,6 +27,7 @@ Future<bool?> mostrarHojaTransferencia(
       repositorio: repositorio,
       origenId: origenId,
       destinoId: destinoId,
+      montoInicial: montoInicial,
     ),
   );
 }
@@ -36,14 +38,25 @@ class _HojaTransferencia extends StatefulWidget {
   final String? origenId;
   final String? destinoId;
 
-  const _HojaTransferencia({required this.cuentas, required this.repositorio, this.origenId, this.destinoId});
+  /// Monto ya escrito al abrir (por ejemplo, lo apartado al cerrar el ciclo).
+  final Dinero? montoInicial;
+
+  const _HojaTransferencia({
+    required this.cuentas,
+    required this.repositorio,
+    this.origenId,
+    this.destinoId,
+    this.montoInicial,
+  });
 
   @override
   State<_HojaTransferencia> createState() => _HojaTransferenciaState();
 }
 
 class _HojaTransferenciaState extends State<_HojaTransferencia> {
-  final _monto = TextEditingController();
+  late final _monto = TextEditingController(
+    text: widget.montoInicial == null ? '' : textoEditableDeDinero(widget.montoInicial!),
+  );
   final _nota = TextEditingController();
   late String? _origen = widget.origenId ?? _primeraDe((c) => c.tipo == TipoCuenta.debito, excepto: widget.destinoId);
   late String? _destino =
@@ -121,6 +134,7 @@ class _HojaTransferenciaState extends State<_HojaTransferencia> {
   Widget build(BuildContext context) {
     final destino = _cuenta(_destino);
     final esPago = destino?.tipo == TipoCuenta.credito;
+    final esAporte = destino?.tipo == TipoCuenta.ahorro;
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
       child: SingleChildScrollView(
@@ -128,12 +142,21 @@ class _HojaTransferenciaState extends State<_HojaTransferencia> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(esPago ? 'Pagar tarjeta' : 'Transferir', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              esPago
+                  ? 'Pagar tarjeta'
+                  : esAporte
+                      ? 'Aportar a tu ahorro'
+                      : 'Transferir',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 4),
             Text(
               esPago
                   ? 'Baja el saldo de la cuenta de donde pagas. No cuenta como gasto: tus compras con la tarjeta ya se registraron.'
-                  : 'Pasa dinero de una cuenta a otra. No cuenta como gasto.',
+                  : esAporte
+                      ? 'Pasa a tu ahorro o inversión lo que apartaste. No cuenta como gasto: sigue siendo tu dinero.'
+                      : 'Pasa dinero de una cuenta a otra. No cuenta como gasto.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 16),
