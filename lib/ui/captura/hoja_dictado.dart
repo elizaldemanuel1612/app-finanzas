@@ -8,6 +8,7 @@ import '../../domain/voz/parser_dictado.dart';
 import '../../domain/voz/seleccion_locale.dart';
 import '../../plataforma/dictado_web.dart';
 import '../comun/tema.dart';
+import '../comun/hoja.dart';
 
 /// Abre la hoja de dictado y regresa los gastos que el parser entendió del
 /// audio, o `null` si la persona canceló sin decir nada útil.
@@ -25,9 +26,8 @@ Future<List<GastoDictado>?> mostrarHojaDictado(
   required List<Categoria> categorias,
   DictadoWeb? dictadoWeb,
 }) {
-  return showModalBottomSheet<List<GastoDictado>>(
-    context: context,
-    isScrollControlled: true,
+  return mostrarHoja<List<GastoDictado>>(
+    context,
     builder: (_) => _HojaDictado(categorias: categorias, dictadoWeb: dictadoWeb),
   );
 }

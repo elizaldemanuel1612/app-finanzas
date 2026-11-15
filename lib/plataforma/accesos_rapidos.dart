@@ -56,14 +56,18 @@ class AccesosRapidos {
   /// Publica al widget cuánto queda hoy. El widget solo muestra lo que se
   /// le manda — nunca calcula por su cuenta (§5.6). Si el App Group no está
   /// disponible (firma con Apple ID gratuito) el lado nativo lo ignora.
-  static Future<void> publicarDisponibleHoy(Dinero disponible, DateTime hoy) async {
+  /// Lo que muestra el widget (2026-11-15, como el héroe de Inicio): lo
+  /// gastado en variables del ciclo y de cuánto.
+  static Future<void> publicarGastado(Dinero gastado, Dinero presupuesto, DateTime hoy) async {
     if (!_disponible) return;
     final fecha = '${hoy.year.toString().padLeft(4, '0')}-'
         '${hoy.month.toString().padLeft(2, '0')}-'
         '${hoy.day.toString().padLeft(2, '0')}';
     try {
       await _canal.invokeMethod<void>('actualizarWidget', {
-        'quedaHoyTexto': disponible.formateado(),
+        // La clave se llama así desde que mostraba "Hoy puedes gastar".
+        'quedaHoyTexto': gastado.formateado(),
+        'deTexto': 'de ${presupuesto.formateado()}',
         'fecha': fecha,
       });
     } on PlatformException {

@@ -32,6 +32,10 @@ final class MovimientoCuenta {
   /// dónde sale).
   final String? cuentaDestinoId;
 
+  /// De dónde vino el dinero (Nómina, Rentas…), solo en un abono
+  /// (spec §7.3.4). `null` = sin categoría.
+  final String? categoriaIngresoId;
+
   const MovimientoCuenta({
     required this.clientId,
     required this.cuentaId,
@@ -43,6 +47,7 @@ final class MovimientoCuenta {
     this.estado = EstadoMovimientoCuenta.activo,
     this.ingresoExtraId,
     this.cuentaDestinoId,
+    this.categoriaIngresoId,
   });
 
   /// Lo que mueve el saldo de la cuenta en la que se registró: positivo si
@@ -74,6 +79,7 @@ final class MovimientoCuenta {
         estado: EstadoMovimientoCuenta.anulado,
         ingresoExtraId: ingresoExtraId,
         cuentaDestinoId: cuentaDestinoId,
+        categoriaIngresoId: categoriaIngresoId,
       );
 
   Map<String, dynamic> toJson() => {
@@ -87,6 +93,7 @@ final class MovimientoCuenta {
         'estado': estado.name,
         if (ingresoExtraId != null) 'ingresoExtraId': ingresoExtraId,
         if (cuentaDestinoId != null) 'cuentaDestinoId': cuentaDestinoId,
+        if (categoriaIngresoId != null) 'categoriaIngresoId': categoriaIngresoId,
       };
 
   factory MovimientoCuenta.fromJson(Map<String, dynamic> json) => MovimientoCuenta(
@@ -100,5 +107,6 @@ final class MovimientoCuenta {
         estado: EstadoMovimientoCuenta.values.byName(json['estado'] as String),
         ingresoExtraId: json['ingresoExtraId'] as String?,
         cuentaDestinoId: json['cuentaDestinoId'] as String?,
+        categoriaIngresoId: json['categoriaIngresoId'] as String?,
       );
 }

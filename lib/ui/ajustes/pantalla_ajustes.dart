@@ -30,12 +30,16 @@ import '../comun/formato_fecha.dart';
 import '../comun/guia_rapida.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/renglon_app.dart';
+import '../ia/pantalla_asistente.dart';
+import '../ia/pantalla_complementos_ia.dart';
+import '../ia/servicio_ia_app.dart';
 import '../comun/tarjeta_app.dart';
 import '../comun/tema.dart';
 import '../importacion/pantalla_importar.dart';
 import '../meta/pantalla_meta_ahorro.dart';
 import 'pantalla_cambiar_corte.dart';
 import 'pantalla_nube.dart';
+import '../comun/hoja.dart';
 
 /// §8 del paquete: "Ajustes" es donde viven la exportación de datos, los
 /// avisos legales y la eliminación de cuenta que ambas tiendas exigen para
@@ -64,6 +68,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PantallaCategorias(
+          categoriaIngresoRepositorio: widget.almacenLocal.categoriasIngreso,
           categoriaRepositorio: widget.almacenLocal.categorias,
           movimientoRepositorio: widget.almacenLocal.movimientos,
           reglasAprendidasRepositorio: widget.almacenLocal.reglasAprendidas,
@@ -196,7 +201,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
 
   void _irAComoFunciona() {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const PantallaGuia()),
+      MaterialPageRoute(builder: (_) => PantallaGuia(servicioIA: servicioIADe(widget.almacenLocal))),
     );
   }
 
@@ -381,9 +386,8 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
   }
 
   Future<void> _elegirApariencia() async {
-    final elegida = await showModalBottomSheet<Apariencia>(
-      context: context,
-      showDragHandle: true,
+    final elegida = await mostrarHoja<Apariencia>(
+      context,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -481,6 +485,17 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
               ),
             ]),
             _seccion('App', [
+              RenglonApp(
+                icono: Icons.auto_awesome,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.morado,
+                colorIcono: Colors.white,
+                titulo: 'Complementos de IA',
+                subtitulo: 'Conecta tu Apple Intelligence, Gemini, ChatGPT o Claude',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => PantallaComplementosIA(servicio: servicioIADe(widget.almacenLocal))),
+                ),
+              ),
               ValueListenableBuilder<Apariencia>(
                 valueListenable: AparienciaApp.actual,
                 builder: (context, apariencia, _) => RenglonApp(
@@ -554,6 +569,17 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                 titulo: 'Cómo funciona la app',
                 subtitulo: 'Guía por temas',
                 onTap: _irAComoFunciona,
+              ),
+              RenglonApp(
+                icono: Icons.forum_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.turquesa,
+                colorIcono: Colors.white,
+                titulo: 'Pregúntale a tu IA',
+                subtitulo: 'Cómo se hace algo o dónde está un botón',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => PantallaAsistente(servicio: servicioIADe(widget.almacenLocal))),
+                ),
               ),
               RenglonApp(
                 icono: Icons.replay,

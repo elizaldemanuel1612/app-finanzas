@@ -48,7 +48,7 @@ Lo que hace la app es **llamar por internet a un modelo de lenguaje** a través 
 | **API de OpenAI** | similar | Alternativa equivalente |
 | **Modelo pequeño en el dispositivo** | gratis | Menos preciso, pesa más la app. Viable a futuro |
 
-La llamada la hace **el servidor de tu app** (una Cloud Function de Firebase), no el teléfono. Así la llave de acceso nunca vive en el celular de nadie.
+**Cambio del 2026-11-15 (spec §6.5):** la app no tiene servidor ni llave propia. Cada persona conecta **su** IA en Ajustes → Complementos de IA —Apple Intelligence en el iPhone (gratis, dentro del teléfono), o su clave de Gemini, ChatGPT o Claude— y la app le habla directo. La clave se queda solo en su teléfono. Además de clasificar, esa IA contesta dudas de cómo usar la app con base en la guía por temas.
 
 ---
 

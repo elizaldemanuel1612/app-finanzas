@@ -5,6 +5,7 @@ import '../../domain/ciclo_de_vida/ciclos_para_consultar.dart';
 import 'formato_dinero.dart';
 import 'formato_fecha.dart';
 import 'tema.dart';
+import 'hoja.dart';
 
 /// "‹ Ciclo Oct 2026 ▾ ›" con sus fechas, si está cerrado y cuánto se gastó.
 /// Las flechas pasan al ciclo anterior o siguiente; tocar el nombre abre la
@@ -33,9 +34,9 @@ class SelectorCiclo extends StatelessWidget {
   /// Hoja con todos los ciclos: más práctico que las flechas cuando hay
   /// mucha historia.
   Future<void> _elegir(BuildContext context) async {
-    final elegido = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
+    final elegido = await mostrarHoja<String>(
+      context,
+      desplazable: false,
       builder: (contexto) => SafeArea(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(contexto).height * 0.7),

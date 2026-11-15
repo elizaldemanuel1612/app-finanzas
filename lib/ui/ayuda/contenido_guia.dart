@@ -48,13 +48,13 @@ const _temaInicio = TemaGuia(
   id: 'inicio',
   emoji: '🏠',
   titulo: 'Tu pantalla de inicio',
-  resumen: 'Lo primero que ves: cuánto puedes gastar hoy y qué atender.',
+  resumen: 'Lo primero que ves: cuánto llevas gastado y qué atender.',
   bloques: [
     Parrafo(
-      'La tarjeta de arriba responde una sola pregunta: **Hoy puedes gastar**. '
-      'Es lo que les queda a tus categorías variables repartido entre los días '
-      'que faltan del ciclo. Arriba trae cómo vas (**Vas bien**, **Vas rápido** '
-      'o **Te pasaste**) y abajo la barra de tus variables y tu meta del ciclo.',
+      'La tarjeta de arriba dice cuánto **Llevas gastado** en tus categorías '
+      'variables este ciclo y de cuánto, con la barra y cuánto te queda. Arriba '
+      'trae cómo vas (**Vas bien**, **Vas rápido** o **Te pasaste**) y abajo tu '
+      'meta del ciclo.',
     ),
     Parrafo(
       'Si alguna categoría va a pasarse, aparece un solo aviso con la '
@@ -239,6 +239,21 @@ const _temaIngresosYMeta = TemaGuia(
       'dejarla en "lo que sobre" de tus presupuestos — la opción por '
       'defecto si no configuras nada distinto.',
     ),
+    Subtitulo('Categorías de ingreso'),
+    Parrafo(
+      'Además de las categorías de gasto hay categorías de **ingreso**: de '
+      'dónde te entra dinero (Nómina, Rentas, Inversiones…). Están en la '
+      'misma pantalla de Categorías: arriba cambias entre **Gastos** e '
+      '**Ingresos**, y el + crea del tipo que estés viendo.',
+    ),
+    Parrafo(
+      'Al registrar un abono en una cuenta (Patrimonio → tu cuenta → '
+      '**Registrar abono**) eliges en **¿De dónde viene?** una categoría de '
+      'ingreso y, si quieres, escribes una nota. Al registrar un gasto solo '
+      'ves categorías de gasto. En Análisis → **Ingresos**, bajo **Te entraron**, '
+      'ves cuánto entró por cada categoría, contra lo que gastaste, mes por mes '
+      'y a qué cuenta.',
+    ),
   ],
 );
 
@@ -306,6 +321,19 @@ const _temaTusDatos = TemaGuia(
       'Eliminar tu cuenta borra ese historial de este dispositivo — la '
       'app te ofrece exportar antes, por si acaso.',
     ),
+    Subtitulo('Complementos de IA'),
+    Parrafo(
+      'En Ajustes → **Complementos de IA** conectas tu propia IA: Apple '
+      'Intelligence en el iPhone (gratis, sin clave), o una clave de API de '
+      'Gemini, ChatGPT o Claude. La clave se queda solo en tu teléfono y la '
+      'app le habla directo a tu IA; nunca ve tus gastos ni tus saldos.',
+    ),
+    Vinetas([
+      '**Pregúntale a tu IA** (en Ajustes → Ayuda y arriba en esta guía) te '
+          'contesta cómo hacer algo o dónde está un botón, con base en esta guía.',
+      '**Sugerir categorías**: al escribir la nota de un gasto que la app no '
+          'reconoce, tu IA resalta la categoría que cree; tú decides al tocarla.',
+    ]),
   ],
 );
 

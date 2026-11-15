@@ -52,6 +52,9 @@ class PantallaCierreCiclo extends StatefulWidget {
   final CuentaRepositorio? cuentaRepositorio;
   final MovimientoCuentaRepositorio? movimientoCuentaRepositorio;
 
+  /// Abre los gastos de una categoría en un ciclo (Gastos ya filtrado).
+  final void Function(String cicloId, String categoriaId)? alVerMovimientos;
+
   const PantallaCierreCiclo({
     super.key,
     required this.ciclo,
@@ -62,6 +65,7 @@ class PantallaCierreCiclo extends StatefulWidget {
     required this.ingresoExtraRepositorio,
     this.cuentaRepositorio,
     this.movimientoCuentaRepositorio,
+    this.alVerMovimientos,
   });
 
   @override
@@ -343,7 +347,12 @@ class _PantallaCierreCicloState extends State<PantallaCierreCiclo> {
                 const SizedBox(height: 20),
                 Text('Presupuesto vs. real', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 10),
-                ...snapshotCiclo.renglones.map((r) => _TarjetaRenglon(renglon: r)),
+                ...snapshotCiclo.renglones.map((r) => _TarjetaRenglon(
+                      renglon: r,
+                      alTocar: widget.alVerMovimientos == null || r.conteoMovimientos == 0
+                          ? null
+                          : () => widget.alVerMovimientos!(widget.ciclo.id, r.categoriaId),
+                    )),
                 const SizedBox(height: 24),
                 if (_procesando)
                   const Center(child: CircularProgressIndicator())
@@ -475,7 +484,10 @@ class _AvisoExtra extends StatelessWidget {
 class _TarjetaRenglon extends StatelessWidget {
   final RenglonSnapshot renglon;
 
-  const _TarjetaRenglon({required this.renglon});
+  /// Tocarla abre sus gastos de ese ciclo.
+  final VoidCallback? alTocar;
+
+  const _TarjetaRenglon({required this.renglon, this.alTocar});
 
   @override
   Widget build(BuildContext context) {
@@ -484,7 +496,10 @@ class _TarjetaRenglon extends StatelessWidget {
         : renglon.realCentavos.centavos / renglon.presupuestoCentavos.centavos;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: alTocar,
+        child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -497,10 +512,13 @@ class _TarjetaRenglon extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(renglon.nombre, style: const TextStyle(fontWeight: FontWeight.w700)),
                 ]),
-                Text(
-                  '${renglon.realCentavos.formateado()} de ${renglon.presupuestoCentavos.formateado()}',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
+                Row(children: [
+                  Text(
+                    '${renglon.realCentavos.formateado()} de ${renglon.presupuestoCentavos.formateado()}',
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                  if (alTocar != null) Icon(Icons.chevron_right_rounded, size: 20, color: ColoresApp.actual.texto2),
+                ]),
               ],
             ),
             if (porcentajeUsado != null) ...[
@@ -511,7 +529,15 @@ class _TarjetaRenglon extends StatelessWidget {
                 descripcion: renglon.nombre,
               ),
             ],
+            if (alTocar != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                renglon.conteoMovimientos == 1 ? 'Ver 1 gasto' : 'Ver ${renglon.conteoMovimientos} gastos',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: ColoresApp.actual.accion),
+              ),
+            ],
           ],
+        ),
         ),
       ),
     );

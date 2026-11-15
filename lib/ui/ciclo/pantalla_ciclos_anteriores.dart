@@ -38,6 +38,9 @@ class PantallaCiclosAnteriores extends StatefulWidget {
   final CuentaRepositorio? cuentaRepositorio;
   final MovimientoCuentaRepositorio? movimientoCuentaRepositorio;
 
+  /// Abre los gastos de una categoría en un ciclo (Gastos ya filtrado).
+  final void Function(String cicloId, String categoriaId)? alVerMovimientos;
+
   /// Dentro de Análisis › Historial: sin barra propia.
   final bool embebida;
 
@@ -52,6 +55,7 @@ class PantallaCiclosAnteriores extends StatefulWidget {
     required this.ingresoExtraRepositorio,
     this.cuentaRepositorio,
     this.movimientoCuentaRepositorio,
+    this.alVerMovimientos,
   });
 
   @override
@@ -130,6 +134,7 @@ class _PantallaCiclosAnterioresState extends State<PantallaCiclosAnteriores> {
           ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
           cuentaRepositorio: widget.cuentaRepositorio,
           movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio,
+          alVerMovimientos: widget.alVerMovimientos,
         ),
       ),
     );

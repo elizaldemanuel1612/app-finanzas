@@ -35,7 +35,7 @@ void main() {
     expect(p.avance, 0.25);
     expect(p.estado, EstadoObjetivo.sinFecha);
     expect(p.ciclosRestantes, isNull);
-    expect(p.porCiclo, isNull);
+    expect(p.reparto, isEmpty);
     expect(p.ciclosAlRitmoActual, isNull);
     expect(p.alcanzaATiempo, isNull);
   });
@@ -62,8 +62,8 @@ void main() {
     expect(cero.avance, 0);
   });
 
-  test('con fecha: ciclos que quedan y cuánto por ciclo, hacia arriba', () {
-    // Nov, dic, ene, feb, mar = 5 ciclos; faltan 10,000.01 → 2,000.01 (redondeo arriba).
+  test('con fecha: lo que falta se reparte por los días de cada ciclo', () {
+    // Del 14 nov al 20 mar: 17 + 31 + 31 + 28 + 20 = 127 días en 5 ciclos.
     final o = Objetivo(
       id: 'viaje',
       nombre: 'Viaje',
@@ -76,9 +76,16 @@ void main() {
     final p = _progreso([o], {'cetes': 0}, apartado: 2500).single;
     expect(p.estado, EstadoObjetivo.enCamino);
     expect(p.ciclosRestantes, 5);
-    expect(p.porCiclo, const Dinero(200001));
+    expect(p.reparto.map((r) => r.dias), [17, 31, 31, 28, 20]);
+    expect(
+      p.reparto.map((r) => r.monto.centavos),
+      [134201, 244000, 244000, 220400, 157400],
+      reason: 'a pesos hacia abajo; el resto (y los centavos) al ciclo que corre',
+    );
+    expect(p.reparto.fold<int>(0, (t, r) => t + r.monto.centavos), 1000001);
+    expect(p.reparto.first.ciclo.id, _calc.calcularPara(_hoy).id);
     expect(p.ciclosAlRitmoActual, 5, reason: '10,000.01 entre 2,500 → 5 ciclos');
-    expect(p.alcanzaATiempo, isTrue);
+    expect(p.alcanzaATiempo, isTrue, reason: '2,500 × 127 ≥ 10,000.01 × 31');
 
     final lento = _progreso([o], {'cetes': 0}, apartado: 1000).single;
     expect(lento.ciclosAlRitmoActual, 11);
@@ -86,11 +93,44 @@ void main() {
     expect(_progreso([o], {'cetes': 0}, apartado: 0).single.ciclosAlRitmoActual, isNull);
   });
 
+  test('la fecha cae a pocos días del corte: el ciclo siguiente pide poco', () {
+    // Corte el 12: del 15 nov al 11 dic quedan 27 días de este ciclo; del
+    // 12 al 16 dic, 5 del siguiente. $20,000 → $16,875 y $3,125, no $10,000
+    // en cada uno.
+    final p = calcularProgresoObjetivos(
+      objetivos: [_obj('viaje', 20000, fecha: DateTime(2026, 12, 16))],
+      saldoPorCuenta: const {},
+      hoy: DateTime(2026, 11, 15, 14),
+      calculadora: const CalculadoraCiclo(12),
+      apartadoPorCiclo: const Dinero.pesos(19400),
+    ).single;
+    expect(p.ciclosRestantes, 2);
+    expect(p.reparto.map((r) => r.dias), [27, 5]);
+    expect(p.reparto.map((r) => r.monto), [const Dinero.pesos(16875), const Dinero.pesos(3125)]);
+    expect(p.alcanzaATiempo, isTrue, reason: '19,400 × 32 ≥ 20,000 × 31');
+
+    final justo = calcularProgresoObjetivos(
+      objetivos: [_obj('viaje', 20000, fecha: DateTime(2026, 12, 16))],
+      saldoPorCuenta: const {},
+      hoy: DateTime(2026, 11, 15, 14),
+      calculadora: const CalculadoraCiclo(12),
+      apartadoPorCiclo: const Dinero.pesos(19000),
+    ).single;
+    expect(justo.alcanzaATiempo, isFalse);
+  });
+
+  test('la fecha es hoy: un solo tramo de un día con todo lo que falta', () {
+    final r = repartirPorDias(falta: 50050, hoy: _hoy, fecha: DateTime(2026, 11, 14), calculadora: _calc);
+    expect(r.single.dias, 1);
+    expect(r.single.monto, const Dinero(50050));
+    expect(repartirPorDias(falta: 1, hoy: _hoy, fecha: DateTime(2026, 11, 13), calculadora: _calc), isEmpty);
+  });
+
   test('la fecha ya pasó sin juntarlo: vencido, sin ritmo por ciclo', () {
     final p = _progreso([_obj('viaje', 100, fecha: DateTime(2026, 11, 13))], {'cetes': 10}, apartado: 30).single;
     expect(p.estado, EstadoObjetivo.vencido);
     expect(p.ciclosRestantes, isNull);
-    expect(p.porCiclo, isNull);
+    expect(p.reparto, isEmpty);
     expect(p.ciclosAlRitmoActual, 3);
     expect(p.alcanzaATiempo, isNull);
   });

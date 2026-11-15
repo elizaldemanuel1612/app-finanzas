@@ -61,13 +61,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Detalle'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Plan contra cierre'), 300);
+    // La fila de vistas también se desplaza (a lo ancho): se busca en la lista.
+    await tester.scrollUntilVisible(find.text('Plan contra cierre'), 300, scrollable: find.byType(Scrollable).last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Variables').first);
     await tester.pumpAndSettle();
 
     final linea = find.text('↑ Estas 3 suman el 91%');
-    await tester.scrollUntilVisible(linea, 200);
+    await tester.scrollUntilVisible(linea, 200, scrollable: find.byType(Scrollable).last);
     expect(linea, findsOneWidget);
     // Debajo de Mamá (la tercera) y arriba de Café.
     expect(tester.getTopLeft(linea).dy, greaterThan(tester.getTopLeft(find.text('Mamá')).dy));

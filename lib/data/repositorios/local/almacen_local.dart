@@ -3,6 +3,7 @@ import 'dart:io';
 import '../../almacenamiento/archivo_texto.dart';
 import '../../almacenamiento/archivo_texto_disco.dart';
 import 'ajuste_presupuesto_ciclo_repositorio_archivo.dart';
+import 'categoria_ingreso_repositorio_archivo.dart';
 import 'categoria_repositorio_archivo.dart';
 import 'cuenta_repositorio_archivo.dart';
 import 'ciclo_repositorio_archivo.dart';
@@ -35,13 +36,14 @@ final class AlmacenLocal {
     'cuentas.json',
     'movimientos_cuenta.json',
     'objetivos.json',
+    'categorias_ingreso.json',
   ];
 
   /// Carpeta de la cuenta en el dispositivo (también de las fotos de
   /// tickets). En la web no existe en disco: es solo un nombre.
   final Directory directorio;
 
-  /// Los 10 "archivos" de datos por nombre — lo que sincroniza el respaldo
+  /// Los 11 "archivos" de datos por nombre — lo que sincroniza el respaldo
   /// (`data/nube/servicio_nube.dart`) y lo que borra [borrarTodo].
   final Map<String, ArchivoTexto> archivos;
 
@@ -52,6 +54,11 @@ final class AlmacenLocal {
   /// PIN, contraseña y método de desbloqueo (spec §7.3): del dispositivo,
   /// no se sincroniza; "Eliminar cuenta" lo borra.
   final ArchivoTexto candado;
+
+  /// Complementos de IA (spec §6.5): proveedor y clave de API del usuario.
+  /// Del dispositivo, como el candado: no se sincroniza; "Eliminar cuenta"
+  /// lo borra.
+  final ArchivoTexto ia;
 
   /// `false` en la web: no hay sistema de archivos para fotos de tickets.
   final bool admiteFotos;
@@ -66,6 +73,7 @@ final class AlmacenLocal {
   final CuentaRepositorioArchivo cuentas;
   final MovimientoCuentaRepositorioArchivo movimientosCuenta;
   final ObjetivoRepositorioArchivo objetivos;
+  final CategoriaIngresoRepositorioArchivo categoriasIngreso;
 
   /// En el teléfono: archivos dentro de [directorio].
   factory AlmacenLocal(Directory directorio) => AlmacenLocal._(
@@ -76,6 +84,7 @@ final class AlmacenLocal {
         },
         ArchivoTextoDisco(File('${directorio.path}/nube.json')),
         ArchivoTextoDisco(File('${directorio.path}/candado.json')),
+        ArchivoTextoDisco(File('${directorio.path}/ia.json')),
         admiteFotos: true,
       );
 
@@ -87,15 +96,17 @@ final class AlmacenLocal {
     required Map<String, ArchivoTexto> archivos,
     required ArchivoTexto estadoNube,
     required ArchivoTexto candado,
+    ArchivoTexto? ia,
     required bool admiteFotos,
   }) =>
-      AlmacenLocal._(directorio, archivos, estadoNube, candado, admiteFotos: admiteFotos);
+      AlmacenLocal._(directorio, archivos, estadoNube, candado, ia ?? ArchivoTextoMemoria(), admiteFotos: admiteFotos);
 
   /// Con los archivos que se le den (pruebas).
   factory AlmacenLocal.sobre(Map<String, ArchivoTexto> archivos) =>
-      AlmacenLocal._(Directory('memoria'), archivos, ArchivoTextoMemoria(), ArchivoTextoMemoria(), admiteFotos: false);
+      AlmacenLocal._(Directory('memoria'), archivos, ArchivoTextoMemoria(), ArchivoTextoMemoria(), ArchivoTextoMemoria(),
+          admiteFotos: false);
 
-  AlmacenLocal._(this.directorio, this.archivos, this.estadoNube, this.candado, {required this.admiteFotos})
+  AlmacenLocal._(this.directorio, this.archivos, this.estadoNube, this.candado, this.ia, {required this.admiteFotos})
       : categorias = CategoriaRepositorioArchivo.sobre(archivos['categorias.json']!),
         movimientos = MovimientoRepositorioArchivo.sobre(archivos['movimientos.json']!),
         perfil = PerfilRepositorioArchivo.sobre(archivos['perfil.json']!),
@@ -106,9 +117,10 @@ final class AlmacenLocal {
             AjustePresupuestoCicloRepositorioArchivo.sobre(archivos['ajustes_presupuesto_ciclo.json']!),
         cuentas = CuentaRepositorioArchivo.sobre(archivos['cuentas.json']!),
         movimientosCuenta = MovimientoCuentaRepositorioArchivo.sobre(archivos['movimientos_cuenta.json']!),
-        objetivos = ObjetivoRepositorioArchivo.sobre(archivos['objetivos.json']!);
+        objetivos = ObjetivoRepositorioArchivo.sobre(archivos['objetivos.json']!),
+        categoriasIngreso = CategoriaIngresoRepositorioArchivo.sobre(archivos['categorias_ingreso.json']!);
 
-  /// Borra los 10 JSON más el directorio de fotos de tickets
+  /// Borra los 11 JSON más el directorio de fotos de tickets
   /// (`data/almacenamiento/almacen_fotos.dart`) — todo lo que "eliminar
   /// cuenta" promete que desaparece. Ignora los archivos que ya no
   /// existen: borrar es idempotente, no un error si ya no había nada.
@@ -118,6 +130,7 @@ final class AlmacenLocal {
     }
     await estadoNube.borrar();
     await candado.borrar();
+    await ia.borrar();
     if (!admiteFotos) return;
     final tickets = Directory('${directorio.path}/tickets');
     if (await tickets.exists()) await tickets.delete(recursive: true);

@@ -20,11 +20,13 @@ import '../../domain/cuentas/fechas_tarjeta.dart';
 import '../../domain/modelos/cuenta.dart';
 import '../cuentas/frase_pago.dart';
 import '../cuentas/pantalla_detalle_cuenta.dart';
+import '../ia/servicio_ia_app.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/apartado_estimado.dart';
 import '../../domain/presupuesto/cobertura_excesos.dart';
-import '../../domain/presupuesto/disponible_por_dia.dart';
 import '../../domain/presupuesto/meta_base.dart';
+import '../../domain/presupuesto/traslado_sobrante.dart';
+import '../ciclo/hoja_traslado_sobrante.dart';
 import '../../domain/pronostico/pronostico_del_ciclo.dart';
 import '../../domain/rollups/calcular_rollups.dart';
 import '../../domain/rollups/estado_ritmo.dart';
@@ -54,6 +56,7 @@ import '../gastos/pantalla_gastos.dart';
 import '../ingresos/pantalla_ingresos_del_ciclo.dart';
 import '../meta/pantalla_meta_ahorro.dart';
 import '../patrimonio/pantalla_patrimonio.dart';
+import '../comun/hoja.dart';
 
 /// Las cuatro pantallas raíz de la barra inferior
 /// (`docs/rediseno/plan-rediseno.md`, navegación nueva).
@@ -106,6 +109,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
   late Perfil _perfil = widget.perfil;
   _DatosInicio? _datos;
   bool _capturaAbierta = false;
+
+  /// Si ya se revisó en esta sesión si toca ofrecer el traslado de sobrante.
+  bool _trasladoRevisado = false;
   Pestana _pestana = Pestana.inicio;
 
   /// Sube cada vez que se entra a una pestaña o se registra algo: es la
@@ -190,7 +196,52 @@ class _PantallaInicioState extends State<PantallaInicio> {
     final datos = await _cargarDatos();
     if (!mounted) return;
     setState(() => _datos = datos);
-    AccesosRapidos.publicarDisponibleHoy(datos.disponibleHoy, DateTime.now());
+    AccesosRapidos.publicarGastado(datos.gastadoVariables, datos.presupuestoVariables, DateTime.now());
+    _ofrecerTrasladoSiToca();
+  }
+
+  /// Ciclo nuevo: ¿pasar lo que sobró del anterior? (addendum-v3 §2.5.2).
+  /// Una vez por ciclo; nada cambia si se elige "No trasladar nada".
+  Future<void> _ofrecerTrasladoSiToca() async {
+    if (_trasladoRevisado) return;
+    _trasladoRevisado = true;
+    final anterior = _perfil.calculadoraCiclo.calcularPara(_ciclo.fechaInicio.subtract(const Duration(days: 1)));
+    final sobrantes = sobrantesDelCiclo(
+      categorias: await widget.categoriaRepositorio.listarActivas(),
+      ajustesDelCiclo: await widget.ajustePresupuestoCicloRepositorio.listarPorCiclo(anterior.id),
+      movimientos: await widget.movimientoRepositorio.listarTodos(),
+      cicloId: anterior.id,
+    );
+    if (!mounted || !debePreguntarTraslado(_perfil, _ciclo.id, sobrantes)) return;
+    final decision = await mostrarHojaTraslado(
+      context,
+      sobrantes: sobrantes,
+      preseleccion: trasladoPreseleccionado(_perfil, sobrantes),
+    );
+    final elegidas = [for (final x in sobrantes) if (decision?.elegidas.contains(x.categoria.id) ?? false) x];
+    if (elegidas.isNotEmpty) {
+      await widget.ajustePresupuestoCicloRepositorio.agregarLote(
+        ajustesDeTraslado(elegidas, cicloNuevoId: _ciclo.id, ahora: DateTime.now()),
+      );
+    }
+    final perfil = perfilTrasDecidir(
+      _perfil,
+      _ciclo.id,
+      recordar: decision != null && decision.recordar ? decision.elegidas : null,
+    );
+    await widget.perfilRepositorio.guardar(perfil);
+    if (!mounted) return;
+    setState(() => _perfil = perfil);
+    if (elegidas.isEmpty) return;
+    final total = Dinero(elegidas.fold<int>(0, (t, x) => t + x.sobrante.centavos));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(elegidas.length == 1
+            ? 'Listo, ${elegidas.single.categoria.nombre} tiene ${enPesos(total)} más este ciclo'
+            : 'Listo, trasladaste ${enPesos(total)} a ${elegidas.length} categorías'),
+      ));
+    await _cargar();
   }
 
   Future<_DatosInicio> _cargarDatos() async {
@@ -258,12 +309,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
         await widget.almacenLocal.movimientosCuenta.listarTodos(),
         hoy: hoy,
       ),
-      disponibleHoy: calcularDisponiblePorDia(
-        presupuestoVariables: presupuestoVariables,
-        gastadoVariables: gastadoVariables,
-        ciclo: _ciclo,
-        hoy: hoy,
-      ),
     );
   }
 
@@ -285,6 +330,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
           cicloRepositorio: widget.cicloRepositorio,
           documentos: widget.almacenLocal.directorio,
           iniciarDictado: iniciarDictado,
+          servicioIA: servicioIADe(widget.almacenLocal),
           cuentaRepositorio: widget.almacenLocal.cuentas,
           ajustePresupuestoCicloRepositorio: widget.ajustePresupuestoCicloRepositorio,
         ),
@@ -351,6 +397,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PantallaCategorias(
+          categoriaIngresoRepositorio: widget.almacenLocal.categoriasIngreso,
           categoriaRepositorio: widget.categoriaRepositorio,
           movimientoRepositorio: widget.movimientoRepositorio,
           reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
@@ -416,11 +463,32 @@ class _PantallaInicioState extends State<PantallaInicio> {
   }
 
   /// Desde Análisis: abre una categoría por id.
+  /// Desde un ciclo de Historial: sus gastos de esa categoría, en Gastos ya
+  /// filtrado (con flecha para volver al ciclo).
+  Future<void> _irAGastosDe(String cicloId, String categoriaId) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaGastos(
+          cicloId: cicloId,
+          categoriaInicial: categoriaId,
+          perfil: _perfil,
+          categoriaRepositorio: widget.categoriaRepositorio,
+          movimientoRepositorio: widget.movimientoRepositorio,
+          reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
+          cicloRepositorio: widget.cicloRepositorio,
+          documentos: widget.almacenLocal.directorio,
+          cuentaRepositorio: widget.almacenLocal.cuentas,
+        ),
+      ),
+    );
+  }
+
   /// Del aviso de pago a la tarjeta, donde está "Pagar esta tarjeta".
   Future<void> _irACuenta(Cuenta cuenta) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PantallaDetalleCuenta(
+          categoriaIngresoRepositorio: widget.almacenLocal.categoriasIngreso,
           cuenta: cuenta,
           perfil: _perfil,
           cuentaRepositorio: widget.almacenLocal.cuentas,
@@ -468,12 +536,15 @@ class _PantallaInicioState extends State<PantallaInicio> {
           movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
           cicloRepositorio: widget.cicloRepositorio,
           alVerCategoria: _irADetallePorId,
+          alVerMovimientos: _irAGastosDe,
+          categoriaIngresoRepositorio: widget.almacenLocal.categoriasIngreso,
           alVerGastos: () => _elegirPestana(Pestana.gastos),
           alVerMeta: _irAMeta,
           nombre: _nombre,
           alAbrirAjustes: _irAAjustes,
         ),
       Pestana.patrimonio => PantallaPatrimonio(
+          categoriaIngresoRepositorio: widget.almacenLocal.categoriasIngreso,
           key: ValueKey('patrimonio-$_version'),
           perfil: _perfil,
           cuentaRepositorio: widget.almacenLocal.cuentas,
@@ -732,9 +803,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
   Future<void> _verFijas(_DatosInicio datos, Map<String, bool> pagada) async {
     final textos = Theme.of(context).textTheme;
-    final elegida = await showModalBottomSheet<CategoriaFija>(
-      context: context,
-      isScrollControlled: true,
+    final elegida = await mostrarHoja<CategoriaFija>(
+      context,
       builder: (contexto) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -770,9 +840,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
   Future<void> _explicarHoy(_DatosInicio datos) async {
     final textos = Theme.of(context).textTheme;
     final quedan = datos.presupuestoVariables - datos.gastadoVariables;
-    final faltan = _ciclo.diasParaTerminar(DateTime.now()) + 1;
-    final irAIngresos = await showModalBottomSheet<bool>(
-      context: context,
+    final faltan = _ciclo.diasParaTerminar(DateTime.now());
+    final irAIngresos = await mostrarHoja<bool>(
+      context,
       builder: (contexto) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -783,8 +853,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
               Text('Cómo se calcula', style: textos.seccion),
               const SizedBox(height: 12),
               Text(
-                'Hoy puedes gastar: lo que te queda en variables (${enPesos(quedan)}) '
-                'entre los $faltan ${faltan == 1 ? 'día' : 'días'} que faltan, contando hoy.',
+                'Llevas gastado: lo de tus categorías variables en este ciclo, contra lo que les '
+                'asignaste. Te quedan ${enPesos(quedan)} para los $faltan ${faltan == 1 ? 'día' : 'días'} '
+                'que faltan. Las fijas (renta, colegiaturas…) van aparte, en el renglón Fijos.',
                 style: textos.cuerpo,
               ),
               const SizedBox(height: 16),
@@ -808,8 +879,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
   }
 }
 
-/// La tarjeta héroe de Inicio: veredicto, "Hoy puedes gastar", ritmo de las
-/// variables y la meta del ciclo.
+/// La tarjeta héroe de Inicio: veredicto, "Llevas gastado" (variables del
+/// ciclo contra su presupuesto, 2026-11-15; antes "Hoy puedes gastar"),
+/// ritmo de las variables y la meta del ciclo.
 class _Heroe extends StatelessWidget {
   final _DatosInicio datos;
   final double avanceCiclo;
@@ -852,12 +924,24 @@ class _Heroe extends StatelessWidget {
             icono: Icons.calendar_today_rounded,
             enHeroe: true,
           );
-    final hoy = datos.disponibleHoy;
-    final (pesos, centavos) = partesDeMonto(hoy);
+    final gastado = datos.gastadoVariables;
+    final (pesos, centavos) = partesDeMonto(gastado);
+    final quedan = presupuesto - gastado;
+    // Igual que el encabezado ("faltan N días"): sin contar hoy.
+    final faltan = dias - dia;
+    final dicenDias = switch (faltan) {
+      <= 0 => 'último día',
+      1 => 'falta 1 día',
+      _ => 'faltan $faltan días',
+    };
     final veredicto = datos.hayGastos ? etiquetaTonoRitmo(tono) : 'Día $dia de $dias';
+    final pie = quedan.esNegativo
+        ? 'Te pasaste por ${enPesos(quedan.absoluto)} · $dicenDias'
+        : 'Te quedan ${enPesos(quedan)} · $dicenDias';
 
     return TarjetaApp.heroe(
-      etiquetaSemantica: 'Hoy puedes gastar ${montoEnPalabras(hoy)}. $veredicto.',
+      etiquetaSemantica:
+          'Llevas gastado ${montoEnPalabras(gastado)} de ${montoEnPalabras(presupuesto)} en variables. $veredicto.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -873,15 +957,28 @@ class _Heroe extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          ExcludeSemantics(child: Text('Hoy puedes gastar', style: textos.etiqueta.copyWith(color: p.heroeTexto2))),
+          ExcludeSemantics(child: Text('Llevas gastado', style: textos.etiqueta.copyWith(color: p.heroeTexto2))),
           ExcludeSemantics(
-            child: Text.rich(
-              TextSpan(children: [
-                TextSpan(text: pesos),
-                TextSpan(text: centavos, style: TextStyle(fontSize: textos.cifraHeroe.fontSize! / 2, color: p.heroeTexto2)),
-              ]),
-              style: textos.cifraHeroe.copyWith(color: p.heroeTexto),
-              textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Flexible(
+                  child: Text.rich(
+                    TextSpan(children: [
+                      TextSpan(text: pesos),
+                      TextSpan(
+                        text: centavos,
+                        style: TextStyle(fontSize: textos.cifraHeroe.fontSize! / 2, color: p.heroeTexto2),
+                      ),
+                    ]),
+                    style: textos.cifraHeroe.copyWith(color: p.heroeTexto),
+                    textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.6),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('de ${enPesos(presupuesto)}', style: textos.cuerpoFuerte.copyWith(color: p.heroeTexto2)),
+              ],
             ),
           ),
           const SizedBox(height: 14),
@@ -895,10 +992,7 @@ class _Heroe extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           ExcludeSemantics(
-            child: Text(
-              '${enPesos(datos.gastadoVariables)} de ${enPesos(presupuesto)} en variables',
-              style: textos.etiqueta.copyWith(color: p.heroeTexto2),
-            ),
+            child: Text(pie, style: textos.etiqueta.copyWith(color: p.heroeTexto2)),
           ),
           const SizedBox(height: 14),
           Divider(height: 1, color: p.heroePista),
@@ -1097,7 +1191,6 @@ class _DatosInicio {
   final Dinero apartadoEstimado;
   final List<Cobertura> coberturas;
   final bool hayGastos;
-  final Dinero disponibleHoy;
 
   /// La tarjeta que hay que pagar pronto o que se pasó (spec §7.3.1).
   final PagoTarjeta? pagoUrgente;
@@ -1115,7 +1208,6 @@ class _DatosInicio {
     required this.apartadoEstimado,
     required this.coberturas,
     required this.hayGastos,
-    required this.disponibleHoy,
     this.pagoUrgente,
   });
 }

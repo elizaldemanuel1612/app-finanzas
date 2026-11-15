@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/repositorios/categoria_repositorio.dart';
+import '../../data/repositorios/categoria_ingreso_repositorio.dart';
 import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
@@ -30,6 +31,10 @@ class PantallaPatrimonio extends StatefulWidget {
   final String? nombre;
   final VoidCallback alAbrirAjustes;
 
+  /// Categorías de ingreso para los abonos (spec §7.3.4); sin él, el abono
+  /// no pide categoría.
+  final CategoriaIngresoRepositorio? categoriaIngresoRepositorio;
+
   const PantallaPatrimonio({
     super.key,
     required this.perfil,
@@ -41,6 +46,7 @@ class PantallaPatrimonio extends StatefulWidget {
     required this.categoriaRepositorio,
     required this.nombre,
     required this.alAbrirAjustes,
+    this.categoriaIngresoRepositorio,
   });
 
   @override
@@ -80,6 +86,7 @@ class _PantallaPatrimonioState extends State<PantallaPatrimonio> {
                     movimientoRepositorio: widget.movimientoRepositorio,
                     movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio,
                     ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+                    categoriaIngresoRepositorio: widget.categoriaIngresoRepositorio,
                   ),
                 _Vista.objetivos => PantallaObjetivos(
                     embebida: true,

@@ -27,12 +27,11 @@ final class ResultadoIA {
   const ResultadoIA({required this.categoriaId, required this.confianza});
 }
 
-/// Firma de un clasificador de IA externo — inyectado, nunca invocado
-/// directamente por el dominio. Hoy no hay ningún modelo de IA conectado
-/// (§6.4 ya contempla que la app funcione perfecto solo con Niveles 1 y
-/// 2); quien llame a [clasificar] simplemente no pasa uno, y el Nivel 3
-/// nunca se activa — no es un caso de error, es el estado normal hasta
-/// que exista un backend de IA.
+/// Firma de un clasificador de IA síncrono — inyectado, nunca invocado
+/// directamente por el dominio. La IA del usuario (spec §6.5) responde por
+/// red, así que la captura no la pasa aquí: corre los niveles 1 y 2 con
+/// [clasificar] y, si no resolvieron, consulta a la IA aparte y aplica
+/// [cascadaDesdeIA]. Sin IA conectada la app funciona completa (§6.4).
 typedef ClasificadorIA = ResultadoIA? Function(String texto);
 
 /// Resultado final de la cascada, con todo lo que la UI necesita para
@@ -109,33 +108,7 @@ ResultadoCascada clasificar({
   }
 
   final porIA = clasificadorIA?.call(texto);
-  if (porIA != null) {
-    if (porIA.confianza >= _umbralAuto) {
-      return ResultadoCascada(
-        categoriaId: porIA.categoriaId,
-        confianza: porIA.confianza,
-        nivel: NivelClasificacion.ia,
-        requiereConfirmacion: false,
-        marcadoParaRevision: false,
-      );
-    }
-    if (porIA.confianza >= _umbralConfirmar) {
-      return ResultadoCascada(
-        categoriaId: porIA.categoriaId,
-        confianza: porIA.confianza,
-        nivel: NivelClasificacion.ia,
-        requiereConfirmacion: true,
-        marcadoParaRevision: false,
-      );
-    }
-    return ResultadoCascada(
-      categoriaId: null,
-      confianza: porIA.confianza,
-      nivel: NivelClasificacion.ia,
-      requiereConfirmacion: false,
-      marcadoParaRevision: true,
-    );
-  }
+  if (porIA != null) return cascadaDesdeIA(porIA);
 
   return const ResultadoCascada(
     categoriaId: null,
@@ -176,4 +149,35 @@ String? _mejorCoincidenciaHistorial(String textoNormalizado, Map<String, String>
     }
   }
   return mejorComercio == null ? null : historial[mejorComercio];
+}
+
+/// Los umbrales de §6.3 sobre lo que dijo la IA (Nivel 3). La captura lo
+/// usa aparte, sin esperar: la IA responde por red y la cascada de los
+/// niveles 1 y 2 es instantánea (spec §6.5).
+ResultadoCascada cascadaDesdeIA(ResultadoIA porIA) {
+  if (porIA.confianza >= _umbralAuto) {
+    return ResultadoCascada(
+      categoriaId: porIA.categoriaId,
+      confianza: porIA.confianza,
+      nivel: NivelClasificacion.ia,
+      requiereConfirmacion: false,
+      marcadoParaRevision: false,
+    );
+  }
+  if (porIA.confianza >= _umbralConfirmar) {
+    return ResultadoCascada(
+      categoriaId: porIA.categoriaId,
+      confianza: porIA.confianza,
+      nivel: NivelClasificacion.ia,
+      requiereConfirmacion: true,
+      marcadoParaRevision: false,
+    );
+  }
+  return ResultadoCascada(
+    categoriaId: null,
+    confianza: porIA.confianza,
+    nivel: NivelClasificacion.ia,
+    requiereConfirmacion: false,
+    marcadoParaRevision: true,
+  );
 }

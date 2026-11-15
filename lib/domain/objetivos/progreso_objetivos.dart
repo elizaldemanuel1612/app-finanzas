@@ -16,6 +16,19 @@ enum EstadoObjetivo {
   sinFecha,
 }
 
+/// Lo que toca apartar en un ciclo para llegar a la fecha de un objetivo:
+/// la parte de lo que falta proporcional a los [dias] de ese ciclo que
+/// caen entre hoy y la fecha (spec-app-finanzas-v2.md §7.3.3).
+final class TramoDeObjetivo {
+  final Ciclo ciclo;
+
+  /// Días de [ciclo] entre hoy y la fecha, los dos incluidos.
+  final int dias;
+  final Dinero monto;
+
+  const TramoDeObjetivo({required this.ciclo, required this.dias, required this.monto});
+}
+
 /// Cómo va un [Objetivo] (spec-app-finanzas-v2.md §7.3.3).
 final class ProgresoObjetivo {
   final Objetivo objetivo;
@@ -29,13 +42,18 @@ final class ProgresoObjetivo {
   /// fecha, logrado o vencido.
   final int? ciclosRestantes;
 
-  /// Lo que habría que juntar por ciclo para llegar a la fecha (hacia
-  /// arriba al centavo); `null` cuando [ciclosRestantes] lo es.
-  final Dinero? porCiclo;
+  /// Cuánto apartar en cada ciclo para llegar a la fecha, repartido por
+  /// días: el primero es el que corre. Vacío sin fecha, logrado o vencido.
+  final List<TramoDeObjetivo> reparto;
 
   /// A lo que se aparta hoy por ciclo, en cuántos ciclos se llega; `null`
   /// si ya se logró o no se aparta nada.
   final int? ciclosAlRitmoActual;
+
+  /// Con fecha: si lo que se aparta por ciclo, repartido por los días de su
+  /// ciclo, cubre lo que pide cada día hasta la fecha. `null` si no aplica
+  /// (sin fecha, logrado, vencido o sin apartado).
+  final bool? alcanzaATiempo;
 
   const ProgresoObjetivo({
     required this.objetivo,
@@ -43,20 +61,13 @@ final class ProgresoObjetivo {
     required this.falta,
     required this.estado,
     this.ciclosRestantes,
-    this.porCiclo,
+    this.reparto = const [],
     this.ciclosAlRitmoActual,
+    this.alcanzaATiempo,
   });
 
   /// De 0 a 1.
   double get avance => objetivo.monto.esPositivo ? llevas.centavos / objetivo.monto.centavos : 0;
-
-  /// Con fecha: si lo que se aparta por ciclo alcanza para llegar a tiempo.
-  /// `null` si no aplica (sin fecha, logrado, vencido o sin apartado).
-  bool? get alcanzaATiempo {
-    final restantes = ciclosRestantes;
-    final alRitmo = ciclosAlRitmoActual;
-    return restantes == null || alRitmo == null ? null : alRitmo <= restantes;
-  }
 }
 
 /// Ciclos desde el que contiene [hoy] hasta el que contiene [fecha], los
@@ -75,6 +86,39 @@ int ciclosHasta({required DateTime hoy, required DateTime fecha, required Calcul
 }
 
 int _haciaArriba(int numerador, int divisor) => (numerador + divisor - 1) ~/ divisor;
+
+DateTime _dia(DateTime f) => DateTime.utc(f.year, f.month, f.day);
+
+/// Reparte [falta] (centavos) entre los ciclos de [hoy] a [fecha] en
+/// proporción a los días de cada uno dentro de ese rango, los dos
+/// incluidos. Cada parte va a pesos enteros hacia abajo y lo que sobra se
+/// suma a la del ciclo que corre: la suma es exacta. Vacío si [fecha] ya
+/// pasó.
+List<TramoDeObjetivo> repartirPorDias({
+  required int falta,
+  required DateTime hoy,
+  required DateTime fecha,
+  required CalculadoraCiclo calculadora,
+}) {
+  final desde = _dia(hoy);
+  final hasta = _dia(fecha);
+  if (hasta.isBefore(desde)) return const [];
+  final ciclos = <(Ciclo, int)>[];
+  var ciclo = calculadora.calcularPara(hoy);
+  while (true) {
+    final inicio = _dia(ciclo.fechaInicio).isBefore(desde) ? desde : _dia(ciclo.fechaInicio);
+    final fin = _dia(ciclo.fechaFin).isAfter(hasta) ? hasta : _dia(ciclo.fechaFin);
+    ciclos.add((ciclo, fin.difference(inicio).inDays + 1));
+    if (!_dia(ciclo.fechaFin).isBefore(hasta)) break;
+    ciclo = calculadora.calcularPara(ciclo.fechaFin.add(const Duration(days: 1)));
+  }
+  final total = hasta.difference(desde).inDays + 1;
+  final montos = [for (final (_, dias) in ciclos) falta * dias ~/ total ~/ 100 * 100];
+  montos[0] += falta - montos.fold<int>(0, (a, b) => a + b);
+  return [
+    for (final (i, (c, dias)) in ciclos.indexed) TramoDeObjetivo(ciclo: c, dias: dias, monto: Dinero(montos[i])),
+  ];
+}
 
 /// El avance de cada objetivo activo, en el orden de [objetivos].
 ///
@@ -114,20 +158,31 @@ List<ProgresoObjetivo> calcularProgresoObjetivos({
     final apartado = apartadoPorCiclo?.centavos ?? 0;
     final alRitmo = apartado > 0 ? _haciaArriba(falta, apartado) : null;
     final fecha = o.fechaLimite;
-    final restantes = fecha == null ? null : ciclosHasta(hoy: hoy, fecha: fecha, calculadora: calculadora);
-    final enCamino = restantes != null && restantes > 0;
+    final reparto = fecha == null
+        ? const <TramoDeObjetivo>[]
+        : repartirPorDias(falta: falta, hoy: hoy, fecha: fecha, calculadora: calculadora);
+    final enCamino = reparto.isNotEmpty;
+    // Llega si lo apartado por día de cada ciclo cubre lo que pide cada día
+    // hasta la fecha: apartado / días del ciclo ≥ falta / días hasta la fecha.
+    bool? alcanza;
+    if (enCamino && apartado > 0) {
+      final dias = reparto.fold<int>(0, (t, r) => t + r.dias);
+      final masLargo = reparto.map((r) => r.ciclo.diasDelCiclo).reduce((a, b) => a > b ? a : b);
+      alcanza = apartado * dias >= falta * masLargo;
+    }
     resultado.add(ProgresoObjetivo(
       objetivo: o,
       llevas: Dinero(llevas),
       falta: Dinero(falta),
-      estado: restantes == null
+      estado: fecha == null
           ? EstadoObjetivo.sinFecha
           : enCamino
               ? EstadoObjetivo.enCamino
               : EstadoObjetivo.vencido,
-      ciclosRestantes: enCamino ? restantes : null,
-      porCiclo: enCamino ? Dinero(_haciaArriba(falta, restantes)) : null,
+      ciclosRestantes: enCamino ? reparto.length : null,
+      reparto: reparto,
       ciclosAlRitmoActual: alRitmo,
+      alcanzaATiempo: alcanza,
     ));
   }
   return resultado;

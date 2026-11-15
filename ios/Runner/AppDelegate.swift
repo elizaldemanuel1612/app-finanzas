@@ -15,5 +15,8 @@ import UIKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "AccesosRapidos") {
       AccesosRapidos.register(with: registrar)
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "IAApple") {
+      IAApple.register(with: registrar)
+    }
   }
 }

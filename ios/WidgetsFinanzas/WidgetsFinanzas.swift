@@ -3,7 +3,8 @@ import SwiftUI
 import WidgetKit
 
 // Widgets de MAVfin (spec-app-finanzas-v2.md §5.6): un solo dato
-// (cuánto queda hoy) y un solo flujo (registrar un gasto). El widget nunca
+// (cuánto llevas gastado en variables del ciclo, como Inicio desde el
+// 2026-11-15) y un solo flujo (registrar un gasto). El widget nunca
 // calcula nada: muestra lo que la app dejó en el App Group
 // (ios/Runner/AccesosRapidos.swift) y abre la app con un URL.
 
@@ -26,11 +27,13 @@ struct EntradaFinanzas: TimelineEntry {
   /// `nil` si no hay dato de hoy: sin App Group, o la app no se ha abierto
   /// hoy (el dato de ayer ya no vale, porque cambian los días que faltan).
   let quedaHoy: String?
+  /// "de $37,950": el presupuesto de variables del ciclo.
+  var deTexto: String? = nil
 }
 
 struct ProveedorFinanzas: TimelineProvider {
   func placeholder(in context: Context) -> EntradaFinanzas {
-    EntradaFinanzas(date: .now, quedaHoy: "$828.15")
+    EntradaFinanzas(date: .now, quedaHoy: "$4,852.00", deTexto: "de $37,950.00")
   }
 
   func getSnapshot(in context: Context, completion: @escaping (EntradaFinanzas) -> Void) {
@@ -49,10 +52,10 @@ struct ProveedorFinanzas: TimelineProvider {
     guard let texto = compartidas?.string(forKey: "quedaHoyTexto"),
       compartidas?.string(forKey: "fecha") == Self.hoy()
     else { return EntradaFinanzas(date: .now, quedaHoy: nil) }
-    return EntradaFinanzas(date: .now, quedaHoy: texto)
+    return EntradaFinanzas(date: .now, quedaHoy: texto, deTexto: compartidas?.string(forKey: "deTexto"))
   }
 
-  /// Misma forma que publica `AccesosRapidos.publicarDisponibleHoy` en Dart.
+  /// Misma forma que publica `AccesosRapidos.publicarGastado` en Dart.
   private static func hoy() -> String {
     let c = Calendar.current.dateComponents([.year, .month, .day], from: .now)
     return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
@@ -76,7 +79,7 @@ struct VistaQuedaHoy: View {
 
   private var dato: some View {
     VStack(alignment: .leading, spacing: 2) {
-      Text(entrada.quedaHoy == nil ? "Registra tus gastos" : "Hoy puedes gastar")
+      Text(entrada.quedaHoy == nil ? "Registra tus gastos" : "Llevas gastado")
         .font(.caption)
         .foregroundStyle(medio)
       Text(entrada.quedaHoy ?? "Abre la app")
@@ -84,6 +87,13 @@ struct VistaQuedaHoy: View {
         .foregroundStyle(tinta)
         .minimumScaleFactor(0.6)
         .lineLimit(1)
+      if entrada.quedaHoy != nil, let de = entrada.deTexto {
+        Text(de)
+          .font(.caption)
+          .foregroundStyle(medio)
+          .minimumScaleFactor(0.7)
+          .lineLimit(1)
+      }
     }
   }
 
@@ -116,7 +126,7 @@ struct VistaQuedaHoy: View {
 
   private var rectangular: some View {
     VStack(alignment: .leading, spacing: 1) {
-      Text(entrada.quedaHoy == nil ? "MAVfin" : "Hoy puedes gastar")
+      Text(entrada.quedaHoy == nil ? "MAVfin" : "Llevas gastado")
         .font(.caption2)
       Text(entrada.quedaHoy ?? "Registrar gasto")
         .font(.headline)
@@ -127,7 +137,7 @@ struct VistaQuedaHoy: View {
   }
 
   private var enLinea: some View {
-    Text(entrada.quedaHoy.map { "Hoy: \($0)" } ?? "Registrar gasto")
+    Text(entrada.quedaHoy.map { "Gastado: \($0)" } ?? "Registrar gasto")
       .widgetURL(urlGasto)
   }
 }

@@ -2,7 +2,8 @@
 // la web en Safari del simulador (gestos, modo oscuro). No se publica:
 //   flutter build web --wasm -t tool/demo_web.dart -o <carpeta>
 // `?modo=oscuro` o `?modo=claro` en la URL fija la apariencia;
-// `?pantalla=importar` abre directo la importación de CSV;
+// `?pantalla=importar` abre directo la importación de CSV; `?pantalla=ia`,
+// los complementos de IA;
 // `?corte=15` cambia el día de corte (para ver un ciclo a la mitad).
 import 'package:app_finanzas/core/ciclo.dart';
 import 'package:app_finanzas/core/money.dart';
@@ -19,6 +20,8 @@ import 'package:app_finanzas/domain/modelos/movimiento.dart';
 import 'package:app_finanzas/domain/modelos/perfil.dart';
 import 'package:app_finanzas/ui/comun/apariencia.dart';
 import 'package:app_finanzas/ui/comun/tema.dart';
+import 'package:app_finanzas/ui/ia/pantalla_complementos_ia.dart';
+import 'package:app_finanzas/ui/ia/servicio_ia_app.dart';
 import 'package:app_finanzas/ui/importacion/pantalla_importar.dart';
 import 'package:app_finanzas/ui/inicio/pantalla_inicio.dart';
 import 'package:flutter/material.dart';
@@ -88,6 +91,26 @@ Future<void> main() async {
     saldoInicial: const Dinero.pesos(30000),
     fechaSaldoInicial: DateTime(inicioCiclo.year, inicioCiclo.month - 3, 5),
   ));
+  // Ingresos con categoría (spec §7.3.4), para ver Análisis → Ingresos.
+  for (final (i, (dias, pesos, categoria, nota)) in const [
+    (2, 22000, 'ing-nomina', 'Quincena'),
+    (17, 22000, 'ing-nomina', 'Quincena'),
+    (32, 22000, 'ing-nomina', 'Quincena'),
+    (10, 6500, 'ing-rentas', 'Renta del depa'),
+    (40, 6500, 'ing-rentas', 'Renta del depa'),
+    (6, 1800, 'ing-ventas', 'Vendí la bici'),
+  ].indexed) {
+    await almacen.movimientosCuenta.guardar(MovimientoCuenta(
+      clientId: 'demo-ingreso-$i',
+      cuentaId: 'bbva',
+      fecha: DateTime.now().subtract(Duration(days: dias)),
+      monto: Dinero.pesos(pesos),
+      tipo: TipoMovimientoCuenta.abono,
+      entra: true,
+      nota: nota,
+      categoriaIngresoId: categoria,
+    ));
+  }
   // Un aporte por ciclo, para que el patrimonio por ciclo tenga historia.
   for (final (i, pesos) in const [3500, 4000, 4500].indexed) {
     await almacen.movimientosCuenta.guardar(MovimientoCuenta(
@@ -182,7 +205,9 @@ Future<void> main() async {
       supportedLocales: const [Locale('es', 'MX')],
       locale: const Locale('es', 'MX'),
       builder: (context, child) => SincronizarPaleta(child: child!),
-      home: Uri.base.queryParameters['pantalla'] == 'importar'
+      home: Uri.base.queryParameters['pantalla'] == 'ia'
+          ? PantallaComplementosIA(servicio: servicioIADe(almacen))
+          : Uri.base.queryParameters['pantalla'] == 'importar'
           ? PantallaImportar(
               perfil: perfil,
               categoriaRepositorio: almacen.categorias,

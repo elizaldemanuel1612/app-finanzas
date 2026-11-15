@@ -6,6 +6,7 @@ import '../../data/nube/servicio_nube.dart';
 import '../../domain/sincronizacion/fusion.dart';
 import '../comun/formato_fecha.dart';
 import '../comun/tema.dart';
+import '../comun/hoja.dart';
 
 /// Respaldo en el Google Drive del usuario (spec-app-finanzas-v2.md §4.2.1):
 /// activar, elegir cómo combinar si ya había un respaldo, sincronizar, desactivar o
@@ -99,10 +100,8 @@ class _PantallaNubeState extends State<PantallaNube> {
     await _conProgreso(() => widget.nube.activar(modo), 'Listo: tus datos ya tienen respaldo en tu Google Drive.');
   }
 
-  Future<ModoFusion?> _preguntarModo() => showModalBottomSheet<ModoFusion>(
-        context: context,
-        showDragHandle: true,
-        isScrollControlled: true,
+  Future<ModoFusion?> _preguntarModo() => mostrarHoja<ModoFusion>(
+        context,
         builder: (context) {
           final textos = Theme.of(context).textTheme;
           return SafeArea(

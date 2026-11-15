@@ -23,6 +23,14 @@ final class Perfil {
   /// guardados antes de este campo siguen leyéndose sin migración.
   final List<CambioDeCorte> cambiosDeCorte;
 
+  /// El último ciclo en que ya se preguntó si trasladar lo que sobró del
+  /// anterior (addendum-v3 §2.5.2); se pregunta una vez por ciclo.
+  final String? cicloTrasladoDecidido;
+
+  /// Categorías que vienen marcadas al preguntar el traslado ("Recordar mi
+  /// elección").
+  final List<String> trasladarSiempre;
+
   const Perfil({
     required this.diaCorte,
     required this.ingresoBaseMensual,
@@ -30,6 +38,8 @@ final class Perfil {
     this.zonaHoraria = 'America/Mexico_City',
     this.metaApartado,
     this.cambiosDeCorte = const [],
+    this.cicloTrasladoDecidido,
+    this.trasladarSiempre = const [],
   });
 
   /// La única forma correcta de calcular ciclos para esta cuenta: toma en
@@ -47,6 +57,8 @@ final class Perfil {
     MetaApartado? metaApartado,
     bool quitarMeta = false,
     List<CambioDeCorte>? cambiosDeCorte,
+    String? cicloTrasladoDecidido,
+    List<String>? trasladarSiempre,
   }) =>
       Perfil(
         diaCorte: diaCorte ?? this.diaCorte,
@@ -55,6 +67,8 @@ final class Perfil {
         zonaHoraria: zonaHoraria ?? this.zonaHoraria,
         metaApartado: quitarMeta ? null : (metaApartado ?? this.metaApartado),
         cambiosDeCorte: cambiosDeCorte ?? this.cambiosDeCorte,
+        cicloTrasladoDecidido: cicloTrasladoDecidido ?? this.cicloTrasladoDecidido,
+        trasladarSiempre: trasladarSiempre ?? this.trasladarSiempre,
       );
 
   Map<String, dynamic> toJson() => {
@@ -65,6 +79,8 @@ final class Perfil {
         if (metaApartado != null) 'metaApartado': metaApartado!.toJson(),
         if (cambiosDeCorte.isNotEmpty)
           'cambiosDeCorte': [for (final c in cambiosDeCorte) c.toJson()],
+        if (cicloTrasladoDecidido != null) 'cicloTrasladoDecidido': cicloTrasladoDecidido,
+        if (trasladarSiempre.isNotEmpty) 'trasladarSiempre': trasladarSiempre,
       };
 
   factory Perfil.fromJson(Map<String, dynamic> json) => Perfil(
@@ -79,6 +95,8 @@ final class Perfil {
           for (final c in (json['cambiosDeCorte'] as List<dynamic>? ?? const []))
             CambioDeCorte.fromJson(c as Map<String, dynamic>),
         ],
+        cicloTrasladoDecidido: json['cicloTrasladoDecidido'] as String?,
+        trasladarSiempre: [for (final id in (json['trasladarSiempre'] as List<dynamic>? ?? const [])) id as String],
       );
 
   @override
@@ -89,7 +107,9 @@ final class Perfil {
       other.moneda == moneda &&
       other.zonaHoraria == zonaHoraria &&
       other.metaApartado == metaApartado &&
-      _mismasListas(other.cambiosDeCorte, cambiosDeCorte);
+      _mismasListas(other.cambiosDeCorte, cambiosDeCorte) &&
+      other.cicloTrasladoDecidido == cicloTrasladoDecidido &&
+      other.trasladarSiempre.join(',') == trasladarSiempre.join(',');
 
   @override
   int get hashCode => Object.hash(
@@ -99,6 +119,8 @@ final class Perfil {
         zonaHoraria,
         metaApartado,
         Object.hashAll(cambiosDeCorte),
+        cicloTrasladoDecidido,
+        Object.hashAll(trasladarSiempre),
       );
 }
 

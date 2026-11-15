@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -36,6 +38,7 @@ import '../comun/formato_dinero.dart';
 import '../comun/tarjeta_app.dart';
 import '../comun/renglon_app.dart';
 import '../comun/formato_fecha.dart';
+import '../../data/ia/servicio_ia.dart';
 import '../comun/borde_para_regresar.dart';
 import '../comun/boton_burbuja.dart';
 import '../comun/popscope_descartar.dart';
@@ -44,6 +47,7 @@ import '../comun/tema.dart';
 import 'hoja_dictado.dart';
 import 'pantalla_dividir_ticket.dart';
 import 'pantalla_revision_dictado.dart';
+import '../comun/hoja.dart';
 
 const _uuid = Uuid();
 
@@ -81,6 +85,10 @@ class PantallaCaptura extends StatefulWidget {
   /// el selector Tarjeta / Efectivo de antes.
   final CuentaRepositorio? cuentaRepositorio;
 
+  /// La IA del usuario para el Nivel 3 de la cascada (spec §6.5); `null` =
+  /// solo reglas e historial.
+  final ServicioIA? servicioIA;
+
   /// Para decir cuánto le queda a cada categoría con los ajustes del ciclo;
   /// sin él, contra su presupuesto base.
   final AjustePresupuestoCicloRepositorio? ajustePresupuestoCicloRepositorio;
@@ -96,6 +104,7 @@ class PantallaCaptura extends StatefulWidget {
     this.paraEditar,
     this.iniciarDictado = false,
     this.cuentaRepositorio,
+    this.servicioIA,
     this.ajustePresupuestoCicloRepositorio,
   });
 
@@ -124,6 +133,10 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   Map<String, String> _historialComercios = {};
   bool _categoriaTocadaManualmente = false;
   bool _sugerida = false;
+
+  /// La sugerencia vino de la IA del usuario, no del historial.
+  bool _sugeridaPorIA = false;
+  Timer? _esperaIA;
 
   @override
   void initState() {
@@ -260,12 +273,33 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
       reglasUsuario: _reglasCache,
       historialComercios: _historialComercios,
     );
-    if (!resultado.resuelto) return;
+    _esperaIA?.cancel();
+    if (!resultado.resuelto) {
+      // Nivel 3 (spec §6.5): la IA del usuario, cuando deja de escribir. Si
+      // tarda o falla no pasa nada: la captura nunca la espera.
+      if (widget.servicioIA != null) {
+        _esperaIA = Timer(const Duration(milliseconds: 700), () => _sugerirConIA(texto));
+      }
+      return;
+    }
+    _resaltar(resultado.categoriaId!, porIA: false);
+  }
+
+  Future<void> _sugerirConIA(String texto) async {
+    final porIA = await widget.servicioIA!.clasificar(texto, _categoriasCache);
+    // Si ya cambió la nota o eligió a mano, la respuesta llegó tarde.
+    if (!mounted || porIA == null || _categoriaTocadaManualmente || _descripcionControlador.text != texto) return;
+    final cascada = cascadaDesdeIA(porIA);
+    if (cascada.resuelto) _resaltar(cascada.categoriaId!, porIA: true);
+  }
+
+  void _resaltar(String categoriaId, {required bool porIA}) {
     for (final c in _categoriasCache) {
-      if (c.id == resultado.categoriaId) {
+      if (c.id == categoriaId) {
         setState(() {
           _seleccionada = c;
           _sugerida = true;
+          _sugeridaPorIA = porIA;
         });
         break;
       }
@@ -293,6 +327,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
 
   @override
   void dispose() {
+    _esperaIA?.cancel();
     _montoControlador.dispose();
     _descripcionControlador.dispose();
     super.dispose();
@@ -455,8 +490,8 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   }
 
   Future<void> _mostrarOpcionesFoto() async {
-    final origen = await showModalBottomSheet<ImageSource>(
-      context: context,
+    final origen = await mostrarHoja<ImageSource>(
+      context,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -617,8 +652,8 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
 
   Future<void> _elegirFecha() async {
     final rango = _rangoFecha;
-    await showModalBottomSheet<void>(
-      context: context,
+    await mostrarHoja<void>(
+      context,
       builder: (contexto) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -642,9 +677,8 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     // Con varias cuentas la lista no cabía en la hoja y las de abajo (las
     // tarjetas de crédito, casi siempre) quedaban fuera de alcance: se
     // desplaza.
-    final elegida = await showModalBottomSheet<Cuenta>(
-      context: context,
-      isScrollControlled: true,
+    final elegida = await mostrarHoja<Cuenta>(
+      context,
       builder: (contexto) => SafeArea(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(contexto).height * 0.8),
@@ -676,9 +710,8 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   }
 
   Future<void> _escribirNota() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
+    await mostrarHoja<void>(
+      context,
       builder: (contexto) => Padding(
         padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.of(contexto).viewInsets.bottom),
         child: Column(
@@ -826,7 +859,13 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                       _rejillaCategorias(hayMonto),
                       if (_sugerida) ...[
                         const SizedBox(height: 8),
-                        Text('Resaltada: la sugerimos por tus gastos anteriores.', textAlign: TextAlign.center, style: textos.etiqueta),
+                        Text(
+                          _sugeridaPorIA
+                              ? 'Resaltada: la sugiere tu IA por la nota.'
+                              : 'Resaltada: la sugerimos por tus gastos anteriores.',
+                          textAlign: TextAlign.center,
+                          style: textos.etiqueta,
+                        ),
                       ],
                       if (_error != null) ...[
                         const SizedBox(height: 12),

@@ -27,7 +27,7 @@ const _idsEsperados = {
 // desaparece de lib/ui/, la guía se queda hablando de algo que ya no
 // existe (el único riesgo estructural de este enfoque).
 const _citasLiteralesDeLaApp = [
-  'Hoy puedes gastar',
+  'Llevas gastado',
   'Buscar gasto o monto',
   'Al cierre',
   'Mover presupuesto',
@@ -48,6 +48,11 @@ const _citasLiteralesDeLaApp = [
   'Nuevo objetivo',
   'Llevas ahorrado',
   'Cambiar fecha',
+  'Complementos de IA',
+  '¿De dónde viene?',
+  'Te entraron',
+  'Pregúntale a tu IA',
+  'Sugerir categorías',
 ];
 
 const _vocabularioProhibido = [
