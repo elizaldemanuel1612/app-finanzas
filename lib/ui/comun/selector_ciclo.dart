@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/money.dart';
 import '../../domain/ciclo_de_vida/ciclos_para_consultar.dart';
+import 'formato_dinero.dart';
 import 'formato_fecha.dart';
 import 'tema.dart';
 
@@ -110,8 +111,8 @@ class SelectorCiclo extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      '${fechaCorta(ciclo.fechaInicio)} – ${fechaCorta(ciclo.fechaFin)} · ${_estado(visto)} · '
-                      '${Dinero(visto.totalCentavos).formateado()}',
+                      '${fechaCorta(ciclo.fechaInicio)} – ${fechaCorta(ciclo.fechaFin)} · '
+                      '${visto.cuantos == 0 ? 'sin gastos' : '${enPesos(Dinero(visto.totalCentavos))} en ${visto.cuantos} ${visto.cuantos == 1 ? 'gasto' : 'gastos'}'}',
                       textAlign: TextAlign.center,
                       style: textos.bodySmall,
                     ),

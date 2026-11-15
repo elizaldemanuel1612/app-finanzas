@@ -423,6 +423,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
           cicloRepositorio: widget.cicloRepositorio,
           documentos: widget.almacenLocal.directorio,
           cuentaRepositorio: widget.almacenLocal.cuentas,
+          nombre: _nombre,
+          alAbrirAjustes: _irAAjustes,
+          alRegistrar: _irACaptura,
         ),
       Pestana.analisis => PantallaAnalisis(
           key: ValueKey('analisis-$_version'),

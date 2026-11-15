@@ -24,6 +24,9 @@ class Aviso extends StatelessWidget {
   /// Info en vez de los tonos de estado (ciclo cerrado).
   final bool info;
 
+  /// Un botón a la derecha en lugar del enlace ("Reabrir").
+  final Widget? boton;
+
   const Aviso({
     super.key,
     required this.tono,
@@ -32,9 +35,10 @@ class Aviso extends StatelessWidget {
     this.accion,
     this.onAccion,
     this.icono,
+    this.boton,
   }) : info = false;
 
-  const Aviso.info({super.key, required this.titulo, this.apoyo, this.accion, this.onAccion, this.icono})
+  const Aviso.info({super.key, required this.titulo, this.apoyo, this.accion, this.onAccion, this.icono, this.boton})
       : tono = TonoEstado.neutro,
         info = true;
 
@@ -90,6 +94,7 @@ class Aviso extends StatelessWidget {
                 ],
               ),
             ),
+            if (boton != null) ...[const SizedBox(width: 8), Center(child: boton)],
           ],
         ),
       ),

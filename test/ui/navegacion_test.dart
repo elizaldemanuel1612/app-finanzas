@@ -79,7 +79,7 @@ void main() {
 
     await tester.tap(find.text('Gastos').last);
     await tester.pumpAndSettle();
-    expect(find.text('Buscar comercio o monto'), findsOneWidget);
+    expect(find.text('Buscar gasto o monto'), findsOneWidget);
     expect(find.byType(BackButton), findsNothing);
   });
 }

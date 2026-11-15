@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/money.dart';
+import '../../domain/ciclo_de_vida/cierre_ciclo.dart';
+import '../../core/ciclo.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
@@ -22,6 +24,12 @@ import '../../domain/voz/monto_hablado.dart';
 import '../captura/pantalla_captura.dart';
 import '../comun/asegurar_ciclo_abierto.dart';
 import '../comun/aviso_gesto.dart';
+import '../comun/tarjeta_app.dart';
+import '../comun/renglon_app.dart';
+import '../comun/formato_fecha.dart';
+import '../comun/esqueleto.dart';
+import '../comun/avatar_ajustes.dart';
+import '../comun/aviso.dart';
 import '../comun/guia_rapida.dart';
 import '../comun/selector_ciclo.dart';
 import '../comun/tema.dart';
@@ -54,6 +62,12 @@ class PantallaGastos extends StatefulWidget {
   /// desde aquí — ver el comentario en `PantallaCaptura.documentos`.
   final Directory documentos;
 
+  /// Como pestaña raíz: el encabezado lleva el avatar que abre Ajustes y el
+  /// estado vacío ofrece registrar. Sin esto, barra con flecha ← de siempre.
+  final String? nombre;
+  final VoidCallback? alAbrirAjustes;
+  final VoidCallback? alRegistrar;
+
   const PantallaGastos({
     super.key,
     required this.cicloId,
@@ -64,6 +78,9 @@ class PantallaGastos extends StatefulWidget {
     required this.cicloRepositorio,
     this.cuentaRepositorio,
     required this.documentos,
+    this.nombre,
+    this.alAbrirAjustes,
+    this.alRegistrar,
   });
 
   @override
@@ -75,7 +92,7 @@ class _PantallaGastosState extends State<PantallaGastos> {
   final _busquedaControlador = TextEditingController();
   String _busqueda = '';
   Set<String> _filtroCategorias = {};
-  Set<MedioPago> _filtroMedios = {};
+  Set<String> _filtroCuentas = {};
 
   /// El ciclo que se está viendo; arranca en el que recibe la pantalla.
   late String _cicloVisto = widget.cicloId;
@@ -134,7 +151,7 @@ class _PantallaGastosState extends State<PantallaGastos> {
   /// de una app de uso personal — si algún día no cupieran, el
   /// `SingleChildScrollView` de abajo es la red de seguridad, no el
   /// diseño esperado.
-  Future<void> _abrirFiltros(List<Categoria> categorias) async {
+  Future<void> _abrirFiltros(List<Categoria> categorias, List<Cuenta> cuentas) async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -145,7 +162,7 @@ class _PantallaGastosState extends State<PantallaGastos> {
             setState(cambio);
           }
 
-          final hayFiltros = _filtroCategorias.isNotEmpty || _filtroMedios.isNotEmpty;
+          final hayFiltros = _filtroCategorias.isNotEmpty || _filtroCuentas.isNotEmpty;
 
           return SafeArea(
             child: SingleChildScrollView(
@@ -162,25 +179,19 @@ class _PantallaGastosState extends State<PantallaGastos> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Filtros',
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-                      ),
+                      Text('Filtros', style: Theme.of(context).textTheme.seccion),
                       if (hayFiltros)
                         TextButton(
                           onPressed: () => actualizar(() {
                             _filtroCategorias = {};
-                            _filtroMedios = {};
+                            _filtroCuentas = {};
                           }),
                           child: const Text('Limpiar'),
                         ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    'Categoría (puedes elegir varias)',
-                    style: TextStyle(color: ColoresApp.medio),
-                  ),
+                  Text('Categoría (puedes elegir varias)', style: Theme.of(context).textTheme.etiqueta),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -199,21 +210,24 @@ class _PantallaGastosState extends State<PantallaGastos> {
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Medio de pago',
-                    style: TextStyle(color: ColoresApp.medio),
-                  ),
-                  const SizedBox(height: 8),
-                  SegmentedButton<MedioPago>(
-                    multiSelectionEnabled: true,
-                    emptySelectionAllowed: true,
-                    segments: const [
-                      ButtonSegment(value: MedioPago.tarjeta, label: Text('Tarjeta')),
-                      ButtonSegment(value: MedioPago.efectivo, label: Text('Efectivo')),
-                    ],
-                    selected: _filtroMedios,
-                    onSelectionChanged: (nuevo) => actualizar(() => _filtroMedios = nuevo),
-                  ),
+                  if (cuentas.isNotEmpty) ...[
+                    Text('Cuenta', style: Theme.of(context).textTheme.etiqueta),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final c in cuentas)
+                          FilterChip(
+                            label: Text(c.nombre),
+                            selected: _filtroCuentas.contains(c.id),
+                            onSelected: (sel) => actualizar(() {
+                              _filtroCuentas = sel ? {..._filtroCuentas, c.id} : _filtroCuentas.difference({c.id});
+                            }),
+                          ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
@@ -244,7 +258,7 @@ class _PantallaGastosState extends State<PantallaGastos> {
       if (_filtroCategorias.isNotEmpty && !_filtroCategorias.contains(m.categoriaId)) {
         return false;
       }
-      if (_filtroMedios.isNotEmpty && !_filtroMedios.contains(m.medio)) return false;
+      if (_filtroCuentas.isNotEmpty && !_filtroCuentas.contains(cuentaDe(m))) return false;
       if (_busqueda.isNotEmpty) {
         final categoria = categoriasPorId[m.categoriaId];
         // Sin acentos ("cafe" encuentra "Café") y también por monto
@@ -259,128 +273,250 @@ class _PantallaGastosState extends State<PantallaGastos> {
     }).toList()..sort((a, b) => b.fecha.compareTo(a.fecha));
   }
 
+  /// Reabrir desde el aviso de ciclo cerrado: confirma, porque cambia
+  /// datos (componentes/Hoja.md), y deja rastro (regla #6).
+  Future<void> _reabrir(Ciclo ciclo) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: Text('¿Reabrir ${ciclo.etiquetaConAnio}?'),
+        content: const Text('Podrás cambiar sus gastos. Ciérralo otra vez desde Análisis › Historial.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(contexto).pop(false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.of(contexto).pop(true), child: const Text('Reabrir')),
+        ],
+      ),
+    );
+    if (confirmado != true) return;
+    final guardado = await widget.cicloRepositorio.buscarPorId(ciclo.id);
+    if (guardado == null) return;
+    if (reabrirCiclo(guardado) case Exito(:final valor)) {
+      await widget.cicloRepositorio.guardar(valor);
+    }
+    await _refrescar();
+  }
+
   @override
   Widget build(BuildContext context) {
     final datos = _datos;
+    final raiz = widget.alAbrirAjustes != null;
+    final cuerpo = datos == null
+        ? const CargandoPantalla(formas: [
+            Esqueleto(alto: 44, radio: Radios.m),
+            Esqueleto(alto: 52, radio: Radios.m),
+            Esqueleto(ancho: 140, alto: 14),
+            Esqueleto(alto: 64, radio: 16),
+            Esqueleto(alto: 64, radio: 16),
+            Esqueleto(ancho: 140, alto: 14),
+            Esqueleto(alto: 64, radio: 16),
+          ])
+        : _buildContenido(datos);
+    if (!raiz) {
+      return Scaffold(appBar: AppBar(title: const Text('Gastos')), body: cuerpo);
+    }
     return Scaffold(
-      appBar: AppBar(title: const Text('Gastos')),
-      body: datos == null
-          ? const Center(child: CircularProgressIndicator())
-          : _buildContenido(datos),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            EncabezadoRaiz(titulo: 'Gastos', nombre: widget.nombre, alAbrirAjustes: widget.alAbrirAjustes!),
+            Expanded(child: cuerpo),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildContenido(_DatosGastos datos) {
-    final categorias = datos.categoriasPorId.values.toList()
-      ..sort((a, b) => a.nombre.compareTo(b.nombre));
+    final p = ColoresApp.actual;
+    final textos = Theme.of(context).textTheme;
+    final categorias = datos.categoriasPorId.values.toList()..sort((a, b) => a.nombre.compareTo(b.nombre));
     final filtrados = _filtrar(datos.movimientos, datos.categoriasPorId);
-    final hayFiltrosActivos =
-        _busqueda.isNotEmpty ||
-        _filtroCategorias.isNotEmpty ||
-        _filtroMedios.isNotEmpty;
-
+    final hayFiltrosActivos = _busqueda.isNotEmpty || _filtroCategorias.isNotEmpty || _filtroCuentas.isNotEmpty;
     final indice = datos.ciclos.indexWhere((c) => c.ciclo.id == _cicloVisto);
     final visto = indice < 0 ? null : datos.ciclos[indice];
+    final cerrado = visto?.cerrado ?? false;
 
-    return Column(
-      children: [
-        SelectorCiclo(
-          ciclos: datos.ciclos,
-          vistoId: _cicloVisto,
-          enCursoId: widget.cicloId,
-          alCambiar: _verCiclo,
-        ),
-        if (visto != null && visto.cerrado)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: ColoresApp.azulSuave,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.lock_outline, size: 18, color: ColoresApp.azul),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Ciclo cerrado: solo para consultar. Si quieres cambiar un gasto, tócalo y '
-                      'te ofreceremos reabrir el ciclo.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: ColoresApp.tinta),
-                    ),
-                  ),
-                ],
-              ),
+    // Chips rápidos: las categorías y cuentas que sí aparecen en el ciclo,
+    // de la más usada a la menos (componentes/Chip.md: se combinan).
+    final usos = <String, int>{};
+    final usosCuenta = <String, int>{};
+    for (final m in datos.movimientos) {
+      usos[m.categoriaId] = (usos[m.categoriaId] ?? 0) + 1;
+      usosCuenta[cuentaDe(m)] = (usosCuenta[cuentaDe(m)] ?? 0) + 1;
+    }
+    final categoriasUsadas = [
+      for (final id in (usos.keys.toList()..sort((a, b) => usos[b]!.compareTo(usos[a]!))))
+        ?datos.categoriasPorId[id],
+    ];
+    final cuentasUsadas = [
+      for (final id in (usosCuenta.keys.toList()..sort((a, b) => usosCuenta[b]!.compareTo(usosCuenta[a]!))))
+        ?datos.cuentasPorId[id],
+    ];
+    final cuentasTodas = datos.cuentasPorId.values.where((c) => c.activa).toList();
+
+    final encabezado = <Widget>[
+      SelectorCiclo(ciclos: datos.ciclos, vistoId: _cicloVisto, enCursoId: widget.cicloId, alCambiar: _verCiclo),
+      if (visto != null && cerrado)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          child: Aviso.info(
+            icono: Icons.lock_outline_rounded,
+            titulo: 'Ciclo cerrado',
+            apoyo: 'Solo para consultar',
+            boton: OutlinedButton(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40), padding: const EdgeInsets.symmetric(horizontal: 14)),
+              onPressed: () => _reabrir(visto.ciclo),
+              child: const Text('Reabrir'),
             ),
           ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _busquedaControlador,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Buscar comercio o monto',
-                  ),
+        ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _busquedaControlador,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  hintText: 'Buscar gasto o monto',
+                  fillColor: p.superficieHundida,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(Radios.m), borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(Radios.m), borderSide: BorderSide.none),
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.tune),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 52,
+              height: 52,
+              child: IconButton.filledTonal(
+                style: IconButton.styleFrom(
+                  backgroundColor: p.superficieHundida,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radios.m)),
+                ),
+                icon: Badge(isLabelVisible: hayFiltrosActivos, smallSize: 8, child: Icon(Icons.tune_rounded, color: p.texto)),
                 tooltip: 'Filtros',
-                onPressed: () => _abrirFiltros(categorias),
+                onPressed: () => _abrirFiltros(categorias, cuentasTodas),
               ),
+            ),
+          ],
+        ),
+      ),
+      if (categoriasUsadas.length + cuentasUsadas.length > 1)
+        SizedBox(
+          height: 52,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            children: [
+              ChoiceChip(
+                label: const Text('Todas'),
+                selected: _filtroCategorias.isEmpty && _filtroCuentas.isEmpty,
+                onSelected: (_) => setState(() {
+                  _filtroCategorias = {};
+                  _filtroCuentas = {};
+                }),
+              ),
+              for (final c in categoriasUsadas) ...[
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: Text('${c.emoji} ${c.nombre}'),
+                  selected: _filtroCategorias.contains(c.id),
+                  onSelected: (sel) => setState(() {
+                    _filtroCategorias = sel ? {..._filtroCategorias, c.id} : _filtroCategorias.difference({c.id});
+                  }),
+                ),
+              ],
+              for (final c in cuentasUsadas) ...[
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: Text(c.nombre),
+                  selected: _filtroCuentas.contains(c.id),
+                  onSelected: (sel) => setState(() {
+                    _filtroCuentas = sel ? {..._filtroCuentas, c.id} : _filtroCuentas.difference({c.id});
+                  }),
+                ),
+              ],
             ],
           ),
         ),
-        if (hayFiltrosActivos)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Semantics(
-                label:
-                    '${filtrados.length} movimiento(s), total ${montoEnPalabras(Dinero.suma(filtrados.map((m) => m.monto)))}',
-                excludeSemantics: true,
-                child: Text(
-                  '${filtrados.length} movimiento(s) · '
-                  '${Dinero.suma(filtrados.map((m) => m.monto)).formateado()}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: ColoresApp.azul,
-                  ),
-                ),
-              ),
+      if (hayFiltrosActivos)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
+          child: Semantics(
+            label: '${filtrados.length} ${filtrados.length == 1 ? 'gasto' : 'gastos'}, '
+                'total ${montoEnPalabras(Dinero.suma(filtrados.map((m) => m.monto)))}',
+            excludeSemantics: true,
+            child: Text(
+              '${filtrados.length} ${filtrados.length == 1 ? 'gasto' : 'gastos'} · '
+              '${Dinero.suma(filtrados.map((m) => m.monto)).formateado()}',
+              style: textos.cuerpoFuerte,
             ),
           ),
-        Expanded(
-          child: filtrados.isEmpty
-              ? Center(
-                  child: Text(
-                    'Nada por aquí.',
-                    style: TextStyle(color: ColoresApp.medio),
-                  ),
-                )
-              : _ListaAgrupadaPorDia(
-                  movimientos: filtrados,
-                  categoriasPorId: datos.categoriasPorId,
-                  perfil: widget.perfil,
-                  categoriaRepositorio: widget.categoriaRepositorio,
-                  movimientoRepositorio: widget.movimientoRepositorio,
-                  reglasAprendidasRepositorio:
-                      widget.reglasAprendidasRepositorio,
-                  cicloRepositorio: widget.cicloRepositorio,
-                  cuentaRepositorio: widget.cuentaRepositorio,
-                  cuentasPorId: datos.cuentasPorId,
-                  documentos: widget.documentos,
-                  onCambio: _refrescar,
-                ),
         ),
-      ],
+    ];
+
+    final Widget lista;
+    if (datos.movimientos.isEmpty) {
+      lista = Padding(
+        padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
+        child: TarjetaApp(
+          padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+          child: Column(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(color: p.superficieHundida, shape: BoxShape.circle),
+                child: Icon(Icons.receipt_long_outlined, color: p.texto),
+              ),
+              const SizedBox(height: 12),
+              Text('Aún no hay gastos', style: textos.seccion),
+              const SizedBox(height: 4),
+              Text('Aquí verás en qué se va tu dinero.', style: textos.etiqueta, textAlign: TextAlign.center),
+              if (widget.alRegistrar != null && !cerrado) ...[
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: widget.alRegistrar,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Registrar gasto'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    } else if (filtrados.isEmpty) {
+      lista = Padding(
+        padding: const EdgeInsets.all(32),
+        child: Text('Nada con esos filtros.', textAlign: TextAlign.center, style: textos.etiqueta),
+      );
+    } else {
+      lista = _ListaAgrupadaPorDia(
+        movimientos: filtrados,
+        categoriasPorId: datos.categoriasPorId,
+        perfil: widget.perfil,
+        categoriaRepositorio: widget.categoriaRepositorio,
+        movimientoRepositorio: widget.movimientoRepositorio,
+        reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
+        cicloRepositorio: widget.cicloRepositorio,
+        cuentaRepositorio: widget.cuentaRepositorio,
+        cuentasPorId: datos.cuentasPorId,
+        documentos: widget.documentos,
+        cerrado: cerrado,
+        onCambio: _refrescar,
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _refrescar,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 32),
+        children: [...encabezado, lista],
+      ),
     );
   }
 }
@@ -398,6 +534,9 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
   final Directory documentos;
   final VoidCallback onCambio;
 
+  /// Ciclo cerrado: solo se consulta, sin deslizar.
+  final bool cerrado;
+
   const _ListaAgrupadaPorDia({
     required this.movimientos,
     required this.categoriasPorId,
@@ -409,6 +548,7 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
     this.cuentaRepositorio,
     required this.cuentasPorId,
     required this.documentos,
+    required this.cerrado,
     required this.onCambio,
   });
 
@@ -436,37 +576,6 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
     // También sin cambios: si el ciclo se reabrió para editar, el aviso
     // de "cerrado" debe irse.
     onCambio();
-  }
-
-  Future<bool> _confirmarEliminar(BuildContext context, Movimiento m) async {
-    final puedeModificar = await asegurarCicloAbierto(
-      context,
-      cicloId: m.cicloId,
-      cicloRepositorio: cicloRepositorio,
-    );
-    if (!puedeModificar || !context.mounted) return false;
-    final confirmado = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('¿Eliminar este gasto?'),
-        content: Text('${m.descripcion} · ${m.monto.formateado()}'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
-    );
-    if (context.mounted) await avisarGestoPrimeraVez(context, GestoApp.eliminarGasto);
-    if (confirmado != true) return false;
-    await movimientoRepositorio.anular(m.id!);
-    onCambio();
-    return true;
   }
 
   Future<void> _duplicar(BuildContext context, Movimiento m) async {
@@ -501,8 +610,36 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
     }
   }
 
+  /// Deslizar a la izquierda anula al instante y ofrece Deshacer
+  /// (componentes/Renglon.md); nada se borra (regla #3).
+  Future<bool> _anular(BuildContext context, Movimiento m) async {
+    final puedeModificar = await asegurarCicloAbierto(context, cicloId: m.cicloId, cicloRepositorio: cicloRepositorio);
+    if (!puedeModificar || !context.mounted) return false;
+    await movimientoRepositorio.anular(m.id!);
+    onCambio();
+    if (!context.mounted) return true;
+    if (await avisarGestoPrimeraVez(context, GestoApp.eliminarGasto)) return true;
+    if (!context.mounted) return true;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text('Anulaste ${m.descripcion} · ${m.monto.formateado()}'),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Deshacer',
+          onPressed: () async {
+            await movimientoRepositorio.actualizar(m.copyWith(estado: EstadoMovimiento.activo));
+            onCambio();
+          },
+        ),
+      ));
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final p = ColoresApp.actual;
+    final textos = Theme.of(context).textTheme;
     final grupos = <DateTime, List<Movimiento>>{};
     for (final m in movimientos) {
       final dia = DateTime(m.fecha.year, m.fecha.month, m.fecha.day);
@@ -510,115 +647,76 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
     }
     final dias = grupos.keys.toList()..sort((a, b) => b.compareTo(a));
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      itemCount: dias.length,
-      itemBuilder: (context, i) {
-        final dia = dias[i];
-        final movsDelDia = grupos[dia]!;
-        final total = Dinero.suma(movsDelDia.map((m) => m.monto));
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    Widget renglon(Movimiento m) {
+      final categoria = categoriasPorId[m.categoriaId];
+      final cuenta = cuentasPorId[cuentaDe(m)]?.nombre ?? (m.medio == MedioPago.efectivo ? 'Efectivo' : 'Tarjeta');
+      final fila = RenglonApp(
+        emoji: categoria?.emoji ?? '❔',
+        titulo: m.descripcion,
+        subtitulo: '${categoria?.nombre ?? m.categoriaId} · $cuenta',
+        monto: m.monto.formateado(),
+        onTap: () => _editar(context, m),
+      );
+      // En ciclos cerrados no se desliza (componentes/Renglon.md).
+      if (cerrado) return fila;
+      Widget fondo(Color color, IconData icono, String texto, Alignment alineacion) => Container(
+            color: color,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            alignment: alineacion,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icono, color: p.texto),
+                const SizedBox(width: 6),
+                Text(texto, style: textos.cuerpoFuerte),
+              ],
+            ),
+          );
+      return Dismissible(
+        key: ValueKey(m.id),
+        direction: DismissDirection.horizontal,
+        background: fondo(p.exitoFondo, Icons.copy_rounded, 'Duplicar', Alignment.centerLeft),
+        secondaryBackground: fondo(p.peligroFondo, Icons.block_rounded, 'Anular', Alignment.centerRight),
+        confirmDismiss: (direccion) => direccion == DismissDirection.startToEnd
+            ? _duplicar(context, m).then((_) => false)
+            : _anular(context, m),
+        child: fila,
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final dia in dias) ...[
             Padding(
-              padding: const EdgeInsets.only(top: 12, bottom: 6),
+              padding: const EdgeInsets.fromLTRB(4, 22, 4, 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    _fechaLarga(dia),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: ColoresApp.medio,
-                    ),
-                  ),
-                  Text(
-                    total.formateado(),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: ColoresApp.medio,
-                    ),
-                  ),
+                  Text(_fechaLarga(dia), style: textos.etiqueta.copyWith(fontWeight: FontWeight.w600, color: p.texto)),
+                  Text(Dinero.suma(grupos[dia]!.map((m) => m.monto)).formateado(), style: textos.etiqueta),
                 ],
               ),
             ),
-            ...movsDelDia.map((m) {
-              final categoria = categoriasPorId[m.categoriaId];
-              return Dismissible(
-                key: ValueKey(m.id),
-                direction: DismissDirection.horizontal,
-                background: Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  alignment: Alignment.centerLeft,
-                  decoration: BoxDecoration(
-                    color: ColoresApp.verde,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.copy, color: Colors.white),
-                ),
-                secondaryBackground: Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  alignment: Alignment.centerRight,
-                  decoration: BoxDecoration(
-                    color: ColoresApp.coral,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.delete, color: Colors.white),
-                ),
-                confirmDismiss: (direction) =>
-                    direction == DismissDirection.startToEnd
-                    ? _duplicar(context, m).then((_) => false)
-                    : _confirmarEliminar(context, m),
-                child: Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(18),
-                    onTap: () => _editar(context, m),
-                    child: ListTile(
-                      leading: Text(
-                        categoria?.emoji ?? '❔',
-                        style: const TextStyle(fontSize: 18),
-                      ),
-                      title: Text(m.descripcion),
-                      subtitle: Text(
-                        '${categoria?.nombre ?? m.categoriaId} · '
-                        '${cuentasPorId[cuentaDe(m)]?.nombre ?? m.medio.name}',
-                      ),
-                      trailing: Text(
-                        m.monto.formateado(),
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
+            TarjetaApp.lista(renglones: [for (final m in grupos[dia]!) renglon(m)]),
           ],
-        );
-      },
+        ],
+      ),
     );
   }
 }
 
+/// "Hoy · sáb 14 nov", "Ayer · vie 13 nov" o "Jue 12 nov".
 String _fechaLarga(DateTime f) {
-  const dias = [
-    'lunes',
-    'martes',
-    'miércoles',
-    'jueves',
-    'viernes',
-    'sábado',
-    'domingo',
-  ];
-  const meses = [
-    'ene', 'feb', 'mar', 'abr', 'may', 'jun', //
-    'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
-  ];
-  final nombreDia = dias[f.weekday - 1];
-  final nombreDia0 = nombreDia[0].toUpperCase() + nombreDia.substring(1);
-  return '$nombreDia0 ${f.day} ${meses[f.month - 1]}';
+  const dias = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+  final ahora = DateTime.now();
+  final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+  final corta = '${dias[f.weekday - 1]} ${fechaCorta(f)}';
+  if (f == hoy) return 'Hoy · $corta';
+  if (f == hoy.subtract(const Duration(days: 1))) return 'Ayer · $corta';
+  return corta[0].toUpperCase() + corta.substring(1);
 }
 
 class _DatosGastos {
