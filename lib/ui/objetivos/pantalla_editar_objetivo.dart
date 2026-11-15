@@ -111,6 +111,34 @@ class _PantallaEditarObjetivoState extends State<PantallaEditarObjetivo> {
     if (elegida != null) setState(() => _fecha = elegida);
   }
 
+  /// Eliminar de verdad, con confirmación (spec §7.3.3): el dinero de su
+  /// cuenta no se toca.
+  Future<void> _eliminar() async {
+    final previo = widget.existente!;
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: Text('¿Eliminar ${previo.nombre}?'),
+        content: const Text(
+          'Se quita el objetivo y no se puede deshacer. El dinero de su cuenta se queda como está. '
+          'Si solo quieres dejarlo de ver, archívalo.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(contexto, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, true),
+            style: TextButton.styleFrom(foregroundColor: ColoresApp.actual.peligroTexto),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (si != true) return;
+    setState(() => _guardando = true);
+    await widget.objetivoRepositorio.eliminar(previo.id);
+    if (mounted) Navigator.of(context).pop(true);
+  }
+
   Future<void> _guardar({bool? activo}) async {
     final nombre = _nombre.text.trim();
     if (nombre.isEmpty) {
@@ -268,6 +296,11 @@ class _PantallaEditarObjetivoState extends State<PantallaEditarObjetivo> {
                 TextButton(
                   onPressed: _guardando ? null : () => _guardar(activo: !previo.activo),
                   child: Text(previo.activo ? 'Archivar objetivo' : 'Volver a activarlo'),
+                ),
+                TextButton(
+                  onPressed: _guardando ? null : _eliminar,
+                  style: TextButton.styleFrom(foregroundColor: ColoresApp.actual.peligroTexto),
+                  child: const Text('Eliminar objetivo'),
                 ),
               ],
             ],

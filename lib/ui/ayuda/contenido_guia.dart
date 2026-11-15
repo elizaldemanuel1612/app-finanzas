@@ -413,7 +413,8 @@ const _temaPatrimonioYObjetivos = TemaGuia(
     Parrafo(
       'Cada objetivo te dice si vas a tiempo o lento para llegar a su fecha y '
       'cuánto apartar en cada ciclo, según los días que quedan de cada uno. Si ya pasó la fecha, **Cambiar fecha** lo '
-      'pone al día.',
+      'pone al día. Desde la edición de un objetivo puedes **Archivar objetivo** '
+      'o eliminarlo; el dinero de su cuenta no se toca.',
     ),
   ],
 );
