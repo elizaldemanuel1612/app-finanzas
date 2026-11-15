@@ -33,7 +33,7 @@ const _maximoPorArchivo = {
   'lib/ui/comun/pantalla_login.dart': 1,
   'lib/ui/comun/tema.dart': 12, // +1 título de AppBar; +3 título/subtítulo/lados de ListTile (antes caían a bodyLarge/bodyMedium de Material)
   'lib/ui/gastos/pantalla_gastos.dart': 2,
-  'lib/ui/inicio/pantalla_inicio.dart': 4,
+  'lib/ui/inicio/pantalla_inicio.dart': 1, // centavos de la cifra héroe al 50 %
   'lib/ui/meta/selector_meta.dart': 2,
 };
 

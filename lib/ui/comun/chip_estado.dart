@@ -30,7 +30,10 @@ class ChipEstado extends StatelessWidget {
   /// Dentro de la tarjeta héroe: fondo translúcido y colores `heroe-*`.
   final bool enHeroe;
 
-  const ChipEstado({super.key, required this.tono, required this.texto, this.enHeroe = false});
+  /// Ícono propio (por omisión, el del tono).
+  final IconData? icono;
+
+  const ChipEstado({super.key, required this.tono, required this.texto, this.enHeroe = false, this.icono});
 
   /// El chip del veredicto de ritmo, con su texto de siempre.
   factory ChipEstado.ritmo(TonoRitmo tono, {bool enHeroe = false}) =>
@@ -62,11 +65,13 @@ class ChipEstado extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(iconoDeTono(tono), size: 14, color: color),
+          Icon(icono ?? iconoDeTono(tono), size: 14, color: color),
           const SizedBox(width: 5),
           Flexible(
             child: Text(
               texto,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.etiqueta.copyWith(color: color, fontWeight: FontWeight.w600),
             ),
           ),

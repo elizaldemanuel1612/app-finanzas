@@ -25,8 +25,12 @@ class PantallaCuentas extends StatefulWidget {
   final MovimientoCuentaRepositorio movimientoCuentaRepositorio;
   final IngresoExtraRepositorio ingresoExtraRepositorio;
 
+  /// Dentro de la pestaña Patrimonio, sin barra ni botón flotante propios.
+  final bool embebida;
+
   const PantallaCuentas({
     super.key,
+    this.embebida = false,
     required this.perfil,
     required this.cuentaRepositorio,
     required this.movimientoRepositorio,
@@ -115,14 +119,7 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
     final activas = [for (final c in cuentas ?? const <(Cuenta, Dinero?)>[]) if (c.$1.activa) c];
     final hayAhorro = activas.any((c) => c.$1.tipo == TipoCuenta.ahorro);
     final archivadas = [for (final c in cuentas ?? const <(Cuenta, Dinero?)>[]) if (!c.$1.activa) c];
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tus cuentas')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _nueva,
-        tooltip: 'Nueva cuenta',
-        child: const Icon(Icons.add),
-      ),
-      body: cuentas == null
+    final cuerpo = cuentas == null
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
@@ -175,7 +172,31 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
                     for (final (c, saldo) in archivadas) _FilaCuenta(cuenta: c, saldo: saldo, alTocar: () => _abrir(c)),
                 ],
               ],
-            ),
+            );
+    if (!widget.embebida) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Tus cuentas')),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _nueva,
+          tooltip: 'Nueva cuenta',
+          child: const Icon(Icons.add),
+        ),
+        body: cuerpo,
+      );
+    }
+    // Dentro de Patrimonio: sin barra propia ni segundo botón flotante (el ＋
+    // dorado es solo para registrar gastos); el alta va como botón.
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(onPressed: _nueva, icon: const Icon(Icons.add), label: const Text('Agregar cuenta')),
+          ),
+        ),
+        Expanded(child: cuerpo),
+      ],
     );
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/ciclo.dart';
 import '../../core/money.dart';
@@ -12,45 +11,56 @@ import '../../data/repositorios/local/almacen_local.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../data/repositorios/perfil_repositorio.dart';
 import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
-import '../../domain/ciclo_de_vida/alcance.dart';
 import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
-import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/categoria.dart';
-import '../../domain/modelos/cuenta.dart';
-import '../../domain/objetivos/progreso_objetivos.dart';
+import '../../domain/modelos/estado_movimiento.dart';
+import '../../domain/modelos/movimiento.dart';
 import '../../domain/modelos/perfil.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/apartado_estimado.dart';
-import '../../domain/pronostico/pronostico_del_ciclo.dart';
+import '../../domain/presupuesto/cobertura_excesos.dart';
 import '../../domain/presupuesto/disponible_por_dia.dart';
 import '../../domain/presupuesto/meta_base.dart';
+import '../../domain/pronostico/pronostico_del_ciclo.dart';
 import '../../domain/rollups/calcular_rollups.dart';
 import '../../domain/rollups/estado_ritmo.dart';
 import '../../domain/rollups/orden_categorias.dart';
 import '../../domain/rollups/rollup.dart';
+import '../../domain/voz/monto_hablado.dart';
 import '../../plataforma/accesos_rapidos.dart';
 import '../ajustes/pantalla_ajustes.dart';
 import '../analisis/pantalla_analisis.dart';
 import '../captura/pantalla_captura.dart';
-import '../cuentas/color_saldo.dart';
-import '../cuentas/pantalla_cuentas.dart';
-import '../objetivos/pantalla_objetivos.dart';
 import '../categorias/pantalla_categorias.dart';
 import '../categorias/pantalla_detalle_categoria.dart';
-import '../ciclo/pantalla_ciclos_anteriores.dart';
+import '../comun/avatar_ajustes.dart';
+import '../comun/aviso.dart';
 import '../comun/aviso_gesto.dart';
 import '../comun/barra_ritmo.dart';
+import '../comun/chip_estado.dart';
+import '../comun/esqueleto.dart';
 import '../comun/formato_dinero.dart';
-import '../comun/tarjeta_resumen_ciclo.dart';
+import '../comun/formato_fecha.dart';
 import '../comun/guia_rapida.dart';
+import '../comun/renglon_app.dart';
+import '../comun/tarjeta_app.dart';
 import '../comun/tema.dart';
 import '../gastos/pantalla_gastos.dart';
 import '../ingresos/pantalla_ingresos_del_ciclo.dart';
 import '../meta/pantalla_meta_ahorro.dart';
+import '../patrimonio/pantalla_patrimonio.dart';
 
-/// app-finanzas-mockup-v2.html §1, con rollups precalculados (Fase 2) y la
-/// marca de ritmo en su versión simple — el motor de pronóstico completo
-/// (domain/pronostico/) llega en la Fase 4.
+/// Las cuatro pantallas raíz de la barra inferior
+/// (`docs/rediseno/plan-rediseno.md`, navegación nueva).
+enum Pestana { inicio, gastos, analisis, patrimonio }
+
+/// La app ya con sesión: la barra **Inicio · Gastos · ＋ · Análisis ·
+/// Patrimonio** y, en la pestaña Inicio, la respuesta a "¿voy bien y cuánto
+/// puedo gastar hoy?" (`docs/rediseno/pantallas/Inicio.dc.html`).
+///
+/// Las pestañas son raíces: sin flecha ←, con la barra siempre visible. Al
+/// volver a una pestaña se recarga (su `key` cambia), así nunca muestra
+/// cifras viejas. Ajustes se abre desde el avatar.
 class PantallaInicio extends StatefulWidget {
   final Perfil perfil;
   final CategoriaRepositorio categoriaRepositorio;
@@ -90,43 +100,38 @@ class _PantallaInicioState extends State<PantallaInicio> {
   late double _avanceCiclo;
   late Perfil _perfil = widget.perfil;
   _DatosInicio? _datos;
-  Dinero? _disponibleHoy;
-  bool _variablesExpandido = true;
-  bool _fijasExpandido = true;
   bool _capturaAbierta = false;
-  OrdenCategorias _orden = OrdenCategorias.porcentajeUsado;
+  Pestana _pestana = Pestana.inicio;
 
-  static const _claveOrden = 'orden_categorias_inicio';
-
-  /// Preferencia del dispositivo, como la apariencia: no viaja en el respaldo.
-  Future<void> _cargarOrden() async {
-    try {
-      final guardado = await SharedPreferencesAsync().getString(_claveOrden);
-      if (!mounted) return;
-      setState(() {
-        _orden = OrdenCategorias.values.firstWhere((o) => o.name == guardado, orElse: () => _orden);
-      });
-    } catch (_) {
-      // Sin almacenamiento disponible: se queda el orden por omisión.
-    }
-  }
-
-  Future<void> _elegirOrden(OrdenCategorias orden) async {
-    setState(() => _orden = orden);
-    try {
-      await SharedPreferencesAsync().setString(_claveOrden, orden.name);
-    } catch (_) {}
-  }
+  /// Sube cada vez que se entra a una pestaña o se registra algo: es la
+  /// `key` de la pestaña, así se vuelve a cargar con datos frescos.
+  int _version = 0;
 
   @override
   void initState() {
     super.initState();
-    _cargarOrden();
     _recalcularCiclo();
     _cargar();
     AccesosRapidos.escuchar(_abrirAccesoRapido);
     widget.recargar?.addListener(_alSincronizar);
     WidgetsBinding.instance.addPostFrameCallback((_) => _guiaDeRegistrar());
+  }
+
+  @override
+  void dispose() {
+    widget.recargar?.removeListener(_alSincronizar);
+    AccesosRapidos.dejarDeEscuchar();
+    super.dispose();
+  }
+
+  /// El nombre de la cuenta, para el avatar. Sin Firebase (sin red al
+  /// abrir, o la demo) no hay nombre y el avatar muestra una silueta.
+  String? get _nombre {
+    try {
+      return widget.servicioAuth.usuarioActual?.displayName;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// La primera vez, obligatoria: registrar gastos es la base de todo lo
@@ -158,188 +163,69 @@ class _PantallaInicioState extends State<PantallaInicio> {
   void _recalcularCiclo() {
     final ahora = DateTime.now();
     _ciclo = _perfil.calculadoraCiclo.calcularPara(ahora);
-    _avanceCiclo = avanceDelCiclo(
-      fechaInicio: _ciclo.fechaInicio,
-      fechaFin: _ciclo.fechaFin,
-      ahora: ahora,
-    );
+    _avanceCiclo = avanceDelCiclo(fechaInicio: _ciclo.fechaInicio, fechaFin: _ciclo.fechaFin, ahora: ahora);
   }
 
-  @override
-  void dispose() {
-    widget.recargar?.removeListener(_alSincronizar);
-    AccesosRapidos.dejarDeEscuchar();
-    super.dispose();
-  }
-
-  /// El widget de inicio o Siri pidieron abrir la captura (§5.6). Se abre
-  /// encima de lo que haya, sin cerrar pantallas. Si ya hay una captura
-  /// abierta no se apila otra: el usuario ya está ahí (y el micrófono está
-  /// a un toque).
+  /// El widget de inicio o Siri pidieron abrir la captura (§5.6). Si ya hay
+  /// una captura abierta no se apila otra.
   void _abrirAccesoRapido(AccesoRapido acceso) {
     if (!mounted || _capturaAbierta) return;
     _irACaptura(iniciarDictado: acceso == AccesoRapido.dictar);
   }
 
-  /// Saldos de las cuentas que lo llevan (spec §7.3.1), para la tarjeta
-  /// "Tus cuentas".
-  List<(Cuenta, Dinero)> _saldos = const [];
-
-  /// Lo que se tiene menos lo que se debe (spec §7.3.2); `null` sin saldos.
-  Patrimonio? _patrimonio;
-
-  Future<void> _cargarSaldos() async {
-    final cuentas = await widget.almacenLocal.cuentas.listarTodas();
-    final gastos = await widget.movimientoRepositorio.listarTodos();
-    final abonos = await widget.almacenLocal.movimientosCuenta.listarTodos();
-    final objetivos = calcularProgresoObjetivos(
-      objetivos: await widget.almacenLocal.objetivos.listarTodos(),
-      saldoPorCuenta: {
-        for (final c in cuentas)
-          if (c.tipo == TipoCuenta.ahorro) c.id: ?saldoDe(c, gastos, abonos),
-      },
-      hoy: DateTime.now(),
-      calculadora: _perfil.calculadoraCiclo,
-    );
-    if (!mounted) return;
+  void _elegirPestana(Pestana pestana) {
     setState(() {
-      _saldos = [
-        for (final c in cuentas)
-          if (c.activa)
-            if (saldoDe(c, gastos, abonos) case final saldo?) (c, saldo),
-      ];
-      _patrimonio = calcularPatrimonio(cuentas, gastos, abonos);
-      _objetivos = objetivos;
+      _pestana = pestana;
+      _version++;
     });
-  }
-
-  /// Resumen de los objetivos de ahorro (spec §7.3.3) para su renglón.
-  List<ProgresoObjetivo> _objetivos = const [];
-
-  /// "Viaje: 40 % · y 2 más", o la invitación a crear el primero.
-  String get _resumenObjetivos {
-    if (_objetivos.isEmpty) return 'Ponle nombre y monto a lo que quieres lograr';
-    // El primero que aún no se logra; si todos se lograron, el primero.
-    final p = _objetivos.where((o) => o.estado != EstadoObjetivo.logrado).firstOrNull ?? _objetivos.first;
-    final otros = _objetivos.length - 1;
-    return '${p.objetivo.nombre}: ${(p.avance * 100).floor()}%${otros > 0 ? ' · y $otros más' : ''}';
-  }
-
-  Future<void> _irAObjetivos() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PantallaObjetivos(
-          perfil: _perfil,
-          objetivoRepositorio: widget.almacenLocal.objetivos,
-          cuentaRepositorio: widget.almacenLocal.cuentas,
-          movimientoRepositorio: widget.movimientoRepositorio,
-          movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
-          categoriaRepositorio: widget.categoriaRepositorio,
-        ),
-      ),
-    );
-    await _cargar();
-  }
-
-  Future<void> _irACuentas() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PantallaCuentas(
-          perfil: _perfil,
-          cuentaRepositorio: widget.almacenLocal.cuentas,
-          movimientoRepositorio: widget.movimientoRepositorio,
-          movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
-          ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
-        ),
-      ),
-    );
-    await _cargar();
+    if (pestana == Pestana.inicio) _cargar();
   }
 
   Future<void> _cargar() async {
-    _cargarSaldos();
     final datos = await _cargarDatos();
     if (!mounted) return;
-    final hoy = DateTime.now();
-    final disponibleHoy = calcularDisponiblePorDia(
-      presupuestoVariables: datos.presupuestoVariables,
-      gastadoVariables: datos.gastadoVariables,
-      ciclo: _ciclo,
-      hoy: hoy,
-    );
-    setState(() {
-      _datos = datos;
-      _disponibleHoy = disponibleHoy;
-    });
-    AccesosRapidos.publicarDisponibleHoy(disponibleHoy, hoy);
+    setState(() => _datos = datos);
+    AccesosRapidos.publicarDisponibleHoy(datos.disponibleHoy, DateTime.now());
   }
 
   Future<_DatosInicio> _cargarDatos() async {
+    final hoy = DateTime.now();
     final categorias = await widget.categoriaRepositorio.listarActivas();
     // Todos: el pronóstico (MPC) necesita el historial; los totales del
     // ciclo filtran por `cicloId` en los rollups.
     final todos = await widget.movimientoRepositorio.listarTodos();
     final movimientos = [for (final m in todos) if (m.cicloId == _ciclo.id) m];
-    final extras = await widget.ingresoExtraRepositorio.listarPorCiclo(
-      _ciclo.id,
-    );
-    final ajustes = await widget.ajustePresupuestoCicloRepositorio
-        .listarPorCiclo(_ciclo.id);
-    final deltaPorCategoria = sumarDeltasPorCategoria(ajustes);
-    final categoriasEfectivas = presupuestosEfectivosParaCiclo(
-      base: categorias,
-      ajustesDelCiclo: ajustes,
-    );
-    final rollups = calcularRollups(
-      movimientos: movimientos,
-      categorias: categoriasEfectivas,
-      cicloId: _ciclo.id,
-      ahora: DateTime.now(),
-    );
+    final extras = await widget.ingresoExtraRepositorio.listarPorCiclo(_ciclo.id);
+    final ajustes = await widget.ajustePresupuestoCicloRepositorio.listarPorCiclo(_ciclo.id);
+    final efectivas = presupuestosEfectivosParaCiclo(base: categorias, ajustesDelCiclo: ajustes);
+    final rollups = calcularRollups(movimientos: movimientos, categorias: efectivas, cicloId: _ciclo.id, ahora: hoy);
     final rollupPorCategoria = {for (final r in rollups) r.categoriaId: r};
 
     // fijas/variables se quedan con la categoría base (no la efectiva): se
-    // usan también para navegar a PantallaDetalleCategoria, que vuelve a
-    // aplicar los ajustes del ciclo por su cuenta — pasarle ya la versión
-    // ajustada la aplicaría dos veces. Lo que sí debe verse ajustado (el
-    // presupuesto mostrado en la fila) sale de `rollupPorCategoria`, que
-    // se calculó con `categoriasEfectivas`.
+    // usan para navegar a PantallaDetalleCategoria, que vuelve a aplicar los
+    // ajustes del ciclo. Lo que se ve ajustado sale de `rollupPorCategoria`.
     final fijas = categorias.whereType<CategoriaFija>().toList();
     final variables = categorias.whereType<CategoriaVariable>().toList();
-
-    final totalGastado = Dinero.suma(rollups.map((r) => r.totalCentavos));
     final gastadoVariables = Dinero.suma(
       variables.map((c) => rollupPorCategoria[c.id]?.totalCentavos ?? const Dinero.cero()),
     );
     final presupuestoVariables = Dinero.suma(
-      variables.map(
-        (c) => rollupPorCategoria[c.id]?.presupuestoCentavos ?? c.presupuestoMensualCentavos,
-      ),
+      variables.map((c) => rollupPorCategoria[c.id]?.presupuestoCentavos ?? c.presupuestoMensualCentavos),
     );
-    final gastadoFijas = Dinero.suma(
-      fijas.map((c) => rollupPorCategoria[c.id]?.totalCentavos ?? const Dinero.cero()),
-    );
+    final gastadoFijas = Dinero.suma(fijas.map((c) => rollupPorCategoria[c.id]?.totalCentavos ?? const Dinero.cero()));
     final presupuestoFijas = Dinero.suma(
       fijas.map((c) => rollupPorCategoria[c.id]?.presupuestoCentavos ?? c.montoFijoCentavos),
     );
-    final ingresos = calcularIngresosDelCiclo(
-      ingresoBase: _perfil.ingresoBaseMensual,
-      cicloId: _ciclo.id,
-      extras: extras,
+    final ingresos = calcularIngresosDelCiclo(ingresoBase: _perfil.ingresoBaseMensual, cicloId: _ciclo.id, extras: extras);
+    final metaDelCiclo = calcularMetaDelCiclo(
+      metaBase: calcularMetaBase(perfil: _perfil, categorias: categorias),
+      ingresos: ingresos,
     );
-    final disponibleParaInvertir = ingresos.total - totalGastado;
 
-    final metaBase = calcularMetaBase(perfil: _perfil, categorias: categorias);
-    final metaDelCiclo = calcularMetaDelCiclo(metaBase: metaBase, ingresos: ingresos);
-    // Ciclo en curso: estimado, no `ingreso − gastado` (spec §5.6.1), con
-    // el mismo pronóstico (MPC) que Análisis y el detalle de categoría
-    // (docs/rediseno/plan-rediseno.md, Etapa 0).
-    final estados = estadosDeVariables(
-      categorias: categoriasEfectivas,
-      movimientos: todos,
-      ciclo: _ciclo,
-      hoy: DateTime.now(),
-    );
+    // Un solo pronóstico (MPC) y una sola recomendación, los mismos de
+    // Análisis y del detalle de categoría (docs/rediseno/plan-rediseno.md,
+    // Etapa 0).
+    final estados = estadosDeVariables(categorias: efectivas, movimientos: todos, ciclo: _ciclo, hoy: hoy);
     final apartadoEstimado = calcularApartadoEstimado(
       ingreso: ingresos.total,
       presupuestoFijas: presupuestoFijas,
@@ -349,30 +235,36 @@ class _PantallaInicioState extends State<PantallaInicio> {
     );
 
     return _DatosInicio(
-      categorias: categorias,
+      hayCategorias: categorias.isNotEmpty,
       rollupPorCategoria: rollupPorCategoria,
       fijas: fijas,
-      variables: variables,
-      totalGastado: totalGastado,
+      variables: ordenarPorAtencion(variables, rollupPorCategoria, avanceCiclo: _avanceCiclo),
       gastadoVariables: gastadoVariables,
       presupuestoVariables: presupuestoVariables,
-      gastadoFijas: gastadoFijas,
-      presupuestoFijas: presupuestoFijas,
+      totalGastado: Dinero.suma(rollups.map((r) => r.totalCentavos)),
       ingresos: ingresos,
-      disponibleParaInvertir: disponibleParaInvertir,
-      deltaPorCategoria: deltaPorCategoria,
       metaDelCiclo: metaDelCiclo,
       apartadoEstimado: apartadoEstimado,
+      coberturas: calcularCoberturas(estados),
+      hayGastos: movimientos.any((m) => m.estado == EstadoMovimiento.activo),
+      disponibleHoy: calcularDisponiblePorDia(
+        presupuestoVariables: presupuestoVariables,
+        gastadoVariables: gastadoVariables,
+        ciclo: _ciclo,
+        hoy: hoy,
+      ),
     );
   }
 
+  /// El ＋ abre Registrar desde cualquier raíz. Al guardar, el snackbar dice
+  /// el resultado y ofrece Deshacer (componentes/Aviso.md).
   Future<void> _irACaptura({bool iniciarDictado = false}) async {
     // Object? en vez de Movimiento: el dictado por voz puede registrar
-    // varios movimientos de golpe y regresa un sentinel (true), no un
-    // único Movimiento — cualquier resultado no nulo dispara el refresco.
+    // varios movimientos de golpe y regresa un sentinel (true).
     _capturaAbierta = true;
     final registrado = await Navigator.of(context).push<Object?>(
       MaterialPageRoute(
+        fullscreenDialog: true,
         builder: (_) => PantallaCaptura(
           perfil: _perfil,
           categoriaRepositorio: widget.categoriaRepositorio,
@@ -386,50 +278,59 @@ class _PantallaInicioState extends State<PantallaInicio> {
       ),
     );
     _capturaAbierta = false;
-    if (registrado != null) await _cargar();
+    if (registrado == null || !mounted) return;
+    setState(() => _version++);
+    await _cargar();
+    if (registrado is Movimiento && mounted) _avisarGuardado(registrado);
   }
 
-  void _irAGastos() {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(
-            builder: (_) => PantallaGastos(
-              cicloId: _ciclo.id,
-              perfil: _perfil,
-              categoriaRepositorio: widget.categoriaRepositorio,
-              movimientoRepositorio: widget.movimientoRepositorio,
-              reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
-              cicloRepositorio: widget.cicloRepositorio,
-              documentos: widget.almacenLocal.directorio,
-              cuentaRepositorio: widget.almacenLocal.cuentas,
-            ),
-          ),
-        )
-        .then((_) => _cargar());
+  void _avisarGuardado(Movimiento m) {
+    final datos = _datos;
+    final rollup = datos?.rollupPorCategoria[m.categoriaId];
+    final categoria = [...?datos?.variables, ...?datos?.fijas].where((c) => c.id == m.categoriaId).firstOrNull;
+    final presupuesto = rollup?.presupuestoCentavos;
+    final String texto;
+    if (categoria is CategoriaVariable && rollup != null && presupuesto != null) {
+      final quedan = presupuesto - rollup.totalCentavos;
+      texto = quedan.esNegativo
+          ? 'Listo. Te pasaste ${enPesos(quedan.absoluto)} en ${categoria.nombre}'
+          : 'Listo, te quedan ${enPesos(quedan)} en ${categoria.nombre}';
+    } else {
+      texto = categoria == null ? 'Listo, quedó registrado' : 'Listo, quedó en ${categoria.nombre}';
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(texto),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Deshacer',
+          // Nada se borra: se anula (regla #3).
+          onPressed: () async {
+            await widget.movimientoRepositorio.anular(m.id ?? m.clientId);
+            if (!mounted) return;
+            setState(() => _version++);
+            await _cargar();
+          },
+        ),
+      ));
   }
 
-  Future<void> _irAAnalisis() async {
+  Future<void> _irAAjustes() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => PantallaAnalisis(
-          perfil: _perfil,
-          ciclo: _ciclo,
-          categoriaRepositorio: widget.categoriaRepositorio,
-          movimientoRepositorio: widget.movimientoRepositorio,
-          ajustePresupuestoCicloRepositorio: widget.ajustePresupuestoCicloRepositorio,
-          ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
-          cuentaRepositorio: widget.almacenLocal.cuentas,
-          movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
-          cicloRepositorio: widget.cicloRepositorio,
-          alVerCategoria: (id) {
-            final categoria = _datos?.categorias.where((c) => c.id == id).firstOrNull;
-            if (categoria != null) _irADetalle(categoria);
-          },
-          alVerGastos: _irAGastos,
-          alVerMeta: _irAMeta,
-        ),
+        builder: (_) => PantallaAjustes(perfil: _perfil, servicioAuth: widget.servicioAuth, almacenLocal: widget.almacenLocal),
       ),
     );
+    final perfilActualizado = await widget.perfilRepositorio.obtener();
+    if (!mounted) return;
+    if (perfilActualizado != null) {
+      setState(() {
+        _perfil = perfilActualizado;
+        _recalcularCiclo();
+        _version++;
+      });
+    }
     await _cargar();
   }
 
@@ -447,25 +348,6 @@ class _PantallaInicioState extends State<PantallaInicio> {
     await _cargar();
   }
 
-  Future<void> _irACiclosAnteriores() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PantallaCiclosAnteriores(
-          perfil: _perfil,
-          cicloActual: _ciclo,
-          categoriaRepositorio: widget.categoriaRepositorio,
-          movimientoRepositorio: widget.movimientoRepositorio,
-          cicloRepositorio: widget.cicloRepositorio,
-          ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
-          cuentaRepositorio: widget.almacenLocal.cuentas,
-          movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
-        ),
-      ),
-    );
-    // Cerrar o reabrir un ciclo cambia lo que muestra Inicio.
-    await _cargar();
-  }
-
   Future<void> _irAIngresos() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -479,32 +361,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
       ),
     );
     final perfilActualizado = await widget.perfilRepositorio.obtener();
-    if (!mounted || perfilActualizado == null) {
-      await _cargar();
-      return;
-    }
-    setState(() => _perfil = perfilActualizado);
-    await _cargar();
-  }
-
-  Future<void> _irAAjustes() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PantallaAjustes(
-          perfil: _perfil,
-          servicioAuth: widget.servicioAuth,
-          almacenLocal: widget.almacenLocal,
-        ),
-      ),
-    );
-    final perfilActualizado = await widget.perfilRepositorio.obtener();
-    if (!mounted) return;
-    if (perfilActualizado != null) {
-      setState(() {
-        _perfil = perfilActualizado;
-        _recalcularCiclo();
-      });
-    }
+    if (mounted && perfilActualizado != null) setState(() => _perfil = perfilActualizado);
     await _cargar();
   }
 
@@ -520,724 +377,662 @@ class _PantallaInicioState extends State<PantallaInicio> {
       ),
     );
     final perfilActualizado = await widget.perfilRepositorio.obtener();
-    if (!mounted) return;
-    if (perfilActualizado != null) setState(() => _perfil = perfilActualizado);
+    if (mounted && perfilActualizado != null) setState(() => _perfil = perfilActualizado);
     await _cargar();
   }
 
-  void _irADetalle(Categoria categoria) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(
-            builder: (_) => PantallaDetalleCategoria(
-              categoria: categoria,
-              ciclo: _ciclo,
-              avanceCiclo: _avanceCiclo,
-              categoriaRepositorio: widget.categoriaRepositorio,
-              movimientoRepositorio: widget.movimientoRepositorio,
-              reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
-              ajustePresupuestoCicloRepositorio:
-                  widget.ajustePresupuestoCicloRepositorio,
-              cicloRepositorio: widget.cicloRepositorio,
-              perfil: _perfil,
-              documentos: widget.almacenLocal.directorio,
-              cuentaRepositorio: widget.almacenLocal.cuentas,
-            ),
-          ),
-        )
-        .then((_) => _cargar());
+  Future<void> _irADetalle(Categoria categoria) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaDetalleCategoria(
+          categoria: categoria,
+          ciclo: _ciclo,
+          avanceCiclo: _avanceCiclo,
+          categoriaRepositorio: widget.categoriaRepositorio,
+          movimientoRepositorio: widget.movimientoRepositorio,
+          reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
+          ajustePresupuestoCicloRepositorio: widget.ajustePresupuestoCicloRepositorio,
+          cicloRepositorio: widget.cicloRepositorio,
+          perfil: _perfil,
+          documentos: widget.almacenLocal.directorio,
+          cuentaRepositorio: widget.almacenLocal.cuentas,
+        ),
+      ),
+    );
+    await _cargar();
+  }
+
+  /// Desde Análisis: abre una categoría por id.
+  Future<void> _irADetallePorId(String id) async {
+    final categoria = (await widget.categoriaRepositorio.listarTodas()).where((c) => c.id == id).firstOrNull;
+    if (categoria != null && mounted) await _irADetalle(categoria);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 64,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Tu ciclo', style: Theme.of(context).textTheme.labelSmall),
-            Text('Ciclo ${_ciclo.etiquetaConAnio}'),
-          ],
+    final pestana = switch (_pestana) {
+      Pestana.inicio => _cuerpoInicio(),
+      Pestana.gastos => PantallaGastos(
+          key: ValueKey('gastos-$_version'),
+          cicloId: _ciclo.id,
+          perfil: _perfil,
+          categoriaRepositorio: widget.categoriaRepositorio,
+          movimientoRepositorio: widget.movimientoRepositorio,
+          reglasAprendidasRepositorio: widget.reglasAprendidasRepositorio,
+          cicloRepositorio: widget.cicloRepositorio,
+          documentos: widget.almacenLocal.directorio,
+          cuentaRepositorio: widget.almacenLocal.cuentas,
+        ),
+      Pestana.analisis => PantallaAnalisis(
+          key: ValueKey('analisis-$_version'),
+          perfil: _perfil,
+          ciclo: _ciclo,
+          categoriaRepositorio: widget.categoriaRepositorio,
+          movimientoRepositorio: widget.movimientoRepositorio,
+          ajustePresupuestoCicloRepositorio: widget.ajustePresupuestoCicloRepositorio,
+          ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+          cuentaRepositorio: widget.almacenLocal.cuentas,
+          movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
+          cicloRepositorio: widget.cicloRepositorio,
+          alVerCategoria: _irADetallePorId,
+          alVerGastos: () => _elegirPestana(Pestana.gastos),
+          alVerMeta: _irAMeta,
+        ),
+      Pestana.patrimonio => PantallaPatrimonio(
+          key: ValueKey('patrimonio-$_version'),
+          perfil: _perfil,
+          cuentaRepositorio: widget.almacenLocal.cuentas,
+          movimientoRepositorio: widget.movimientoRepositorio,
+          movimientoCuentaRepositorio: widget.almacenLocal.movimientosCuenta,
+          ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+          objetivoRepositorio: widget.almacenLocal.objetivos,
+          categoriaRepositorio: widget.categoriaRepositorio,
+          nombre: _nombre,
+          alAbrirAjustes: _irAAjustes,
+        ),
+    };
+    // Atrás en otra pestaña regresa a Inicio, no cierra la app.
+    return PopScope(
+      canPop: _pestana == Pestana.inicio,
+      onPopInvokedWithResult: (salio, _) {
+        if (!salio) _elegirPestana(Pestana.inicio);
+      },
+      child: Scaffold(
+        body: pestana,
+        bottomNavigationBar: BarraNavegacion(
+          actual: _pestana,
+          alElegir: _elegirPestana,
+          alRegistrar: _irACaptura,
         ),
       ),
-      // Barra inferior con el registro al centro, en oro: la acción que
-      // más se repite queda siempre a la mano del pulgar.
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: FloatingActionButton(
-        onPressed: _irACaptura,
-        tooltip: 'Registrar gasto',
-        child: const Icon(Icons.add, size: 30),
+    );
+  }
+
+  Widget _cuerpoInicio() {
+    final datos = _datos;
+    final hoy = DateTime.now();
+    final faltan = _ciclo.diasParaTerminar(hoy);
+    final diaDelCiclo = _ciclo.diasDelCiclo - faltan;
+    final rango = _ciclo.fechaInicio.month == _ciclo.fechaFin.month
+        ? '${_ciclo.fechaInicio.day} – ${fechaCorta(_ciclo.fechaFin)}'
+        : '${fechaCorta(_ciclo.fechaInicio)} – ${fechaCorta(_ciclo.fechaFin)}';
+    final cuando = diaDelCiclo <= 1
+        ? 'empieza hoy'
+        : faltan == 0
+            ? 'último día'
+            : 'faltan $faltan ${faltan == 1 ? 'día' : 'días'}';
+    final encabezado = EncabezadoRaiz(
+      titulo: 'Ciclo ${_ciclo.etiquetaConAnio}',
+      subtitulo: '$rango · $cuando',
+      nombre: _nombre,
+      alAbrirAjustes: _irAAjustes,
+    );
+
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: datos == null
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  encabezado,
+                  const Expanded(
+                    child: CargandoPantalla(formas: [
+                      Esqueleto.tarjeta(alto: 248),
+                      SizedBox(height: 8),
+                      Esqueleto(ancho: 140, alto: 18),
+                      Esqueleto.tarjeta(alto: 92),
+                      Esqueleto.tarjeta(alto: 92),
+                      Esqueleto.tarjeta(alto: 92),
+                    ]),
+                  ),
+                ],
+              )
+            : RefreshIndicator(
+                // Deslizar hacia abajo recarga (p. ej. tras registrar desde
+                // el widget o Siri con la app ya abierta).
+                onRefresh: () async {
+                  await _cargar();
+                  if (mounted) await avisarGestoPrimeraVez(context, GestoApp.recargar);
+                },
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: 32),
+                  children: [
+                    encabezado,
+                    if (!datos.hayCategorias)
+                      _SinCategorias(alCrear: _irACategorias)
+                    else
+                      ..._contenido(datos, diaDelCiclo),
+                  ],
+                ),
+              ),
       ),
-      bottomNavigationBar: BottomAppBar(
-        color: ColoresApp.tarjeta,
-        surfaceTintColor: Colors.transparent,
-        elevation: 8,
-        shadowColor: const Color(0x220B1F3B),
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        height: 68,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        // La barra tiene alto fijo: las etiquetas crecen con el texto del
-        // sistema pero acotadas, como las cifras héroe.
-        child: MediaQuery.withClampedTextScaling(
-          maxScaleFactor: 1.3,
-          child: Row(
+    );
+  }
+
+  List<Widget> _contenido(_DatosInicio datos, int diaDelCiclo) {
+    final textos = Theme.of(context).textTheme;
+    final p = ColoresApp.actual;
+    final quedanVariables = datos.presupuestoVariables - datos.gastadoVariables;
+    final coberturas = datos.coberturas;
+    final urgente = coberturas.firstOrNull;
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+        child: _Heroe(
+          datos: datos,
+          avanceCiclo: _avanceCiclo,
+          dia: diaDelCiclo,
+          dias: _ciclo.diasDelCiclo,
+          alExplicar: () => _explicarHoy(datos),
+          alVerMeta: _irAMeta,
+        ),
+      ),
+      // Un solo banner: el más urgente, con su salida (componentes/Aviso.md).
+      if (urgente != null)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: Aviso(
+            tono: TonoEstado.peligro,
+            titulo: 'Te pasaste en ${urgente.categoria.nombre} por ${enPesos(urgente.exceso)}',
+            apoyo: coberturas.length > 1 ? 'Y ${coberturas.length - 1} más en Análisis.' : null,
+            accion: urgente.origen == null ? 'Ver ${urgente.categoria.nombre}' : 'Cubrir con ${urgente.origen!.nombre}',
+            onAccion: () => _irADetalle(urgente.categoria),
+          ),
+        )
+      else if (!datos.hayGastos)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: TarjetaApp(
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(color: p.superficieHundida, shape: BoxShape.circle),
+                  child: Icon(Icons.add_rounded, color: p.texto),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Registra tu primer gasto', style: textos.cuerpoFuerte),
+                      Text('Toca ＋ cada vez que pagues algo.', style: textos.etiqueta),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(minimumSize: const Size(0, 44)),
+                  onPressed: _irACaptura,
+                  child: const Text('Empezar'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      if (datos.variables.isNotEmpty) ...[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: EncabezadoSeccion(
+            titulo: 'Presupuesto',
+            dato: quedanVariables.esNegativo
+                ? 'Te pasaste ${enPesos(quedanVariables.absoluto)}'
+                : 'Quedan ${enPesos(quedanVariables)}',
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: TarjetaApp.lista(
+            renglones: [
+              for (final c in datos.variables) _renglonVariable(c, datos.rollupPorCategoria[c.id]),
+            ],
+          ),
+        ),
+      ],
+      if (datos.fijas.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+          child: TarjetaApp.lista(renglones: [_renglonFijos(datos)]),
+        ),
+    ];
+  }
+
+  Widget _renglonVariable(CategoriaVariable c, Rollup? rollup) {
+    final p = ColoresApp.actual;
+    final gastado = rollup?.totalCentavos ?? const Dinero.cero();
+    final presupuesto = rollup?.presupuestoCentavos ?? c.presupuestoMensualCentavos;
+    final quedan = presupuesto - gastado;
+    final porcentaje = presupuesto.esPositivo ? gastado.centavos / presupuesto.centavos : 0.0;
+    final tono = tonoDeRitmo(porcentajeUsado: rollup?.porcentajeUsado, avanceCiclo: _avanceCiclo);
+    final resto = quedan.esNegativo ? 'Te pasaste ${enPesos(quedan.absoluto)}' : 'Quedan ${enPesos(quedan)}';
+    return RenglonApp(
+      emoji: c.emoji,
+      titulo: c.nombre,
+      monto: resto,
+      colorMonto: quedan.esNegativo ? p.peligroTexto : null,
+      onTap: () => _irADetalle(c),
+      etiquetaSemantica: '${c.nombre}: gastaste ${montoEnPalabras(gastado)} de ${montoEnPalabras(presupuesto)}. '
+          '${etiquetaTonoRitmo(tono)}. $resto.',
+      abajo: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          BarraRitmo(porcentajeUsado: porcentaje, avanceCiclo: _avanceCiclo, descripcion: c.nombre),
+          const SizedBox(height: 2),
+          Text('${enPesos(gastado)} de ${enPesos(presupuesto)}', style: Theme.of(context).textTheme.etiqueta),
+        ],
+      ),
+    );
+  }
+
+  /// Un solo renglón para las fijas: "Al día" o "Por pagar"
+  /// (Inicio.dc.html); el detalle va en una hoja.
+  Widget _renglonFijos(_DatosInicio datos) {
+    final pagada = {
+      for (final c in datos.fijas) c.id: (datos.rollupPorCategoria[c.id]?.conteoMovimientos ?? 0) > 0,
+    };
+    final pendientes = [for (final c in datos.fijas) if (!pagada[c.id]!) c]
+      ..sort((a, b) => a.diaDelCiclo.compareTo(b.diaDelCiclo));
+    final alDia = pendientes.isEmpty;
+    final referencia = alDia ? datos.fijas.first : pendientes.first;
+    final otras = datos.fijas.length - 1;
+    final subtitulo = alDia
+        ? '${referencia.nombre}${otras > 0 ? ' y $otras más' : ''} · pagado'
+        : '${referencia.nombre} · vence ${fechaCorta(_fechaDeCobro(referencia))}'
+            '${pendientes.length > 1 ? ' · y ${pendientes.length - 1} más' : ''}';
+    return RenglonApp(
+      icono: Icons.event_repeat_rounded,
+      titulo: 'Fijos',
+      subtitulo: subtitulo,
+      derecha: alDia
+          ? const ChipEstado(tono: TonoEstado.exito, texto: 'Al día')
+          : const ChipEstado(tono: TonoEstado.neutro, texto: 'Por pagar', icono: Icons.calendar_today_rounded),
+      onTap: () => _verFijas(datos, pagada),
+    );
+  }
+
+  /// El día de cobro de una fija dentro del ciclo en curso.
+  DateTime _fechaDeCobro(CategoriaFija c) {
+    final inicio = _ciclo.fechaInicio;
+    return DateTime(inicio.year, inicio.month, inicio.day + (c.diaDelCiclo - 1).clamp(0, _ciclo.diasDelCiclo - 1));
+  }
+
+  Future<void> _verFijas(_DatosInicio datos, Map<String, bool> pagada) async {
+    final textos = Theme.of(context).textTheme;
+    final elegida = await showModalBottomSheet<CategoriaFija>(
+      context: context,
+      isScrollControlled: true,
+      builder: (contexto) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const _BotonBarra(icono: Icons.home_rounded, etiqueta: 'Inicio', activo: true),
-              _BotonBarra(icono: Icons.receipt_long_outlined, etiqueta: 'Gastos', onTap: _irAGastos),
-              const SizedBox(width: 72),
-              _BotonBarra(icono: Icons.insights_rounded, etiqueta: 'Análisis', onTap: _irAAnalisis),
-              _BotonBarra(icono: Icons.settings_outlined, etiqueta: 'Ajustes', onTap: _irAAjustes),
+              Text('Fijos', style: textos.seccion),
+              const SizedBox(height: 12),
+              TarjetaApp.lista(
+                renglones: [
+                  for (final c in datos.fijas)
+                    RenglonApp(
+                      emoji: c.emoji,
+                      titulo: c.nombre,
+                      subtitulo: pagada[c.id]! ? 'Pagado' : 'Vence ${fechaCorta(_fechaDeCobro(c))}',
+                      monto: enPesos(datos.rollupPorCategoria[c.id]?.presupuestoCentavos ?? c.montoFijoCentavos),
+                      onTap: () => Navigator.of(contexto).pop(c),
+                    ),
+                ],
+              ),
             ],
           ),
         ),
       ),
-      body: _datos == null
-          ? const Center(child: CircularProgressIndicator())
-          : _buildContenido(_datos!),
     );
+    if (elegida != null) await _irADetalle(elegida);
   }
 
-  Widget _buildContenido(_DatosInicio datos) {
-    if (datos.categorias.isEmpty) {
-      return Center(
+  /// ⓘ "Cómo se calcula": las explicaciones viven en una hoja, nunca fijas
+  /// en la pantalla (regla 1 · 6 · 12). Es también la puerta a los
+  /// ingresos del ciclo.
+  Future<void> _explicarHoy(_DatosInicio datos) async {
+    final textos = Theme.of(context).textTheme;
+    final quedan = datos.presupuestoVariables - datos.gastadoVariables;
+    final faltan = _ciclo.diasParaTerminar(DateTime.now()) + 1;
+    final irAIngresos = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (contexto) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const ExcludeSemantics(
-                child: Text('👋', style: TextStyle(fontSize: 40)),
-              ),
+              Text('Cómo se calcula', style: textos.seccion),
               const SizedBox(height: 12),
               Text(
-                'Todavía no tienes categorías. Crea la primera para empezar.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: ColoresApp.medio),
+                'Hoy puedes gastar: lo que te queda en variables (${enPesos(quedan)}) '
+                'entre los $faltan ${faltan == 1 ? 'día' : 'días'} que faltan, contando hoy.',
+                style: textos.cuerpo,
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _irACategorias,
-                child: const Text('Ir a Categorías'),
+              TarjetaApp.lista(renglones: [
+                RenglonApp(icono: Icons.south_west_rounded, titulo: 'Entró este ciclo', monto: enPesos(datos.ingresos.total)),
+                RenglonApp(icono: Icons.receipt_long_outlined, titulo: 'Gastaste', monto: enPesos(datos.totalGastado)),
+                RenglonApp(
+                  icono: Icons.savings_outlined,
+                  titulo: 'Sin gastar',
+                  monto: enPesos(datos.ingresos.total - datos.totalGastado),
+                ),
+              ]),
+              const SizedBox(height: 16),
+              OutlinedButton(onPressed: () => Navigator.of(contexto).pop(true), child: const Text('Ver ingresos del ciclo')),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (irAIngresos == true) await _irAIngresos();
+  }
+}
+
+/// La tarjeta héroe de Inicio: veredicto, "Hoy puedes gastar", ritmo de las
+/// variables y la meta del ciclo.
+class _Heroe extends StatelessWidget {
+  final _DatosInicio datos;
+  final double avanceCiclo;
+  final int dia;
+  final int dias;
+  final VoidCallback alExplicar;
+  final VoidCallback alVerMeta;
+
+  const _Heroe({
+    required this.datos,
+    required this.avanceCiclo,
+    required this.dia,
+    required this.dias,
+    required this.alExplicar,
+    required this.alVerMeta,
+  });
+
+  String get _textoMeta {
+    final meta = datos.metaDelCiclo;
+    final apartado = datos.apartadoEstimado;
+    if (!meta.esPositivo) return 'Ponte una meta de apartado';
+    if (!datos.hayGastos) return 'Apartas ${enPesos(meta)} si sigues el plan';
+    if (apartado.esNegativo) return 'Si sigues así, no alcanzas a apartar';
+    if (apartado >= meta) return 'Apartas ${enPesos(meta)} de ${enPesos(meta)}';
+    return 'Si sigues así, apartas ${enPesos(apartado)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = ColoresApp.actual;
+    final textos = Theme.of(context).textTheme;
+    final presupuesto = datos.presupuestoVariables;
+    final porcentaje = presupuesto.esPositivo ? datos.gastadoVariables.centavos / presupuesto.centavos : 0.0;
+    final tono = tonoDeRitmo(porcentajeUsado: presupuesto.esPositivo ? porcentaje : null, avanceCiclo: avanceCiclo);
+    final chip = datos.hayGastos
+        ? ChipEstado.ritmo(tono, enHeroe: true)
+        : ChipEstado(
+            tono: TonoEstado.neutro,
+            texto: 'Día $dia de $dias',
+            icono: Icons.calendar_today_rounded,
+            enHeroe: true,
+          );
+    final hoy = datos.disponibleHoy;
+    final (pesos, centavos) = partesDeMonto(hoy);
+    final veredicto = datos.hayGastos ? etiquetaTonoRitmo(tono) : 'Día $dia de $dias';
+
+    return TarjetaApp.heroe(
+      etiquetaSemantica: 'Hoy puedes gastar ${montoEnPalabras(hoy)}. $veredicto.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(child: ExcludeSemantics(child: chip)),
+              IconButton(
+                tooltip: 'Cómo se calcula',
+                onPressed: alExplicar,
+                icon: Icon(Icons.info_outline_rounded, color: p.heroeTexto2),
               ),
             ],
+          ),
+          const SizedBox(height: 6),
+          ExcludeSemantics(child: Text('Hoy puedes gastar', style: textos.etiqueta.copyWith(color: p.heroeTexto2))),
+          ExcludeSemantics(
+            child: Text.rich(
+              TextSpan(children: [
+                TextSpan(text: pesos),
+                TextSpan(text: centavos, style: TextStyle(fontSize: textos.cifraHeroe.fontSize! / 2, color: p.heroeTexto2)),
+              ]),
+              style: textos.cifraHeroe.copyWith(color: p.heroeTexto),
+              textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.6),
+            ),
+          ),
+          const SizedBox(height: 14),
+          BarraRitmo(
+            porcentajeUsado: porcentaje,
+            avanceCiclo: avanceCiclo,
+            descripcion: 'Tus variables',
+            gastado: datos.gastadoVariables,
+            presupuesto: presupuesto,
+            enHeroe: true,
+          ),
+          const SizedBox(height: 6),
+          ExcludeSemantics(
+            child: Text(
+              '${enPesos(datos.gastadoVariables)} de ${enPesos(presupuesto)} en variables',
+              style: textos.etiqueta.copyWith(color: p.heroeTexto2),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Divider(height: 1, color: p.heroePista),
+          InkWell(
+            onTap: alVerMeta,
+            borderRadius: BorderRadius.circular(Radios.m),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(color: Color(0x1AFFFFFF), shape: BoxShape.circle),
+                    child: Icon(Icons.track_changes_rounded, color: p.oro, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Meta del ciclo', style: textos.etiqueta.copyWith(color: p.heroeTexto2)),
+                        Text(_textoMeta, style: textos.cuerpoFuerte.copyWith(color: p.heroeTexto)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: p.heroeTexto2),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SinCategorias extends StatelessWidget {
+  final VoidCallback alCrear;
+
+  const _SinCategorias({required this.alCrear});
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+      child: TarjetaApp(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Arma tu plan', style: textos.cuerpoFuerte),
+            Text('Crea tus categorías para ver cuánto puedes gastar.', style: textos.etiqueta),
+            const SizedBox(height: 12),
+            ElevatedButton(onPressed: alCrear, child: const Text('Crear categorías')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// La barra inferior: cuatro destinos y el ＋ dorado al centro
+/// (`docs/rediseno/design-system/componentes/Navegacion.md`). El ＋ es el
+/// único uso de oro en controles y nunca se oculta en las raíces.
+class BarraNavegacion extends StatelessWidget {
+  final Pestana actual;
+  final ValueChanged<Pestana> alElegir;
+  final VoidCallback alRegistrar;
+
+  const BarraNavegacion({super.key, required this.actual, required this.alElegir, required this.alRegistrar});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = ColoresApp.actual;
+    Widget destino(Pestana pestana, IconData icono, IconData iconoActivo, String etiqueta) {
+      final activo = actual == pestana;
+      return Expanded(
+        child: Semantics(
+          selected: activo,
+          button: true,
+          label: etiqueta,
+          excludeSemantics: true,
+          child: InkResponse(
+            onTap: () => alElegir(pestana),
+            child: SizedBox(
+              height: 64,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(activo ? iconoActivo : icono, color: activo ? p.texto : p.texto2),
+                  const SizedBox(height: 2),
+                  Text(
+                    etiqueta,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.etiqueta.copyWith(
+                          color: activo ? p.texto : p.texto2,
+                          fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       );
     }
 
-    // Deslizar hacia abajo recarga (p. ej. tras registrar desde el widget
-    // o desde Siri con la app ya abierta).
-    return RefreshIndicator(
-      onRefresh: () async {
-        await _cargar();
-        if (mounted) await avisarGestoPrimeraVez(context, GestoApp.recargar);
-      },
-      child: ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        TarjetaResumenCiclo(
-          ciclo: _ciclo,
-          diasParaTerminar: _ciclo.diasParaTerminar(DateTime.now()),
-          ingreso: datos.ingresos.total,
-          subtituloIngreso: datos.ingresos.huboExtra
-              ? '${datos.ingresos.base.formateado()} de siempre + '
-                    '${datos.ingresos.extraTotal.formateado()} extra'
-              : 'de siempre',
-          totalGastado: datos.totalGastado,
-          disponibleParaInvertir: datos.disponibleParaInvertir,
-          onTapIngreso: _irAIngresos,
-        ),
-        if (_disponibleHoy != null && datos.presupuestoVariables.esPositivo)
-          _TarjetaHoyPuedes(disponible: _disponibleHoy!, onTap: _irAAnalisis),
-        _TarjetaMeta(
-          meta: datos.metaDelCiclo,
-          apartadoEstimado: datos.apartadoEstimado,
-          onTap: _irAMeta,
-        ),
-        Card(
-          margin: const EdgeInsets.only(top: 16),
-          child: ListTile(
-            onTap: _irACiclosAnteriores,
-            leading: Icon(Icons.history, color: ColoresApp.medio),
-            title: const Text(
-              'Ciclos anteriores',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-            subtitle: const Text('Revisa cómo te fue en meses pasados'),
-            trailing: Icon(Icons.chevron_right, color: ColoresApp.medio),
-          ),
-        ),
-        Card(
-          margin: const EdgeInsets.only(top: 12),
-          child: ListTile(
-            onTap: _irAObjetivos,
-            leading: Icon(Icons.flag_outlined, color: ColoresApp.medio),
-            title: const Text('Objetivos de ahorro', style: TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text(_resumenObjetivos),
-            trailing: Icon(Icons.chevron_right, color: ColoresApp.medio),
-          ),
-        ),
-        if (_saldos.isNotEmpty)
-          Card(
-            margin: const EdgeInsets.only(top: 16),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: _irACuentas,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(child: Text('Tus cuentas', style: Theme.of(context).textTheme.titleMedium)),
-                        Icon(Icons.chevron_right, color: ColoresApp.medio),
-                      ],
+    return DecoratedBox(
+      decoration: BoxDecoration(color: p.superficie, border: Border(top: BorderSide(color: p.borde))),
+      child: SafeArea(
+        top: false,
+        // Alto fijo: las etiquetas crecen con el texto del sistema, acotadas.
+        child: MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1.3,
+          child: SizedBox(
+            height: 64,
+            child: Row(
+              children: [
+                destino(Pestana.inicio, Icons.home_outlined, Icons.home_rounded, 'Inicio'),
+                destino(Pestana.gastos, Icons.receipt_long_outlined, Icons.receipt_long_rounded, 'Gastos'),
+                SizedBox(
+                  width: 76,
+                  child: Center(
+                    child: Semantics(
+                      button: true,
+                      label: 'Registrar gasto',
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        onTap: alRegistrar,
+                        child: Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(color: p.oro, shape: BoxShape.circle, boxShadow: sombraFab(p)),
+                          child: Icon(Icons.add_rounded, size: 32, color: p.sobreOro),
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 6),
-                    for (final (cuenta, saldo) in _saldos)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 3),
-                        child: Row(
-                          children: [
-                            ExcludeSemantics(child: Text(cuenta.emoji)),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(cuenta.nombre, overflow: TextOverflow.ellipsis)),
-                            if (lecturaDeSaldo(cuenta, saldo) case final l) ...[
-                              if (l.etiqueta != 'Saldo')
-                                Text('${l.etiqueta} ', style: Theme.of(context).textTheme.bodySmall),
-                              Text(
-                                l.monto.formateado(),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: colorDeLectura(l),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    // Con una sola cuenta el patrimonio es su saldo: no se repite.
-                    if (_patrimonio case final patrimonio? when _saldos.length > 1) ...[
-                      Divider(height: 16, color: ColoresApp.linea),
-                      Row(
-                        children: [
-                          Expanded(child: Text('Tu patrimonio', style: Theme.of(context).textTheme.bodySmall)),
-                          Text(
-                            patrimonio.total.formateado(),
-                            style: TextStyle(fontWeight: FontWeight.w800, color: colorDeDinero(patrimonio.total)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-        if (datos.variables.isNotEmpty || datos.fijas.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          _SelectorOrden(orden: _orden, alElegir: _elegirOrden),
-        ],
-        if (datos.variables.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          _EncabezadoSeccion(
-            titulo: 'Gastos Variables',
-            resumen: '${datos.gastadoVariables.formateado()} de '
-                '${datos.presupuestoVariables.formateado()}',
-            expandido: _variablesExpandido,
-            onToggle: () => setState(() => _variablesExpandido = !_variablesExpandido),
-          ),
-          if (_variablesExpandido) ...[
-            const SizedBox(height: 10),
-            ...ordenarCategorias(datos.variables, datos.rollupPorCategoria, _orden).map((c) {
-            final rollup = datos.rollupPorCategoria[c.id];
-            final estado = calcularEstadoRitmo(
-              porcentajeUsado: rollup?.porcentajeUsado,
-            );
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: InkWell(
-                onTap: () => _irADetalle(c),
-                borderRadius: BorderRadius.circular(18),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                ExcludeSemantics(
-                                  child: Text(
-                                    c.emoji,
-                                    style: const TextStyle(fontSize: 18),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    c.nombre,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colorEstadoRitmo(
-                                estado,
-                              ).withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(99),
-                            ),
-                            child: Text(
-                              etiquetaEstadoRitmo(estado),
-                              style: TextStyle(
-                                color: colorTextoEstadoRitmo(estado),
-                                fontWeight: FontWeight.w700,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      BarraRitmo(
-                        porcentajeUsado: rollup?.porcentajeUsado ?? 0,
-                        avanceCiclo: _avanceCiclo,
-                        descripcion: c.nombre,
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '${(rollup?.totalCentavos ?? const Dinero.cero()).formateado()} de '
-                            '${(rollup?.presupuestoCentavos ?? c.presupuestoMensualCentavos).formateado()}',
-                            style: Theme.of(context).textTheme.labelSmall,
-                          ),
-                        ],
-                      ),
-                      if (datos.deltaPorCategoria[c.id] != null &&
-                          !datos.deltaPorCategoria[c.id]!.esCero)
-                        Text(
-                          'ajustado por ${signoYMonto(datos.deltaPorCategoria[c.id]!)}',
-                          style: Theme.of(context).textTheme.labelSmall,
-                        ),
-                    ],
                   ),
                 ),
-              ),
-            );
-            }),
-          ],
-        ],
-        if (datos.fijas.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          _EncabezadoSeccion(
-            titulo: 'Gastos fijos',
-            resumen: '${datos.gastadoFijas.formateado()} de '
-                '${datos.presupuestoFijas.formateado()}',
-            expandido: _fijasExpandido,
-            onToggle: () => setState(() => _fijasExpandido = !_fijasExpandido),
-          ),
-          if (_fijasExpandido) ...[
-            const SizedBox(height: 10),
-            Card(
-              child: Column(
-                children: ordenarCategorias(datos.fijas, datos.rollupPorCategoria, _orden).map((c) {
-                  final rollup = datos.rollupPorCategoria[c.id];
-                  final gastado = rollup?.totalCentavos ?? const Dinero.cero();
-                  final presupuesto = rollup?.presupuestoCentavos ?? c.montoFijoCentavos;
-                  final estadoTexto = !gastado.esPositivo
-                      ? 'Pendiente'
-                      : (gastado > presupuesto ? 'Excedido' : 'Pagado');
-                  return ListTile(
-                    onTap: () => _irADetalle(c),
-                    leading: ExcludeSemantics(
-                      child: Text(c.emoji, style: const TextStyle(fontSize: 18)),
-                    ),
-                    title: Text(c.nombre),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 6, right: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(estadoTexto),
-                          const SizedBox(height: 6),
-                          _BarraCobertura(
-                            porcentajeUsado: rollup?.porcentajeUsado,
-                            descripcion: c.nombre,
-                          ),
-                        ],
-                      ),
-                    ),
-                    trailing: Text(
-                      c.montoFijoCentavos.formateado(),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  );
-                }).toList(),
-              ),
+                destino(Pestana.analisis, Icons.insights_outlined, Icons.insights_rounded, 'Análisis'),
+                destino(
+                  Pestana.patrimonio,
+                  Icons.account_balance_wallet_outlined,
+                  Icons.account_balance_wallet_rounded,
+                  'Patrimonio',
+                ),
+              ],
             ),
-          ],
-        ],
-      ],
+          ),
+        ),
       ),
     );
   }
 }
 
 class _DatosInicio {
-  final List<Categoria> categorias;
+  final bool hayCategorias;
   final Map<String, Rollup> rollupPorCategoria;
   final List<CategoriaFija> fijas;
+
+  /// Ya ordenadas: lo que necesita atención primero.
   final List<CategoriaVariable> variables;
-  final Dinero totalGastado;
   final Dinero gastadoVariables;
   final Dinero presupuestoVariables;
-  final Dinero gastadoFijas;
-  final Dinero presupuestoFijas;
+  final Dinero totalGastado;
   final IngresosDelCiclo ingresos;
-  final Dinero disponibleParaInvertir;
-  final Map<String, Dinero> deltaPorCategoria;
   final Dinero metaDelCiclo;
   final Dinero apartadoEstimado;
+  final List<Cobertura> coberturas;
+  final bool hayGastos;
+  final Dinero disponibleHoy;
 
   const _DatosInicio({
-    required this.categorias,
+    required this.hayCategorias,
     required this.rollupPorCategoria,
     required this.fijas,
     required this.variables,
-    required this.totalGastado,
     required this.gastadoVariables,
     required this.presupuestoVariables,
-    required this.gastadoFijas,
-    required this.presupuestoFijas,
+    required this.totalGastado,
     required this.ingresos,
-    required this.disponibleParaInvertir,
-    required this.deltaPorCategoria,
     required this.metaDelCiclo,
     required this.apartadoEstimado,
+    required this.coberturas,
+    required this.hayGastos,
+    required this.disponibleHoy,
   });
-}
-
-/// Tarjeta propia (no un campo más dentro de [TarjetaResumenCiclo], para no
-/// mover el layout que `test/ui/escalado_test.dart` ya vigila) con la meta
-/// de apartado del ciclo y qué tanto se lleva — toca a [PantallaMetaAhorro].
-class _TarjetaMeta extends StatelessWidget {
-  final Dinero meta;
-  final Dinero apartadoEstimado;
-  final VoidCallback onTap;
-
-  const _TarjetaMeta({required this.meta, required this.apartadoEstimado, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final double? alcance = meta.esPositivo ? apartadoEstimado.centavos / meta.centavos : null;
-    final nivel = calcularNivelAlcance(alcance);
-    final (colorTexto, colorFondo) = switch (nivel) {
-      null => (ColoresApp.azul, ColoresApp.azulSuave),
-      NivelAlcance.logrado => (ColoresApp.verdeTexto, ColoresApp.verdeSuave),
-      NivelAlcance.cerca => (ColoresApp.ambarTexto, ColoresApp.ambarSuave),
-      NivelAlcance.corto => (ColoresApp.coralTexto, ColoresApp.coralSuave),
-    };
-
-    return Card(
-      margin: const EdgeInsets.only(top: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Acento dorado: la meta es el "momento premium" de Inicio.
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(color: ColoresApp.oroSuave, shape: BoxShape.circle),
-                child: Icon(Icons.track_changes_rounded, color: ColoresApp.oroTexto),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Meta de este ciclo', style: TextStyle(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    Text(
-                      apartadoEstimado.esNegativo
-                          ? 'Si sigues así, no alcanza para apartar'
-                          : 'Si sigues así, apartas ${apartadoEstimado.formateado()} de ${meta.formateado()}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: colorFondo, borderRadius: BorderRadius.circular(99)),
-                child: Text(
-                  alcance == null ? '—' : '${(alcance.clamp(0, 9.99) * 100).round()}%',
-                  style: TextStyle(color: colorTexto, fontWeight: FontWeight.w800),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(Icons.chevron_right, color: ColoresApp.medio),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Elige el orden de las dos listas con un toque, siempre de mayor a menor.
-class _SelectorOrden extends StatelessWidget {
-  final OrdenCategorias orden;
-  final ValueChanged<OrdenCategorias> alElegir;
-
-  const _SelectorOrden({required this.orden, required this.alElegir});
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Text(
-          'Ordenar por',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: ColoresApp.medio),
-        ),
-        ChoiceChip(
-          label: const Text('% usado'),
-          tooltip: 'Ordenar por presupuesto consumido, de mayor a menor',
-          selected: orden == OrdenCategorias.porcentajeUsado,
-          onSelected: (_) => alElegir(OrdenCategorias.porcentajeUsado),
-        ),
-        ChoiceChip(
-          label: const Text('\$ gastado'),
-          tooltip: 'Ordenar por dinero gastado, de mayor a menor',
-          selected: orden == OrdenCategorias.dineroGastado,
-          onSelected: (_) => alElegir(OrdenCategorias.dineroGastado),
-        ),
-      ],
-    );
-  }
-}
-
-/// Encabezado de "Gastos Variables"/"Gastos fijos": el resumen (gastado de
-/// presupuestado de la sección completa) se queda visible sin importar si
-/// la lista está desplegada o contraída — tocar cualquier parte del
-/// encabezado alterna entre las dos.
-class _EncabezadoSeccion extends StatelessWidget {
-  final String titulo;
-  final String resumen;
-  final bool expandido;
-  final VoidCallback onToggle;
-
-  const _EncabezadoSeccion({
-    required this.titulo,
-    required this.resumen,
-    required this.expandido,
-    required this.onToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onToggle,
-      borderRadius: BorderRadius.circular(12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(titulo, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 2),
-                Text(
-                  resumen,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: ColoresApp.medio),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            expandido ? Icons.expand_less : Icons.expand_more,
-            color: ColoresApp.medio,
-            semanticLabel: expandido ? 'Contraer' : 'Expandir',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Barra de cobertura para gastos fijos: a diferencia de [BarraRitmo], no
-/// dibuja marca de avance del ciclo ni proyección de ritmo — una fija no
-/// se paga poco a poco a lo largo del ciclo, tiene un monto conocido que
-/// se cubre o no (estado_ritmo.dart), así que esto solo pinta qué
-/// proporción de ese monto ya se registró, con el mismo código de color de
-/// severidad que el resto de la app.
-class _BarraCobertura extends StatelessWidget {
-  final double? porcentajeUsado;
-  final String descripcion;
-
-  const _BarraCobertura({required this.porcentajeUsado, required this.descripcion});
-
-  @override
-  Widget build(BuildContext context) {
-    final fraccion = (porcentajeUsado ?? 0).clamp(0.0, 1.0);
-    final estado = calcularEstadoRitmo(porcentajeUsado: porcentajeUsado);
-    final porcentaje = ((porcentajeUsado ?? 0) * 100).round();
-
-    return Semantics(
-      label: 'Cobertura de $descripcion: $porcentaje% del monto fijo.',
-      excludeSemantics: true,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SizedBox(
-            height: 6,
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: ColoresApp.pista,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-                Container(
-                  width: constraints.maxWidth * fraccion,
-                  decoration: BoxDecoration(
-                    color: colorEstadoRitmo(estado),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// Un botón de la barra inferior de Inicio. [activo] marca la pantalla en
-/// la que ya estás (sin acción).
-class _BotonBarra extends StatelessWidget {
-  final IconData icono;
-  final String etiqueta;
-  final bool activo;
-  final VoidCallback? onTap;
-
-  const _BotonBarra({
-    required this.icono,
-    required this.etiqueta,
-    this.activo = false,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = activo ? ColoresApp.azul : ColoresApp.medio;
-    return Expanded(
-      child: Semantics(
-        button: !activo,
-        selected: activo,
-        child: InkResponse(
-          onTap: onTap,
-          radius: 32,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icono, color: color),
-              const SizedBox(height: 2),
-              Text(
-                etiqueta,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: color,
-                  fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// "Hoy puedes gastar": lo que queda de las variables repartido parejo
-/// entre los días que faltan (spec §5.6, mismo dato que el widget). En las
-/// apps mejor calificadas es de lo que más se usa: responde sin hacer
-/// cuentas (docs/investigacion-apps-finanzas.md).
-class _TarjetaHoyPuedes extends StatelessWidget {
-  final Dinero disponible;
-  final VoidCallback onTap;
-
-  const _TarjetaHoyPuedes({required this.disponible, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
-    final agotado = !disponible.esPositivo;
-    return Card(
-      margin: const EdgeInsets.only(top: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(color: ColoresApp.azulSuave, shape: BoxShape.circle),
-                child: Icon(Icons.today_rounded, color: ColoresApp.azul),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Hoy puedes gastar', style: textos.bodySmall),
-                    Text(
-                      agotado ? 'Ya usaste tus variables' : disponible.formateado(),
-                      style: textos.titleMedium,
-                    ),
-                    Text(
-                      agotado
-                          ? 'Nada grave: en Análisis ves de dónde ajustar.'
-                          : 'en tus gastos variables, para llegar parejo al cierre',
-                      style: textos.labelSmall,
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: ColoresApp.medio),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

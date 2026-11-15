@@ -124,4 +124,16 @@ void main() {
       expect(_ids(original), ['b', 'a']);
     });
   });
+
+  test('presupuesto de Inicio: lo que necesita atención va primero', () {
+    final cats = [_cat('bien'), _cat('rapida'), _cat('pasada'), _cat('muy-pasada'), _cat('a-bien'), _cat('nada')];
+    final r = {
+      'bien': _rollup('bien', 30, 100), // 30 % a mitad de ciclo
+      'a-bien': _rollup('a-bien', 30, 100), // empate: por nombre
+      'rapida': _rollup('rapida', 80, 100), // 80 % > 50 % × 1.15
+      'pasada': _rollup('pasada', 110, 100),
+      'muy-pasada': _rollup('muy-pasada', 150, 100),
+    };
+    expect(_ids(ordenarPorAtencion(cats, r, avanceCiclo: 0.5)), ['muy-pasada', 'pasada', 'rapida', 'a-bien', 'bien', 'nada']);
+  });
 }

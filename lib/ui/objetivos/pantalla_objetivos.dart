@@ -58,8 +58,12 @@ class PantallaObjetivos extends StatefulWidget {
   /// extras) y estimar cuándo se llega.
   final CategoriaRepositorio categoriaRepositorio;
 
+  /// Dentro de la pestaña Patrimonio, sin barra ni botón flotante propios.
+  final bool embebida;
+
   const PantallaObjetivos({
     super.key,
+    this.embebida = false,
     required this.perfil,
     required this.objetivoRepositorio,
     required this.cuentaRepositorio,
@@ -128,14 +132,7 @@ class _PantallaObjetivosState extends State<PantallaObjetivos> {
   Widget build(BuildContext context) {
     final progreso = _progreso;
     final textos = Theme.of(context).textTheme;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Objetivos de ahorro')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _editar,
-        tooltip: 'Nuevo objetivo',
-        child: const Icon(Icons.add),
-      ),
-      body: progreso == null
+    final cuerpo = progreso == null
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
@@ -195,7 +192,31 @@ class _PantallaObjetivosState extends State<PantallaObjetivos> {
                       ),
                 ],
               ],
-            ),
+            );
+    if (!widget.embebida) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Objetivos de ahorro')),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _editar,
+          tooltip: 'Nuevo objetivo',
+          child: const Icon(Icons.add),
+        ),
+        body: cuerpo,
+      );
+    }
+    // Dentro de Patrimonio: sin barra propia ni segundo botón flotante (el ＋
+    // dorado es solo para registrar gastos); el alta va como botón.
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(onPressed: _editar, icon: const Icon(Icons.add), label: const Text('Nuevo objetivo')),
+          ),
+        ),
+        Expanded(child: cuerpo),
+      ],
     );
   }
 }

@@ -72,3 +72,17 @@ String textoEditableDeDinero(Dinero d) {
 /// +$X" / "ajustado por -$X").
 String signoYMonto(Dinero delta) =>
     '${delta.esPositivo ? '+' : '-'}${delta.absoluto.formateado()}';
+
+/// Monto redondeado a pesos, para resúmenes ("$6,510"): en resúmenes los
+/// centavos no aportan (`docs/rediseno/design-system/README.md`, Contenido).
+/// Los movimientos y saldos sí los muestran con [Dinero.formateado].
+String enPesos(Dinero d) {
+  final texto = Dinero((d.centavos + (d.centavos.isNegative ? -50 : 50)) ~/ 100 * 100).formateado();
+  return texto.substring(0, texto.length - 3);
+}
+
+/// "$522" y ".94": la cifra héroe lleva los centavos al 50 % y en `texto-2`.
+(String, String) partesDeMonto(Dinero d) {
+  final texto = d.formateado();
+  return (texto.substring(0, texto.length - 3), texto.substring(texto.length - 3));
+}

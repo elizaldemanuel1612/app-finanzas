@@ -33,6 +33,8 @@ void main() {
     // Lo presupuestado ocupa 1/1.25 del ancho: 240 de 300.
     final dentro = tester.getSize(find.descendant(of: find.byType(BarraRitmo), matching: find.byType(SizedBox)).at(1));
     expect(dentro.width, closeTo(240, 0.5));
+    // El relleno sí se ve: ocupa el alto de la barra (antes quedaba en 0).
+    expect(dentro.height, 8);
   });
 
   testWidgets('la barra y el chip dicen lo mismo', (tester) async {

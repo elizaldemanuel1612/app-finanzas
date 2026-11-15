@@ -1,6 +1,7 @@
 import '../modelos/categoria.dart';
 import '../modelos/estado_movimiento.dart';
 import '../modelos/movimiento.dart';
+import 'estado_ritmo.dart';
 import 'rollup.dart';
 
 /// Cómo ordenar las categorías en Inicio, siempre de mayor a menor
@@ -40,6 +41,31 @@ List<T> ordenarCategorias<T extends Categoria>(
       if (uno != 0) return uno;
       final dos = segundo(a, b);
       return dos != 0 ? dos : a.nombre.compareTo(b.nombre);
+    });
+}
+
+/// Orden del presupuesto en Inicio (`docs/rediseno/plan-rediseno.md`,
+/// Etapa 2): **lo que necesita atención va primero** — las que se pasaron
+/// (de mayor a menor porcentaje), luego las que van rápido ([tonoDeRitmo],
+/// el mismo veredicto del chip y la barra) y al final las que van bien, de
+/// mayor a menor porcentaje usado. Empates, por nombre.
+List<T> ordenarPorAtencion<T extends Categoria>(
+  List<T> categorias,
+  Map<String, Rollup> rollups, {
+  required double avanceCiclo,
+}) {
+  double usado(T c) => rollups[c.id]?.porcentajeUsado ?? 0;
+  int prioridad(T c) => switch (tonoDeRitmo(porcentajeUsado: rollups[c.id]?.porcentajeUsado, avanceCiclo: avanceCiclo)) {
+        TonoRitmo.tePasaste => 0,
+        TonoRitmo.vasRapido => 1,
+        TonoRitmo.vasBien => 2,
+      };
+  return [...categorias]
+    ..sort((a, b) {
+      final p = prioridad(a).compareTo(prioridad(b));
+      if (p != 0) return p;
+      final u = usado(b).compareTo(usado(a));
+      return u != 0 ? u : a.nombre.compareTo(b.nombre);
     });
 }
 

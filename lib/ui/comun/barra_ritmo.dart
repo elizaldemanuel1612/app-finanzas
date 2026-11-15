@@ -99,6 +99,7 @@ class BarraRitmo extends StatelessWidget {
                     child: ColoredBox(
                       color: pista,
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           SizedBox(width: dentro, child: ColoredBox(color: relleno)),
                           if (usado > 1) ...[
