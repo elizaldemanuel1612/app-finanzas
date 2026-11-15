@@ -10,6 +10,7 @@ import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
+import '../../domain/analisis/corte_pareto.dart';
 import '../../domain/analisis/presupuestos_del_cierre.dart';
 import '../../domain/analisis/recomendaciones.dart';
 import '../../domain/analisis/reparto_ingreso.dart';
@@ -724,6 +725,33 @@ class _Resumen extends StatelessWidget {
   }
 }
 
+/// Divisoria discreta entre las categorías que juntas llegan al 80 % de lo
+/// asignado y el resto (spec §5.7).
+class _LineaPareto extends StatelessWidget {
+  final CortePareto corte;
+
+  const _LineaPareto(this.corte);
+
+  @override
+  Widget build(BuildContext context) {
+    final linea = Expanded(child: Divider(color: ColoresApp.linea, height: 1));
+    final texto = corte.cuantas == 1 ? 'Esta suma el ${corte.porcentaje}%' : 'Estas ${corte.cuantas} suman el ${corte.porcentaje}%';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+      child: Row(
+        children: [
+          linea,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text('↑ $texto', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: ColoresApp.medio)),
+          ),
+          linea,
+        ],
+      ),
+    );
+  }
+}
+
 class _DatoOscuro extends StatelessWidget {
   final String titulo;
   final String valor;
@@ -962,12 +990,15 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
     if (filas.isEmpty) return Text(vacio, style: textos.bodySmall);
     final total = Dinero.suma([for (final f in filas) f.presupuesto]);
     double parte(Dinero d) => total.esPositivo ? d.centavos / total.centavos : 0;
+    final pareto = calcularCortePareto([for (final f in filas) f.presupuesto]);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('De ${total.formateado()} asignados a $tipo', style: textos.bodySmall),
         const SizedBox(height: 8),
-        for (final f in filas)
+        for (final (i, f) in filas.indexed) ...[
+          // La línea del 80/20: arriba, las pocas que se llevan casi todo.
+          if (pareto != null && i == pareto.cuantas) _LineaPareto(pareto),
           InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () => widget.alVerCategoria(f.categoria.id),
@@ -1005,6 +1036,7 @@ class _PesoDeCadaParteState extends State<_PesoDeCadaParte> {
               ),
             ),
           ),
+        ],
       ],
     );
   }
