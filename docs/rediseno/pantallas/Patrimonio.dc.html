@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Patrimonio</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/c71f65355dc6ebf2b82cb9a8f62c0cbc">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="mv ph {{tc}}" style="width: 390px; height: 844px">
+<div class="scr">
+
+<header class="top">
+<h1 class="titulo" style="margin: 0">Patrimonio</h1>
+<a class="me" href="Ajustes.dc.html" aria-label="Ajustes">M</a>
+</header>
+
+<div class="seg" role="tablist" style="margin-top: 12px">
+<a role="tab" class="on" href="Patrimonio.dc.html" style="text-decoration: none">Cuentas</a>
+<a role="tab" href="Objetivos.dc.html" style="text-decoration: none">Objetivos</a>
+</div>
+
+<sc-if value="{{lleno}}" hint-placeholder-val="{{ true }}">
+<section class="hero" style="margin-top: 16px" aria-label="Tu patrimonio: 50,650 pesos. 9,460 más que en agosto.">
+<div class="etiqueta c2">Lo que tienes menos lo que debes</div>
+<div class="cifra-heroe">$50,650<span class="cts">.00</span></div>
+<div class="etiqueta" style="display: flex; align-items: center; gap: 6px; color: var(--heroe-exito); margin-top: 2px"><i class="ic xs i-sube" aria-hidden="true"></i>$9,460 más que en agosto</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: end; height: 64px; margin-top: 18px" aria-hidden="true">
+<div style="height: 36px; border-radius: 6px 6px 2px 2px; background: var(--heroe-pista)"></div>
+<div style="height: 44px; border-radius: 6px 6px 2px 2px; background: var(--heroe-pista)"></div>
+<div style="height: 54px; border-radius: 6px 6px 2px 2px; background: var(--heroe-pista)"></div>
+<div style="height: 60px; border-radius: 6px 6px 2px 2px; background: repeating-linear-gradient(135deg, var(--heroe-texto) 0 3px, transparent 3px 7px); box-shadow: inset 0 0 0 1.5px var(--heroe-texto)"></div>
+</div>
+<div class="etiqueta c2" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; text-align: center; margin-top: 6px"><span>Ago</span><span>Sep</span><span>Oct</span><span style="color: var(--heroe-texto)">Hoy</span></div>
+</section>
+
+<div style="display: flex; gap: 10px; margin-top: 12px">
+<button class="btn btn-s btn-sm" style="flex: 1"><i class="ic s i-transferir" aria-hidden="true"></i>Transferir o pagar</button>
+<button class="btn btn-s btn-sm" style="flex: 1"><i class="ic s i-plus" aria-hidden="true"></i>Agregar cuenta</button>
+</div>
+
+<div class="sec"><h2 class="seccion" style="margin: 0">Para gastar</h2><span class="cuerpo-fuerte">$3,250</span></div>
+<div class="grp">
+<div class="row"><span class="av"><i class="ic s i-efectivo" aria-hidden="true"></i></span><span class="grow cuerpo-fuerte">Efectivo</span><span class="amt cuerpo-fuerte">$1,240.00</span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+<div class="row"><span class="av"><i class="ic s i-banco" aria-hidden="true"></i></span><span class="grow cuerpo-fuerte">BBVA débito</span><span class="amt cuerpo-fuerte">$2,010.00</span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+</div>
+
+<div class="sec"><h2 class="seccion" style="margin: 0">Ahorro</h2><span class="cuerpo-fuerte">$51,900</span></div>
+<div class="grp">
+<div class="row"><span class="av"><i class="ic s i-ahorro" aria-hidden="true"></i></span><span class="grow"><span class="cuerpo-fuerte" style="display: block">Cetes</span><span class="etiqueta c2">Fondo de emergencia</span></span><span class="amt cuerpo-fuerte">$42,000.00</span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+<div class="row"><span class="av"><i class="ic s i-ahorro" aria-hidden="true"></i></span><span class="grow"><span class="cuerpo-fuerte" style="display: block">Cajita Japón</span><span class="etiqueta c2">Viaje a Japón</span></span><span class="amt cuerpo-fuerte">$9,900.00</span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+</div>
+
+<div class="sec"><h2 class="seccion" style="margin: 0">Tarjetas</h2><span class="cuerpo-fuerte">Debes $4,500</span></div>
+<div class="grp">
+<div class="crow"><span class="av"><i class="ic s i-tarjeta" aria-hidden="true"></i></span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; justify-content: space-between"><span class="cuerpo-fuerte">Tarjeta oro</span><span class="cuerpo-fuerte">Debes $4,500.00</span></span>
+<span class="bar"><span class="fx"><i class="f-1" style="width: 15%"></i></span></span>
+<span class="etiqueta c2">Te quedan $25,500 · paga antes del 20 nov</span>
+</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{vacio}}" hint-placeholder-val="{{ false }}">
+<section class="hero" style="margin-top: 16px">
+<div class="etiqueta c2">Lo que tienes menos lo que debes</div>
+<div class="cifra-heroe" style="color: var(--heroe-texto-2)">$0</div>
+<div class="etiqueta c2" style="margin-top: 4px">Agrega tus cuentas y aquí verás cómo crece.</div>
+</section>
+<div class="card" style="margin-top: 16px; display: flex; flex-direction: column; gap: 14px">
+<div class="cuerpo-fuerte">¿Dónde tienes tu dinero?</div>
+<div class="chips">
+<span class="chip"><i class="ic xs i-efectivo" aria-hidden="true"></i>Efectivo</span>
+<span class="chip"><i class="ic xs i-banco" aria-hidden="true"></i>Débito</span>
+<span class="chip"><i class="ic xs i-tarjeta" aria-hidden="true"></i>Crédito</span>
+<span class="chip"><i class="ic xs i-ahorro" aria-hidden="true"></i>Ahorro</span>
+</div>
+<button class="btn btn-p"><i class="ic s i-plus" aria-hidden="true"></i>Agregar cuenta</button>
+</div>
+</sc-if>
+</div>
+
+<nav class="tabbar" aria-label="Principal">
+<a class="tab" href="Main.dc.html"><i class="ic i-home" aria-hidden="true"></i>Inicio</a>
+<a class="tab" href="Gastos.dc.html"><i class="ic i-gastos" aria-hidden="true"></i>Gastos</a>
+<div class="tab-fab"><a class="fab" href="Registrar.dc.html" aria-label="Registrar gasto"><i class="ic i-plus" aria-hidden="true"></i></a></div>
+<a class="tab" href="Analisis.dc.html"><i class="ic i-analisis" aria-hidden="true"></i>Análisis</a>
+<a class="tab on" href="Patrimonio.dc.html" aria-current="page"><i class="ic i-patrimonio" aria-hidden="true"></i>Patrimonio</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tema":{"editor":"enum","options":["claro","oscuro"],"default":"claro"},"estado":{"editor":"enum","options":["normal","vacio"],"default":"normal"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tema = this.props.tema ?? 'claro';
+    const vacio = (this.props.estado ?? 'normal') === 'vacio';
+    return { tc: tema === 'oscuro' ? 't-oscuro' : 't-claro', vacio, lleno: !vacio };
+  }
+}
+</script>
+</body>
+</html>

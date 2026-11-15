@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Detalle de categoría</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/c71f65355dc6ebf2b82cb9a8f62c0cbc">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="mv ph {{tc}}" style="width: 390px; height: 844px">
+<div class="scr" style="padding-bottom: 34px">
+
+<header class="top">
+<a class="btn-i" href="Main.dc.html" aria-label="Volver" style="margin-left: -10px"><i class="ic i-chev-l" aria-hidden="true"></i></a>
+<h1 class="cuerpo-fuerte" style="margin: 0; display: flex; gap: 8px; align-items: center"><span>{{emoji}}</span>{{nombre}}</h1>
+<button class="btn-i" aria-label="Editar presupuesto" style="margin-right: -10px"><i class="ic s i-lapiz" aria-hidden="true"></i></button>
+</header>
+
+<section class="card" style="margin-top: 12px; padding: 20px">
+<span class="pill {{pillCls}}"><i class="ic xs {{pillIco}}" aria-hidden="true"></i>{{pillTxt}}</span>
+<div class="etiqueta c2" style="margin-top: 14px">{{cifraLbl}}</div>
+<div class="cifra-heroe">{{cifra}}</div>
+<div class="bar lg" style="margin-top: 14px"><span class="fx"><i class="{{f}}" style="width: {{w}}%"></i><sc-if value="{{over}}" hint-placeholder-val="{{ true }}"><i class="cut"></i><i class="f-bad" style="width: {{w2}}%"></i></sc-if></span><span class="mark" style="left: {{mk}}%"></span></div>
+<div class="etiqueta c2" style="margin-top: 8px">{{barTxt}}</div>
+<div class="hr" style="margin: 16px -20px"></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div><div class="etiqueta c2">Presupuesto</div><div class="cuerpo-fuerte">{{presu}}</div></div>
+<div><div class="etiqueta c2">{{s2l}}</div><div class="cuerpo-fuerte">{{s2}}</div></div>
+<div><div class="etiqueta c2">Al cierre</div><div class="cuerpo-fuerte">{{cierre}}</div></div>
+</div>
+</section>
+
+<sc-if value="{{over}}" hint-placeholder-val="{{ true }}">
+<section class="card" style="margin-top: 12px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 12px; align-items: center">
+<span class="av" style="width: 44px; height: 44px">🚗</span>
+<div style="flex: 1">
+<div class="cuerpo-fuerte">Cúbrelo con Auto</div>
+<div class="etiqueta c2">A Auto le sobrarán $1,171</div>
+</div>
+</div>
+<button class="btn btn-p">Mover $620 desde Auto</button>
+<button class="btn btn-t" style="align-self: center; margin-top: -6px">Elegir otra categoría</button>
+</section>
+</sc-if>
+
+<div class="sec" style="margin-top: 22px">
+<h2 class="seccion" style="margin: 0">{{nGastos}}</h2>
+<span class="etiqueta c2">Este ciclo</span>
+</div>
+<div class="grp">
+<sc-for list="{{items}}" as="g" hint-placeholder-count="3">
+<div class="row" style="min-height: 56px">
+<span class="grow">
+<span class="cuerpo-fuerte" style="display: block">{{g.n}}</span>
+<span class="etiqueta c2">{{g.s}}</span>
+</span>
+<span class="amt cuerpo-fuerte">{{g.m}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tema":{"editor":"enum","options":["claro","oscuro"],"default":"claro"},"caso":{"editor":"enum","options":["te pasaste","vas bien"],"default":"te pasaste"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tema = this.props.tema ?? 'claro';
+    const bien = (this.props.caso ?? 'te pasaste') === 'vas bien';
+    const base = { tc: tema === 'oscuro' ? 't-oscuro' : 't-claro' };
+    if (bien) {
+      return { ...base, emoji: '🛒', nombre: 'Súper', pillCls: 'ok', pillIco: 'i-check', pillTxt: 'Vas bien',
+        cifraLbl: 'Te quedan', cifra: '$4,410', f: 'f-ok', w: 42.7, over: false, w2: 0, mk: 46.7,
+        barTxt: '$3,290 de $7,700 · van 14 de 30 días', presu: '$7,700', s2l: 'Por día', s2: '$259', cierre: '~$7,050',
+        nGastos: '3 gastos', items: [
+          { n: 'Súper de la semana', s: '14 nov · Efectivo', m: '$640.00' },
+          { n: 'Despensa', s: '11 nov · Efectivo', m: '$1,890.00' },
+          { n: 'Frutas y verduras', s: '7 nov · BBVA débito', m: '$760.00' } ] };
+    }
+    return { ...base, emoji: '🍿', nombre: 'Salidas', pillCls: 'bad', pillIco: 'i-alerta', pillTxt: 'Te pasaste',
+      cifraLbl: 'Te pasaste por', cifra: '$620', f: 'f-warn', w: 86.1, over: true, w2: 13.9, mk: 40.2,
+      barTxt: '$4,470 de $3,850 · van 14 de 30 días', presu: '$3,850', s2l: 'Gastado', s2: '$4,470', cierre: '~$9,580',
+      nGastos: '4 gastos', items: [
+        { n: 'Concierto', s: '14 nov · Efectivo', m: '$2,500.00' },
+        { n: 'Café y pan', s: '14 nov · Tarjeta oro', m: '$280.00' },
+        { n: 'Cena', s: '12 nov · Tarjeta oro', m: '$1,150.00' },
+        { n: 'Tacos', s: '8 nov · Efectivo', m: '$540.00' } ] };
+  }
+}
+</script>
+</body>
+</html>

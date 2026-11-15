@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Gastos</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/c71f65355dc6ebf2b82cb9a8f62c0cbc">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="mv ph {{tc}}" style="width: 390px; height: 844px">
+<div class="scr">
+
+<header class="top">
+<h1 class="titulo" style="margin: 0">Gastos</h1>
+<a class="me" href="Ajustes.dc.html" aria-label="Ajustes">M</a>
+</header>
+
+<div class="cyc" style="margin-top: 8px">
+<button class="btn-i" aria-label="Ciclo anterior"><i class="ic i-chev-l" aria-hidden="true"></i></button>
+<button style="display: flex; flex-direction: column; align-items: center; min-height: 44px">
+<span class="cuerpo-fuerte" style="display: flex; align-items: center; gap: 6px"><sc-if value="{{cerrado}}" hint-placeholder-val="{{ false }}"><i class="ic xs i-lock" aria-hidden="true"></i></sc-if>{{ciclo}}<i class="ic xs i-chev-d" aria-hidden="true"></i></span>
+<span class="etiqueta c2">{{cicloSub}}</span>
+</button>
+<button class="btn-i {{sigCls}}" aria-label="Ciclo siguiente"><i class="ic i-chev-r" aria-hidden="true"></i></button>
+</div>
+
+<sc-if value="{{cerrado}}" hint-placeholder-val="{{ false }}">
+<div class="banner info" style="margin-top: 12px; align-items: center">
+<i class="ic s i-lock" aria-hidden="true"></i>
+<div style="flex: 1">
+<div class="cuerpo-fuerte">Ciclo cerrado</div>
+<div class="etiqueta c2">Solo para consultar</div>
+</div>
+<button class="btn btn-s btn-sm">Reabrir</button>
+</div>
+</sc-if>
+
+<div style="display: flex; gap: 8px; margin-top: 12px">
+<div class="fld soft ph" style="flex: 1"><i class="ic s i-search" aria-hidden="true"></i>Buscar gasto o monto</div>
+<button class="btn-i" aria-label="Filtros" style="width: 52px; height: 52px; border-radius: 14px; background: var(--superficie-hundida)"><i class="ic i-filtro" aria-hidden="true"></i></button>
+</div>
+
+<div class="chips" style="flex-wrap: nowrap; overflow: hidden; margin: 12px -20px 0; padding: 0 20px">
+<button class="chip on">Todas</button>
+<button class="chip">🍿 Salidas</button>
+<button class="chip">🛒 Súper</button>
+<button class="chip">🚗 Auto</button>
+<button class="chip">Efectivo</button>
+</div>
+
+<sc-if value="{{carga}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 24px">
+<div class="sk" style="width: 35%; height: 14px"></div>
+<div class="sk" style="height: 64px; border-radius: 16px"></div>
+<div class="sk" style="height: 64px; border-radius: 16px"></div>
+<div class="sk" style="width: 35%; height: 14px; margin-top: 12px"></div>
+<div class="sk" style="height: 64px; border-radius: 16px"></div>
+</div>
+</sc-if>
+
+<sc-if value="{{vacio}}" hint-placeholder-val="{{ false }}">
+<div class="card" style="margin-top: 32px; text-align: center; padding: 28px 20px">
+<div class="av" style="margin: 0 auto 12px; width: 56px; height: 56px"><i class="ic i-gastos" aria-hidden="true"></i></div>
+<h2 class="seccion" style="margin: 0">Aún no hay gastos</h2>
+<p class="etiqueta c2" style="margin: 4px 0 16px">Aquí verás en qué se va tu dinero.</p>
+<a class="btn btn-p btn-sm" href="Registrar.dc.html" style="margin: 0 auto; text-decoration: none"><i class="ic s i-plus" aria-hidden="true"></i>Registrar gasto</a>
+</div>
+</sc-if>
+
+<sc-for list="{{dias}}" as="d" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between; margin: 22px 4px 8px">
+<span class="etiqueta" style="font-weight: 600">{{d.dia}}</span>
+<span class="etiqueta c2">{{d.total}}</span>
+</div>
+<div class="grp">
+<sc-for list="{{d.items}}" as="g" hint-placeholder-count="2">
+<div class="row">
+<span class="av">{{g.e}}</span>
+<span class="grow">
+<span class="cuerpo-fuerte" style="display: block">{{g.n}}</span>
+<span class="etiqueta c2">{{g.s}}</span>
+</span>
+<span class="amt cuerpo-fuerte">{{g.m}}</span>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+
+<nav class="tabbar" aria-label="Principal">
+<a class="tab" href="Main.dc.html"><i class="ic i-home" aria-hidden="true"></i>Inicio</a>
+<a class="tab on" href="Gastos.dc.html" aria-current="page"><i class="ic i-gastos" aria-hidden="true"></i>Gastos</a>
+<div class="tab-fab"><a class="fab" href="Registrar.dc.html" aria-label="Registrar gasto"><i class="ic i-plus" aria-hidden="true"></i></a></div>
+<a class="tab" href="Analisis.dc.html"><i class="ic i-analisis" aria-hidden="true"></i>Análisis</a>
+<a class="tab" href="Patrimonio.dc.html"><i class="ic i-patrimonio" aria-hidden="true"></i>Patrimonio</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tema":{"editor":"enum","options":["claro","oscuro"],"default":"claro"},"estado":{"editor":"enum","options":["normal","cerrado","vacio","carga"],"default":"normal"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tema = this.props.tema ?? 'claro';
+    const e = this.props.estado ?? 'normal';
+    const nov = [
+      { dia: 'Hoy · sáb 14 nov', total: '$3,420.00', items: [
+        { e: '🍿', n: 'Concierto', s: 'Salidas · Efectivo', m: '$2,500.00' },
+        { e: '🛒', n: 'Súper de la semana', s: 'Súper · Efectivo', m: '$640.00' },
+        { e: '🍿', n: 'Café y pan', s: 'Salidas · Tarjeta oro', m: '$280.00' } ] },
+      { dia: 'Ayer · vie 13 nov', total: '$900.00', items: [
+        { e: '🚗', n: 'Gasolina', s: 'Auto · BBVA débito', m: '$900.00' } ] },
+      { dia: 'Jue 12 nov', total: '$1,150.00', items: [
+        { e: '🍿', n: 'Cena', s: 'Salidas · Tarjeta oro', m: '$1,150.00' } ] },
+      { dia: 'Mié 11 nov', total: '$1,890.00', items: [
+        { e: '🛒', n: 'Despensa', s: 'Súper · Efectivo', m: '$1,890.00' } ] }
+    ];
+    const oct = [
+      { dia: 'Sáb 31 oct', total: '$2,520.00', items: [
+        { e: '🛒', n: 'Súper del mes', s: 'Súper · Tarjeta oro', m: '$2,100.00' },
+        { e: '🍿', n: 'Cine', s: 'Salidas · Efectivo', m: '$420.00' } ] },
+      { dia: 'Vie 30 oct', total: '$850.00', items: [
+        { e: '🚗', n: 'Gasolina', s: 'Auto · BBVA débito', m: '$850.00' } ] },
+      { dia: 'Mar 27 oct', total: '$1,340.00', items: [
+        { e: '🍿', n: 'Comida familiar', s: 'Salidas · Tarjeta oro', m: '$1,340.00' } ] }
+    ];
+    const cerrado = e === 'cerrado';
+    const vacio = e === 'vacio';
+    return {
+      tc: tema === 'oscuro' ? 't-oscuro' : 't-claro',
+      cerrado, vacio, carga: e === 'carga',
+      ciclo: cerrado ? 'Ciclo Oct 2026' : 'Ciclo Nov 2026',
+      cicloSub: cerrado ? '1 – 31 oct · $26,840 en 31 gastos' : (vacio ? '1 – 30 nov · sin gastos' : '1 – 30 nov · $20,560 en 18 gastos'),
+      sigCls: cerrado ? '' : 'dis',
+      dias: (e === 'normal') ? nov : (cerrado ? oct : [])
+    };
+  }
+}
+</script>
+</body>
+</html>

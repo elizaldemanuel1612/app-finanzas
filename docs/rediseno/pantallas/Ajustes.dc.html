@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ajustes</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/c71f65355dc6ebf2b82cb9a8f62c0cbc">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="mv ph {{tc}}" style="width: 390px; height: 844px">
+<div class="scr" style="padding-bottom: 34px">
+
+<header class="top">
+<a class="btn-i" href="Main.dc.html" aria-label="Volver" style="margin-left: -10px"><i class="ic i-chev-l" aria-hidden="true"></i></a>
+<h1 class="cuerpo-fuerte" style="margin: 0">Ajustes</h1>
+<span style="width: 44px"></span>
+</header>
+
+<section class="card" style="margin-top: 12px; display: flex; gap: 14px; align-items: center">
+<span class="me" style="width: 52px; height: 52px; font-size: 20px; background: var(--superficie-hundida)">M</span>
+<div style="flex: 1">
+<div class="seccion">Manuel Elizalde</div>
+<div class="etiqueta" style="display: flex; align-items: center; gap: 5px; color: var(--oro-texto); font-weight: 600"><i class="ic xs i-corona" aria-hidden="true"></i>Premium · se renueva el 14 dic</div>
+</div>
+</section>
+
+<div class="sec" style="margin-top: 22px"><h2 class="etiqueta c2" style="margin: 0; font-weight: 600">Tu plan</h2></div>
+<div class="grp">
+<div class="row"><span class="metaico"><i class="ic i-meta" aria-hidden="true"></i></span><span class="grow cuerpo-fuerte">Meta del ciclo</span><span class="etiqueta c2">$11,550</span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+<div class="row"><span class="av" style="width: 32px; height: 32px"><i class="ic s i-filtro" aria-hidden="true"></i></span><span class="grow cuerpo-fuerte">Categorías y presupuestos</span><span class="etiqueta c2">4</span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+<div class="row"><span class="av" style="width: 32px; height: 32px"><i class="ic s i-calendario" aria-hidden="true"></i></span><span class="grow cuerpo-fuerte">Día de corte</span><span class="etiqueta c2">Día 1</span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+</div>
+
+<div class="sec" style="margin-top: 22px"><h2 class="etiqueta c2" style="margin: 0; font-weight: 600">App</h2></div>
+<div class="grp">
+<div class="row"><span class="av" style="width: 32px; height: 32px"><i class="ic s i-apariencia" aria-hidden="true"></i></span><span class="grow cuerpo-fuerte">Apariencia</span><span class="etiqueta c2">Automática</span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+<div class="row"><span class="av" style="width: 32px; height: 32px"><i class="ic s i-escudo" aria-hidden="true"></i></span><span class="grow cuerpo-fuerte">Seguridad</span><span class="etiqueta c2">PIN y Face ID</span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+<div class="row"><span class="av" style="width: 32px; height: 32px"><i class="ic s i-corona" aria-hidden="true"></i></span><span class="grow cuerpo-fuerte">Suscripción</span><span class="etiqueta c2">Premium</span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+</div>
+
+<div class="sec" style="margin-top: 22px"><h2 class="etiqueta c2" style="margin: 0; font-weight: 600">Tus datos</h2></div>
+<div class="grp">
+<div class="row"><span class="av" style="width: 32px; height: 32px"><i class="ic s i-nube" aria-hidden="true"></i></span><span class="grow"><span class="cuerpo-fuerte" style="display: block">Respaldo en Google Drive</span><span class="etiqueta c-ok" style="display: flex; align-items: center; gap: 4px"><i class="ic xs i-check" aria-hidden="true"></i>Hace 2 horas</span></span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+<div class="row"><span class="av" style="width: 32px; height: 32px"><i class="ic s i-exportar" aria-hidden="true"></i></span><span class="grow cuerpo-fuerte">Exportar o importar CSV</span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+</div>
+
+<div class="sec" style="margin-top: 22px"><h2 class="etiqueta c2" style="margin: 0; font-weight: 600">Ayuda</h2></div>
+<div class="grp">
+<div class="row"><span class="av" style="width: 32px; height: 32px"><i class="ic s i-ayuda" aria-hidden="true"></i></span><span class="grow cuerpo-fuerte">Guías rápidas</span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+<div class="row"><span class="av" style="width: 32px; height: 32px"><i class="ic s i-documento" aria-hidden="true"></i></span><span class="grow cuerpo-fuerte">Privacidad y términos</span><i class="ic s i-chev-r c2" aria-hidden="true"></i></div>
+<div class="row"><span class="av" style="width: 32px; height: 32px"><i class="ic s i-salir" aria-hidden="true"></i></span><span class="grow cuerpo-fuerte">Cerrar sesión</span></div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tema":{"editor":"enum","options":["claro","oscuro"],"default":"claro"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tema = this.props.tema ?? 'claro';
+    return { tc: tema === 'oscuro' ? 't-oscuro' : 't-claro' };
+  }
+}
+</script>
+</body>
+</html>

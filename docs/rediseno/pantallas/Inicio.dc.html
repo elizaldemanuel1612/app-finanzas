@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Inicio</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/c71f65355dc6ebf2b82cb9a8f62c0cbc">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="mv ph {{tc}}" style="width: 390px; height: 844px">
+<div class="scr">
+
+<header class="top">
+<div>
+<h1 class="titulo" style="margin: 0">Ciclo Nov 2026</h1>
+<div class="etiqueta c2">{{diaTxt}}</div>
+</div>
+<a class="me" href="Ajustes.dc.html" aria-label="Ajustes">M</a>
+</header>
+
+<sc-if value="{{carga}}" hint-placeholder-val="{{ false }}">
+<div style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px">
+<div class="sk" style="height: 248px; border-radius: 22px"></div>
+<div class="sk" style="width: 40%; height: 18px; margin-top: 20px"></div>
+<div class="sk" style="height: 92px; border-radius: 22px"></div>
+<div class="sk" style="height: 92px; border-radius: 22px"></div>
+<div class="sk" style="height: 92px; border-radius: 22px"></div>
+</div>
+</sc-if>
+
+<sc-if value="{{listo}}" hint-placeholder-val="{{ true }}">
+<section class="hero" style="margin-top: 16px" aria-label="{{heroAria}}">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span class="pill {{pillCls}}"><i class="ic xs {{pillIco}}" aria-hidden="true"></i>{{pillTxt}}</span>
+<button class="btn-i" aria-label="Cómo se calcula" style="color: var(--heroe-texto-2); width: 36px; height: 36px"><i class="ic s i-info" aria-hidden="true"></i></button>
+</div>
+<div class="etiqueta c2" style="margin-top: 14px">Hoy puedes gastar</div>
+<div class="cifra-heroe">{{hoy}}<span class="cts">{{hoyCts}}</span></div>
+<div class="bar lg" style="margin-top: 16px"><span class="fx"><i class="{{vf}}" style="width: {{vw}}%"></i></span><span class="mark" style="left: {{vmk}}%"></span></div>
+<div class="etiqueta c2" style="margin-top: 10px">{{varsTxt}} en variables</div>
+<div class="hr" style="margin: 16px -20px 0"></div>
+<a class="lnk" href="Analisis.dc.html" style="display: flex; gap: 12px; margin: 4px 0 -12px; padding: 10px 0">
+<span class="metaico"><i class="ic i-meta" aria-hidden="true"></i></span>
+<span style="flex: 1; display: flex; flex-direction: column">
+<span class="etiqueta c2" style="font-weight: 500">Meta del ciclo</span>
+<span class="cuerpo-fuerte">{{metaTxt}}</span>
+</span>
+<i class="ic s i-chev-r" aria-hidden="true" style="color: var(--heroe-texto-2)"></i>
+</a>
+</section>
+
+<sc-if value="{{alerta}}" hint-placeholder-val="{{ false }}">
+<div class="banner bad" style="margin-top: 16px">
+<i class="ic s i-alerta" aria-hidden="true"></i>
+<div style="flex: 1">
+<div class="cuerpo-fuerte">Te pasaste en Salidas por $620</div>
+<a class="lnk" href="Categoria.dc.html" style="font-size: 14px">Cubrir con Auto<i class="ic xs i-chev-r" aria-hidden="true"></i></a>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{vacio}}" hint-placeholder-val="{{ false }}">
+<div class="card" style="margin-top: 16px; display: flex; gap: 14px; align-items: center">
+<span class="av"><i class="ic i-plus" aria-hidden="true"></i></span>
+<div style="flex: 1">
+<div class="cuerpo-fuerte">Registra tu primer gasto</div>
+<div class="etiqueta c2">Toca ＋ cada vez que pagues algo.</div>
+</div>
+<a class="btn btn-p btn-sm" href="Registrar.dc.html" style="text-decoration: none">Empezar</a>
+</div>
+</sc-if>
+
+<div class="sec">
+<h2 class="seccion" style="margin: 0">Presupuesto</h2>
+<span class="etiqueta c2">{{quedanTxt}}</span>
+</div>
+<div class="grp">
+<sc-for list="{{cats}}" as="c" hint-placeholder-count="3">
+<a class="crow" href="Categoria.dc.html">
+<span class="av">{{c.e}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+<span class="cuerpo-fuerte">{{c.n}}</span>
+<span class="cuerpo-fuerte {{c.rc}}">{{c.r}}</span>
+</span>
+<span class="bar"><span class="fx"><i class="{{c.f}}" style="width: {{c.w}}%"></i><sc-if value="{{c.over}}" hint-placeholder-val="{{ false }}"><i class="cut"></i><i class="f-bad" style="width: {{c.w2}}%"></i></sc-if></span><span class="mark" style="left: {{c.mk}}%"></span></span>
+<span class="etiqueta c2">{{c.s}}</span>
+</span>
+</a>
+</sc-for>
+</div>
+
+<div class="grp" style="margin-top: 12px">
+<a class="crow" href="Gastos.dc.html" style="align-items: center">
+<span class="av">🏠</span>
+<span style="flex: 1; display: flex; flex-direction: column">
+<span class="cuerpo-fuerte">Fijos</span>
+<span class="etiqueta c2">{{fijosTxt}}</span>
+</span>
+<span class="pill {{fijosCls}}"><i class="ic xs {{fijosIco}}" aria-hidden="true"></i>{{fijosPill}}</span>
+</a>
+</div>
+</sc-if>
+</div>
+
+<sc-if value="{{guardado}}" hint-placeholder-val="{{ false }}">
+<div class="snack" role="status" style="position: absolute; left: 16px; right: 16px; bottom: 104px">
+<i class="ic s i-check" aria-hidden="true"></i>
+<span style="font-size: 14px; line-height: 20px">Listo, te quedan <b>$1,880</b> en Salidas</span>
+<a class="act" href="Main.dc.html" style="color: var(--heroe-texto)">Deshacer</a>
+</div>
+</sc-if>
+
+<nav class="tabbar" aria-label="Principal">
+<a class="tab on" href="Main.dc.html" aria-current="page"><i class="ic i-home" aria-hidden="true"></i>Inicio</a>
+<a class="tab" href="Gastos.dc.html"><i class="ic i-gastos" aria-hidden="true"></i>Gastos</a>
+<div class="tab-fab"><a class="fab" href="Registrar.dc.html" aria-label="Registrar gasto"><i class="ic i-plus" aria-hidden="true"></i></a></div>
+<a class="tab" href="Analisis.dc.html"><i class="ic i-analisis" aria-hidden="true"></i>Análisis</a>
+<a class="tab" href="Patrimonio.dc.html"><i class="ic i-patrimonio" aria-hidden="true"></i>Patrimonio</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tema":{"editor":"enum","options":["claro","oscuro"],"default":"claro"},"estado":{"editor":"enum","options":["normal","alerta","guardado","vacio","carga"],"default":"normal"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tema = this.props.tema ?? 'claro';
+    const e = this.props.estado ?? 'normal';
+    const mk = 46.7;
+    const cat = (em, n, g, b, mkp) => {
+      const over = g > b;
+      const pct = over ? (b / g) * 100 : (g / b) * 100;
+      const pace = mkp ?? mk;
+      const f = over ? 'f-warn' : (pct > pace + 1 ? 'f-warn' : 'f-ok');
+      const fmt = (x) => '$' + x.toLocaleString('en-US');
+      return {
+        e: em, n, over, f,
+        w: pct.toFixed(1), w2: over ? (100 - pct).toFixed(1) : '0',
+        mk: over ? (pace * b / g).toFixed(1) : pace,
+        r: over ? 'Te pasaste ' + fmt(g - b) : 'Quedan ' + fmt(b - g),
+        rc: over ? 'c-bad' : '',
+        s: fmt(g) + ' de ' + fmt(b)
+      };
+    };
+    let d;
+    if (e === 'alerta') {
+      d = { pillCls: 'warn', pillIco: 'i-ritmo', pillTxt: 'Vas un poco rápido', hoy: '$375', hoyCts: '.88', vf: 'f-warn', vw: 58.5, varsTxt: '$9,010 de $15,400', metaTxt: 'Si sigues así, apartas $7,643', quedanTxt: 'Quedan $6,390',
+        cats: [cat('🍿', 'Salidas', 4470, 3850), cat('🛒', 'Súper', 3290, 7700), cat('🚗', 'Auto', 1250, 3850)] };
+    } else if (e === 'vacio') {
+      d = { pillCls: 'neu', pillIco: 'i-calendario', pillTxt: 'Día 1 de 30', hoy: '$513', hoyCts: '.33', vf: 'f-ok', vw: 0, varsTxt: '$0 de $15,400', metaTxt: 'Apartas $11,550 si sigues el plan', quedanTxt: 'Quedan $15,400',
+        cats: [cat('🛒', 'Súper', 0, 7700, 3.3), cat('🍿', 'Salidas', 0, 3850, 3.3), cat('🚗', 'Auto', 0, 3850, 3.3)] };
+    } else {
+      d = { pillCls: 'ok', pillIco: 'i-check', pillTxt: 'Vas bien', hoy: '$522', hoyCts: '.94', vf: 'f-ok', vw: 42.3, varsTxt: '$6,510 de $15,400', metaTxt: 'Apartas $11,550 de $11,550', quedanTxt: 'Quedan $8,890',
+        cats: [cat('🍿', 'Salidas', 1970, 3850), cat('🛒', 'Súper', 3290, 7700), cat('🚗', 'Auto', 1250, 3850)] };
+    }
+    const nuevo = e === 'vacio';
+    return {
+      ...d,
+      tc: tema === 'oscuro' ? 't-oscuro' : 't-claro',
+      vmk: nuevo ? 3.3 : mk,
+      diaTxt: nuevo ? '1 – 30 nov · empieza hoy' : '1 – 30 nov · faltan 16 días',
+      heroAria: 'Hoy puedes gastar ' + d.hoy + d.hoyCts + '. ' + d.pillTxt + '.',
+      carga: e === 'carga', listo: e !== 'carga', alerta: e === 'alerta', vacio: nuevo, guardado: e === 'guardado',
+      fijosTxt: nuevo ? 'Vivienda · vence 5 nov' : 'Vivienda · pagado',
+      fijosCls: nuevo ? 'neu' : 'ok', fijosIco: nuevo ? 'i-calendario' : 'i-check', fijosPill: nuevo ? 'Por pagar' : 'Al día'
+    };
+  }
+}
+</script>
+</body>
+</html>
