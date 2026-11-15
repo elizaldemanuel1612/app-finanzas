@@ -309,7 +309,80 @@ const _temaTusDatos = TemaGuia(
   ],
 );
 
-/// Los 10 temas de la guía, agrupados en 4 secciones — el índice de
+const _temaCuentasYTarjetas = TemaGuia(
+  id: 'cuentas-y-tarjetas',
+  emoji: '💳',
+  titulo: 'Cuentas y tarjetas',
+  resumen: 'Con qué pagas, cuánto tienes y cuánto debes en cada tarjeta.',
+  bloques: [
+    Parrafo(
+      'En **Patrimonio** → Cuentas das de alta con **Agregar cuenta** tu '
+      'efectivo, tus tarjetas de débito y de crédito, y tu ahorro o '
+      'inversiones. Al registrar un gasto eliges con cuál pagaste; la app '
+      'propone la última que usaste.',
+    ),
+    Vinetas([
+      '**Débito:** cada gasto se descuenta de su saldo. Los depósitos se '
+          'registran con **Registrar abono** y, si cuadras contra tu banco, '
+          'con **Ajustar saldo**.',
+      '**Efectivo:** si quieres, llevas cuánto traes.',
+      '**Crédito:** activa **Llevar lo que debes** para que cada gasto sume '
+          'a tu deuda y cada pago la baje. Si tu banco dice otra cifra, '
+          'corrígela con **Ajustar deuda** (sirve escribir lo que debes o tu '
+          'crédito disponible).',
+    ]),
+    Subtitulo('Corte y fecha de pago'),
+    Parrafo(
+      'En una tarjeta de crédito puedes poner su **Día de corte** y su **Día '
+      'límite de pago** (vienen en tu estado de cuenta). Con ellos, en Inicio '
+      'te avisamos unos días antes cuánto pagar para no generar intereses y '
+      'antes de qué fecha; el aviso te lleva a la tarjeta, donde **Pagar '
+      'esta tarjeta** registra el pago desde tu débito.',
+    ),
+    Nota(
+      tono: TonoNota.tip,
+      etiqueta: 'PAGAR NO ES GASTAR',
+      texto: 'Un pago a la tarjeta o una transferencia entre tus cuentas no '
+          'es un gasto: lo gastado ya se registró al usar la tarjeta, así que '
+          'no toca tus categorías ni tu presupuesto.',
+    ),
+  ],
+);
+
+const _temaPatrimonioYObjetivos = TemaGuia(
+  id: 'patrimonio-y-objetivos',
+  emoji: '🌱',
+  titulo: 'Patrimonio y objetivos',
+  resumen: 'Cuánto vale todo lo tuyo y para qué estás ahorrando.',
+  bloques: [
+    Parrafo(
+      'Tu patrimonio es **Lo que tienes menos lo que debes**: tus cuentas '
+      'para gastar más tu ahorro e inversiones, menos lo que debes en '
+      'tarjetas. Arriba de Cuentas ves cuánto cambió contra el ciclo pasado '
+      'y una barra por ciclo.',
+    ),
+    Parrafo(
+      'Una cuenta de ahorro no se usa para pagar: le transfieres lo que '
+      'apartas y, cuando cambia su valor (rendimientos de CETES, un fondo), '
+      'lo corriges con **Actualizar valor**. Al cerrar un ciclo, la app te '
+      'ofrece pasar lo apartado a tu ahorro.',
+    ),
+    Subtitulo('Objetivos'),
+    Parrafo(
+      'En Patrimonio → Objetivos creas un **Nuevo objetivo** ("Viaje", '
+      '"Fondo de emergencias") con su monto, su fecha y la cuenta de ahorro '
+      'donde vive. Su avance es el saldo de esa cuenta: no hay que '
+      'registrarlo aparte. Arriba ves **Llevas ahorrado** de todos juntos.',
+    ),
+    Parrafo(
+      'Cada objetivo te dice si vas a tiempo o lento para llegar a su fecha y '
+      'cuánto apartar por ciclo. Si ya pasó la fecha, **Cambiar fecha** lo '
+      'pone al día.',
+    ),
+  ],
+);
+
+/// Los temas de la guía, agrupados en 5 secciones — el índice de
 /// `PantallaGuia` recorre esta lista tal cual.
 const guiaDeLaApp = <SeccionGuia>[
   SeccionGuia(titulo: 'Lo básico', temas: [_temaRitmo, _temaInicio]),
@@ -321,10 +394,11 @@ const guiaDeLaApp = <SeccionGuia>[
     titulo: 'Tu plan',
     temas: [_temaCategorias, _temaSalirseDeControl, _temaIngresosYMeta],
   ),
+  SeccionGuia(titulo: 'Tu dinero', temas: [_temaCuentasYTarjetas, _temaPatrimonioYObjetivos]),
   SeccionGuia(titulo: 'Ciclos y datos', temas: [_temaCiclos, _temaTusDatos]),
 ];
 
-/// Los 10 temas en orden de lectura de corrido, para la navegación
+/// Los temas en orden de lectura de corrido, para la navegación
 /// ← Anterior / Siguiente → de `PantallaTemaGuia`.
 List<TemaGuia> get temasEnOrden => [
   for (final seccion in guiaDeLaApp) ...seccion.temas,

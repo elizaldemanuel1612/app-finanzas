@@ -17,6 +17,8 @@ const _idsEsperados = {
   'categorias',
   'salirse-de-control',
   'ingresos-y-meta',
+  'cuentas-y-tarjetas',
+  'patrimonio-y-objetivos',
   'ciclos',
   'tus-datos',
 };
@@ -33,6 +35,19 @@ const _citasLiteralesDeLaApp = [
   'Categorías y presupuestos',
   'Cuánto has apartado por ciclo',
   'Deshacer',
+  'Agregar cuenta',
+  'Registrar abono',
+  'Ajustar saldo',
+  'Llevar lo que debes',
+  'Ajustar deuda',
+  'Día de corte',
+  'Día límite de pago',
+  'Pagar esta tarjeta',
+  'Lo que tienes menos lo que debes',
+  'Actualizar valor',
+  'Nuevo objetivo',
+  'Llevas ahorrado',
+  'Cambiar fecha',
 ];
 
 const _vocabularioProhibido = [
@@ -102,7 +117,7 @@ void main() {
     }
   });
 
-  test('cobertura congelada: los 10 temas siguen todos presentes', () {
+  test('cobertura congelada: los 12 temas siguen todos presentes', () {
     final ids = temasEnOrden.map((t) => t.id).toSet();
     expect(ids, containsAll(_idsEsperados));
     expect(ids.length, _idsEsperados.length);
