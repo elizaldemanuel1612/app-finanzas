@@ -19,13 +19,11 @@ import 'dart:io';
 import 'package:test/test.dart';
 
 const _maximoPorArchivo = {
-  'lib/ui/ajustes/pantalla_ajustes.dart': 1,
   'lib/ui/captura/hoja_dictado.dart': 3,
   'lib/ui/captura/pantalla_captura.dart': 1, // monto a 56 (componentes/Campo.md)
   'lib/ui/captura/pantalla_dividir_ticket.dart': 2,
   'lib/ui/captura/pantalla_revision_dictado.dart': 3,
   'lib/ui/categorias/pantalla_categorias.dart': 2,
-  'lib/ui/categorias/pantalla_detalle_categoria.dart': 7,
   'lib/ui/categorias/pantalla_mover_presupuesto.dart': 2,
   'lib/ui/ciclo/pantalla_ciclos_anteriores.dart': 6,
   'lib/ui/ciclo/pantalla_cierre_ciclo.dart': 3,

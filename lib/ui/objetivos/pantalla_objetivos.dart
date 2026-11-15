@@ -12,6 +12,14 @@ import '../../domain/modelos/perfil.dart';
 import '../../domain/objetivos/progreso_objetivos.dart';
 import '../../domain/presupuesto/meta_base.dart';
 import '../analisis/graficas_analisis.dart';
+import '../../core/money.dart';
+import '../../domain/voz/monto_hablado.dart';
+import '../comun/aviso.dart';
+import '../comun/chip_estado.dart';
+import '../comun/esqueleto.dart';
+import '../comun/formato_dinero.dart';
+import '../comun/renglon_app.dart';
+import '../comun/tarjeta_app.dart';
 import '../comun/tema.dart';
 import 'pantalla_editar_objetivo.dart';
 
@@ -115,113 +123,136 @@ class _PantallaObjetivosState extends State<PantallaObjetivos> {
     });
   }
 
-  Future<void> _editar([Objetivo? objetivo]) async {
+  Future<void> _editar([Objetivo? objetivo, ({String emoji, String nombre})? sugerencia]) async {
     final guardado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => PantallaEditarObjetivo(
           objetivoRepositorio: widget.objetivoRepositorio,
           cuentaRepositorio: widget.cuentaRepositorio,
           existente: objetivo,
+          sugerencia: sugerencia,
         ),
       ),
     );
     if (guardado == true) await _cargar();
   }
 
+  static const _sugerencias = [
+    (emoji: '✈️', nombre: 'Viaje'),
+    (emoji: '🛟', nombre: 'Emergencias'),
+    (emoji: '🏡', nombre: 'Enganche'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final progreso = _progreso;
+    final p = ColoresApp.actual;
     final textos = Theme.of(context).textTheme;
+    final llevas = progreso == null ? const Dinero.cero() : progreso.fold(const Dinero.cero(), (Dinero s, x) => s + x.llevas);
+    final meta = progreso == null ? const Dinero.cero() : progreso.fold(const Dinero.cero(), (Dinero s, x) => s + x.objetivo.monto);
+    final vencido = progreso?.where((x) => x.estado == EstadoObjetivo.vencido).firstOrNull;
     final cuerpo = progreso == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-              children: [
-                if (progreso.isEmpty) ...[
-                  const SizedBox(height: 40),
-                  Center(
-                    child: Container(
-                      width: 88,
-                      height: 88,
-                      decoration: BoxDecoration(color: ColoresApp.oroSuave, shape: BoxShape.circle),
-                      child: Icon(Icons.flag_outlined, size: 40, color: ColoresApp.oroTexto),
-                    ),
+        ? const CargandoPantalla(formas: [Esqueleto.tarjeta(alto: 120), SizedBox(height: 12), Esqueleto.tarjeta(alto: 150)])
+        : ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+            children: [
+              if (progreso.isEmpty) ...[
+                const SizedBox(height: 32),
+                Center(
+                  child: Container(
+                    width: 88,
+                    height: 88,
+                    decoration: BoxDecoration(color: p.superficieHundida, shape: BoxShape.circle),
+                    child: Icon(Icons.flag_outlined, size: 40, color: p.texto2),
                   ),
-                  const SizedBox(height: 20),
-                  Text('¿Para qué estás ahorrando?', textAlign: TextAlign.center, style: textos.titleMedium),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Ponle nombre y monto a lo que quieres lograr: un fondo de emergencia, un viaje, el enganche. '
-                    'Verás cuánto llevas y cuánto apartar por ciclo para llegar.',
-                    textAlign: TextAlign.center,
-                    style: textos.bodySmall,
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: ElevatedButton(onPressed: _editar, child: const Text('Crear mi primer objetivo')),
-                  ),
-                ] else ...[
-                  Text(
-                    'El avance de cada objetivo es lo que hay en su cuenta de ahorro. Para sumarle, aporta a esa cuenta.',
-                    style: textos.bodySmall,
-                  ),
-                  const SizedBox(height: 12),
-                  for (final p in progreso)
-                    _TarjetaObjetivo(
-                      progreso: p,
-                      cuenta: _cuentas[p.objetivo.cuentaId],
-                      alTocar: () => _editar(p.objetivo),
-                    ),
-                ],
-                if (_archivados.isNotEmpty) ...[
-                  TextButton(
-                    onPressed: () => setState(() => _verArchivados = !_verArchivados),
-                    child: Text('${_verArchivados ? 'Ocultar' : 'Ver'} archivados (${_archivados.length})'),
-                  ),
-                  if (_verArchivados)
-                    for (final o in _archivados)
-                      Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          onTap: () => _editar(o),
-                          leading: ExcludeSemantics(child: Text(o.emoji, style: textos.titleMedium)),
-                          title: Text(o.nombre),
-                          subtitle: Text(o.monto.formateado()),
-                          trailing: Icon(Icons.chevron_right, color: ColoresApp.medio),
-                        ),
+                ),
+                const SizedBox(height: 20),
+                Text('¿Para qué ahorras?', textAlign: TextAlign.center, style: textos.titulo),
+                const SizedBox(height: 8),
+                Text(
+                  'Ponle nombre, monto y fecha. Te decimos cuánto apartar.',
+                  textAlign: TextAlign.center,
+                  style: textos.cuerpo.copyWith(color: p.texto2),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final s in _sugerencias)
+                      ActionChip(label: Text('${s.emoji} ${s.nombre}'), onPressed: () => _editar(null, s)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Center(child: ElevatedButton(onPressed: _editar, child: const Text('Crear objetivo'))),
+              ] else ...[
+                TarjetaApp(
+                  etiquetaSemantica: 'Llevas ahorrado ${montoEnPalabras(llevas)} de ${montoEnPalabras(meta)}',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Llevas ahorrado', style: textos.etiqueta),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(enPesos(llevas), style: textos.titulo),
+                          const SizedBox(width: 6),
+                          Text('de ${enPesos(meta)}', style: textos.cuerpo.copyWith(color: p.texto2)),
+                        ],
                       ),
+                      const SizedBox(height: 10),
+                      BarraProporcion(
+                        valor: meta.esPositivo ? (llevas.centavos / meta.centavos).clamp(0.0, 1.0) : 0,
+                        color: p.exito,
+                        alto: 8,
+                      ),
+                    ],
+                  ),
+                ),
+                if (vencido != null) ...[
+                  const SizedBox(height: 12),
+                  Aviso(
+                    tono: TonoEstado.atencion,
+                    titulo: 'Pasó la fecha de ${vencido.objetivo.nombre}',
+                    apoyo: 'Te faltan ${enPesos(vencido.falta)}. ¿Le das más tiempo?',
+                    accion: 'Cambiar fecha',
+                    onAccion: () => _editar(vencido.objetivo),
+                  ),
                 ],
+                const SizedBox(height: 12),
+                for (final x in progreso)
+                  _TarjetaObjetivo(
+                    progreso: x,
+                    cuenta: _cuentas[x.objetivo.cuentaId],
+                    alTocar: () => _editar(x.objetivo),
+                  ),
+                OutlinedButton.icon(onPressed: _editar, icon: const Icon(Icons.add), label: const Text('Nuevo objetivo')),
               ],
-            );
+              if (_archivados.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => setState(() => _verArchivados = !_verArchivados),
+                  child: Text('${_verArchivados ? 'Ocultar' : 'Ver'} archivados (${_archivados.length})'),
+                ),
+                if (_verArchivados)
+                  TarjetaApp.lista(renglones: [
+                    for (final o in _archivados)
+                      RenglonApp(emoji: o.emoji, titulo: o.nombre, monto: o.monto.formateado(), onTap: () => _editar(o)),
+                  ]),
+              ],
+            ],
+          );
     if (!widget.embebida) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Objetivos de ahorro')),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _editar,
-          tooltip: 'Nuevo objetivo',
-          child: const Icon(Icons.add),
-        ),
-        body: cuerpo,
-      );
+      return Scaffold(appBar: AppBar(title: const Text('Objetivos de ahorro')), body: cuerpo);
     }
-    // Dentro de Patrimonio: sin barra propia ni segundo botón flotante (el ＋
-    // dorado es solo para registrar gastos); el alta va como botón.
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(onPressed: _editar, icon: const Icon(Icons.add), label: const Text('Nuevo objetivo')),
-          ),
-        ),
-        Expanded(child: cuerpo),
-      ],
-    );
+    return cuerpo;
   }
 }
 
-/// Un objetivo con su barra de avance y su frase.
+/// Un objetivo: emoji, nombre, la cuenta donde vive, su estado, avance y
+/// la frase de qué hacer.
 class _TarjetaObjetivo extends StatelessWidget {
   final ProgresoObjetivo progreso;
   final Cuenta? cuenta;
@@ -231,60 +262,68 @@ class _TarjetaObjetivo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = progreso;
+    final x = progreso;
+    final p = ColoresApp.actual;
     final textos = Theme.of(context).textTheme;
-    final logrado = p.estado == EstadoObjetivo.logrado;
-    final atencion = p.estado == EstadoObjetivo.vencido || p.alcanzaATiempo == false;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+    final chip = switch (x.estado) {
+      EstadoObjetivo.logrado => const ChipEstado(tono: TonoEstado.exito, texto: 'Logrado'),
+      EstadoObjetivo.vencido => const ChipEstado(tono: TonoEstado.atencion, texto: 'Pasó la fecha'),
+      EstadoObjetivo.sinFecha => const ChipEstado(tono: TonoEstado.neutro, texto: 'Sin fecha'),
+      EstadoObjetivo.enCamino => x.alcanzaATiempo == false
+          ? const ChipEstado(tono: TonoEstado.atencion, texto: 'Vas lento')
+          : const ChipEstado(tono: TonoEstado.exito, texto: 'A tiempo'),
+    };
+    final color = switch (chip.tono) {
+      TonoEstado.exito => p.exito,
+      TonoEstado.atencion => p.atencion,
+      _ => p.accion,
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TarjetaApp(
         onTap: alTocar,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Semantics(
-            label: '${p.objetivo.nombre}: llevas ${p.llevas.formateado()} de ${p.objetivo.monto.formateado()}. '
-                '${fraseDeObjetivo(p)}',
-            child: ExcludeSemantics(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+        etiquetaSemantica: '${x.objetivo.nombre}: ${chip.texto}. Llevas ${x.llevas.formateado()} '
+            'de ${x.objetivo.monto.formateado()}. ${fraseDeObjetivo(x)}',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(color: p.superficieHundida, shape: BoxShape.circle),
+                  child: Text(x.objetivo.emoji, style: textos.seccion, textScaler: TextScaler.noScaling),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(p.objetivo.emoji, style: textos.titleMedium),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(p.objetivo.nombre, overflow: TextOverflow.ellipsis, style: textos.titleMedium),
-                      ),
-                      Text(
-                        '${(p.avance * 100).floor()}%',
-                        style: textos.titleMedium?.copyWith(color: logrado ? ColoresApp.verdeTexto : null),
-                      ),
+                      Text(x.objetivo.nombre, overflow: TextOverflow.ellipsis, style: textos.cuerpoFuerte),
+                      if (cuenta != null) Text(cuenta!.nombre, style: textos.etiqueta),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  BarraProporcion(valor: p.avance, color: logrado ? ColoresApp.verde : ColoresApp.oro, alto: 8),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${p.llevas.formateado()} de ${p.objetivo.monto.formateado()}'
-                    '${cuenta == null ? '' : ' · en ${cuenta!.nombre}'}',
-                    style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    fraseDeObjetivo(p),
-                    style: textos.bodySmall?.copyWith(
-                      color: logrado
-                          ? ColoresApp.verdeTexto
-                          : atencion
-                              ? ColoresApp.ambarTexto
-                              : null,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                chip,
+              ],
             ),
-          ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(enPesos(x.llevas), style: textos.seccion),
+                const SizedBox(width: 6),
+                Text('de ${enPesos(x.objetivo.monto)}', style: textos.etiqueta),
+              ],
+            ),
+            const SizedBox(height: 8),
+            BarraProporcion(valor: x.avance, color: color, alto: 8),
+            const SizedBox(height: 8),
+            Text(fraseDeObjetivo(x), style: textos.etiqueta),
+          ],
         ),
       ),
     );

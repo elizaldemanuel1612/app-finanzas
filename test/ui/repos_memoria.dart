@@ -141,14 +141,13 @@ final class IngresoExtraRepositorioMemoria implements IngresoExtraRepositorio {
 final class AjustePresupuestoCicloRepositorioMemoria
     implements AjustePresupuestoCicloRepositorio {
   final List<AjustePresupuestoCiclo> items;
-  AjustePresupuestoCicloRepositorioMemoria([this.items = const []]);
+  AjustePresupuestoCicloRepositorioMemoria([List<AjustePresupuestoCiclo> items = const []]) : items = [...items];
 
   @override
   Future<List<AjustePresupuestoCiclo>> listarPorCiclo(String cicloId) async =>
       items.where((a) => a.cicloId == cicloId).toList();
   @override
-  Future<void> agregarLote(List<AjustePresupuestoCiclo> ajustes) =>
-      throw UnimplementedError();
+  Future<void> agregarLote(List<AjustePresupuestoCiclo> ajustes) async => items.addAll(ajustes);
 }
 
 final class PerfilRepositorioMemoria implements PerfilRepositorio {

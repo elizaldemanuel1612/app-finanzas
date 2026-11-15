@@ -20,11 +20,16 @@ class PantallaEditarObjetivo extends StatefulWidget {
   final CuentaRepositorio cuentaRepositorio;
   final Objetivo? existente;
 
+  /// Para un objetivo nuevo desde una sugerencia ("✈️ Viaje"): llena el
+  /// emoji y el nombre; el usuario pone monto, cuenta y fecha.
+  final ({String emoji, String nombre})? sugerencia;
+
   const PantallaEditarObjetivo({
     super.key,
     required this.objetivoRepositorio,
     required this.cuentaRepositorio,
     this.existente,
+    this.sugerencia,
   });
 
   @override
@@ -32,8 +37,8 @@ class PantallaEditarObjetivo extends StatefulWidget {
 }
 
 class _PantallaEditarObjetivoState extends State<PantallaEditarObjetivo> {
-  late final _nombre = TextEditingController(text: widget.existente?.nombre ?? '');
-  late final _emoji = TextEditingController(text: widget.existente?.emoji ?? '🎯');
+  late final _nombre = TextEditingController(text: widget.existente?.nombre ?? widget.sugerencia?.nombre ?? '');
+  late final _emoji = TextEditingController(text: widget.existente?.emoji ?? widget.sugerencia?.emoji ?? '🎯');
   late final _monto = TextEditingController(
     text: widget.existente == null ? '' : textoEditableDeDinero(widget.existente!.monto),
   );

@@ -120,7 +120,7 @@ void main() {
     final r = recs.first;
     expect(r.tono, TonoRecomendacion.alerta);
     expect(r.titulo, r'Te pasaste en salidas por $200.00');
-    expect(r.detalle, r'Estimado al cierre: $1,400.00 arriba. Mueve $200.00 desde auto: le sobrarán $1,800.00.');
+    expect(r.detalle, r'Estimado al cierre: $1,400.00 arriba. Mueve $200.00 desde auto: le sobrarán $1,600.00.');
     expect(r.detalle, isNot(contains('Nada grave')));
     expect(r.accion, AccionRecomendacion.verCategoria);
     expect(r.categoriaId, 'salidas');
@@ -135,8 +135,8 @@ void main() {
       _g(_var('auto', 2000), 100),
     ])).where((r) => r.tono == TonoRecomendacion.alerta).toList();
     expect(alertas[0].titulo, contains('super'));
-    expect(alertas[0].detalle, contains(r'Mueve $500.00 desde auto: le sobrarán $1,800.00.'));
-    expect(alertas[1].detalle, contains(r'Mueve $200.00 desde auto: le sobrarán $1,300.00.'));
+    expect(alertas[0].detalle, contains(r'Mueve $500.00 desde auto: le sobrarán $1,300.00.'));
+    expect(alertas[1].detalle, contains(r'Mueve $200.00 desde auto: le sobrarán $1,100.00.'));
 
     // Sobrante que no alcanza: cubre una parte y el resto sale de lo apartado.
     final parcial = _recs(_reporte(porCategoria: [

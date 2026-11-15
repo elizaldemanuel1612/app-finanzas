@@ -64,7 +64,7 @@ void main() {
       await tester.tap(find.text('Siguiente'));
       await tester.pumpAndSettle();
     }
-    expect(find.text('Guarda y listo'), findsOneWidget);
+    expect(find.text('Y listo'), findsOneWidget);
     await tester.tap(find.text('Registrar mi primer gasto'));
     await tester.pumpAndSettle();
     expect(resultado, isTrue);

@@ -2,6 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../core/result.dart';
+
+import '../../domain/voz/monto_hablado.dart';
+
 import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../../data/repositorios/ajuste_presupuesto_ciclo_repositorio.dart';
@@ -27,6 +31,10 @@ import '../captura/pantalla_captura.dart';
 import '../comun/asegurar_ciclo_abierto.dart';
 import '../comun/barra_ritmo.dart';
 import '../comun/formato_dinero.dart';
+import '../comun/tarjeta_app.dart';
+import '../comun/renglon_app.dart';
+import '../comun/chip_estado.dart';
+import '../comun/aviso.dart';
 import '../comun/tema.dart';
 import 'pantalla_mover_presupuesto.dart';
 import 'pantalla_nueva_categoria.dart';
@@ -256,154 +264,227 @@ class _PantallaDetalleCategoriaState extends State<PantallaDetalleCategoria> {
     );
   }
 
+  /// La acción primaria de una categoría que se pasó: mover desde la
+  /// categoría que propone `calcularCoberturas` (la misma de Inicio y
+  /// Análisis). Confirma porque cambia el presupuesto del ciclo.
+  Future<void> _moverCobertura(Cobertura c, Rebalanceo rebalanceo) async {
+    final origen = c.origen!;
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: Text('¿Mover ${enPesos(c.cubre)} desde ${origen.nombre}?'),
+        content: Text('Solo para este ciclo. A ${origen.nombre} le quedarán ${enPesos(c.sobranteDespues)} de sobra.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(contexto).pop(false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.of(contexto).pop(true), child: Text('Mover ${enPesos(c.cubre)}')),
+        ],
+      ),
+    );
+    if (confirmado != true) return;
+    final resultado = construirAjustesDeRebalanceo(
+      rebalanceo: rebalanceo,
+      movimientos: [MovimientoRebalanceo(categoriaOrigenId: origen.id, monto: c.cubre)],
+      cicloId: widget.ciclo.id,
+      cuando: DateTime.now(),
+      dispositivo: 'app',
+    );
+    switch (resultado) {
+      case Exito(:final valor):
+        await widget.ajustePresupuestoCicloRepositorio.agregarLote(valor);
+        await _cargar();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Listo, moviste ${enPesos(c.cubre)} desde ${origen.nombre}')),
+          );
+        }
+      case Falla():
+        // La candidata ya no alcanza (otro movimiento la usó): que el
+        // usuario elija en la pantalla completa.
+        await _abrirMoverPresupuesto(rebalanceo);
+    }
+  }
+
   Widget _buildContenido(_DatosDetalle datos) {
-    final movimientos = datos.movimientos;
+    final p = ColoresApp.actual;
+    final textos = Theme.of(context).textTheme;
+    final movimientos = [...datos.movimientos]..sort((a, b) => b.fecha.compareTo(a.fecha));
     final pronostico = datos.pronostico;
     final plan = datos.plan;
     final rebalanceo = datos.rebalanceo;
+    final cobertura = datos.cobertura;
     final rollup = calcularRollups(
       movimientos: movimientos,
       categorias: [datos.categoriaEfectiva],
       cicloId: widget.ciclo.id,
     ).single;
-    // Una fija no tiene "presupuesto" que se pueda exceder — tiene un
-    // monto conocido que se paga o no (spec-app-finanzas-v2.md §1.5:
-    // "Barra de ritmo: No aplica" / "Estado: Pagado / pendiente" para
-    // fijas). El chip de ritmo (Vas bien/Justo/Excedido) y la barra son
-    // solo para variables; `pantalla_inicio.dart` ya sigue esta regla en
-    // su lista de "Gastos fijos" — aquí faltaba aplicarla también.
+    // Una fija no tiene "presupuesto" que se pueda exceder: se paga o no
+    // (spec-app-finanzas-v2.md §1.5). Sin barra ni chip de ritmo.
     final esFija = widget.categoria is CategoriaFija;
+    final gastado = rollup.totalCentavos;
+    final presupuesto = rollup.presupuestoCentavos;
+    final quedan = presupuesto == null ? null : presupuesto - gastado;
+    final pasada = quedan != null && quedan.esNegativo;
+    final tono = tonoDeRitmo(porcentajeUsado: rollup.porcentajeUsado, avanceCiclo: widget.avanceCiclo);
     final pagado = rollup.conteoMovimientos > 0;
-    final estado = calcularEstadoRitmo(porcentajeUsado: rollup.porcentajeUsado);
+
+    final chip = esFija
+        ? (pagado
+            ? const ChipEstado(tono: TonoEstado.exito, texto: 'Pagado')
+            : const ChipEstado(tono: TonoEstado.neutro, texto: 'Por pagar', icono: Icons.calendar_today_rounded))
+        : ChipEstado.ritmo(tono);
+    final etiquetaCifra = esFija
+        ? (pagado ? 'Pagaste' : 'Monto fijo')
+        : pasada
+            ? 'Te pasaste por'
+            : 'Te quedan';
+    final cifra = esFija ? (pagado ? gastado : presupuesto ?? gastado) : (quedan == null ? gastado : quedan.absoluto);
+    final (pesos, centavos) = partesDeMonto(cifra);
+
+    Widget dato(String etiqueta, String valor) => Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [Text(etiqueta, style: textos.etiqueta), Text(valor, style: textos.cuerpoFuerte)],
+          ),
+        );
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
+        TarjetaApp(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              chip,
+              const SizedBox(height: 14),
+              Text(etiquetaCifra, style: textos.etiqueta),
+              Semantics(
+                label: '$etiquetaCifra ${montoEnPalabras(cifra)}',
+                excludeSemantics: true,
+                child: Text.rich(
+                  TextSpan(children: [
+                    TextSpan(text: pesos),
+                    TextSpan(text: centavos, style: textos.seccion.copyWith(color: p.texto2)),
+                  ]),
+                  style: textos.cifraHeroe.copyWith(color: pasada ? p.peligroTexto : p.texto),
+                  textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.6),
+                ),
+              ),
+              if (!esFija && presupuesto != null) ...[
+                const SizedBox(height: 14),
+                BarraRitmo(
+                  porcentajeUsado: rollup.porcentajeUsado ?? 0,
+                  avanceCiclo: widget.avanceCiclo,
+                  descripcion: widget.categoria.nombre,
+                  gastado: gastado,
+                  presupuesto: presupuesto,
+                  grande: true,
+                ),
+                const SizedBox(height: 6),
+                Text('${enPesos(gastado)} de ${enPesos(presupuesto)}', style: textos.etiqueta),
+              ],
+              const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1)),
+              Row(
+                children: [
+                  dato(esFija ? 'Monto' : 'Presupuesto', presupuesto == null ? '—' : enPesos(presupuesto)),
+                  dato('Gastado', enPesos(gastado)),
+                  if (pronostico != null)
+                    dato(
+                      'Al cierre',
+                      // El MPC con poca historia es preliminar: se dice
+                      // "estimado" con una tilde, no "confianza baja".
+                      pronostico.confianza == ConfianzaMpc.alta
+                          ? enPesos(pronostico.pronosticoP50)
+                          : '~${enPesos(pronostico.pronosticoP50)}',
+                    )
+                  else
+                    dato('Gastos', '${rollup.conteoMovimientos}'),
+                ],
+              ),
+              if (datos.deltaCategoria != null && !datos.deltaCategoria!.esCero) ...[
+                const SizedBox(height: 10),
+                Text('Este ciclo, ajustado por ${signoYMonto(datos.deltaCategoria!)}', style: textos.etiqueta),
+              ],
+            ],
+          ),
+        ),
+        if (cobertura != null) ...[
+          const SizedBox(height: 12),
+          TarjetaApp(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      rollup.totalCentavos.formateado(),
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
-                        color: ColoresApp.tinta,
-                      ),
+                    Container(
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(color: p.superficieHundida, shape: BoxShape.circle),
+                      child: cobertura.origen == null
+                          ? Icon(Icons.savings_outlined, color: p.texto)
+                          : Text(cobertura.origen!.emoji, style: textos.seccion, textScaler: TextScaler.noScaling),
                     ),
-                    if (rollup.presupuestoCentavos != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: (esFija
-                                  ? (pagado ? ColoresApp.verde : ColoresApp.medio)
-                                  : colorEstadoRitmo(estado))
-                              .withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                        child: Text(
-                          esFija
-                              ? (pagado ? 'Pagado' : 'Pendiente')
-                              : etiquetaEstadoRitmo(estado),
-                          style: TextStyle(
-                            color: esFija
-                                ? (pagado ? ColoresApp.verdeTexto : ColoresApp.medio)
-                                : colorTextoEstadoRitmo(estado),
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            cobertura.origen == null ? 'Sale de lo que apartas' : 'Cúbrelo con ${cobertura.origen!.nombre}',
+                            style: textos.cuerpoFuerte,
                           ),
-                        ),
+                          Text(
+                            cobertura.origen == null
+                                ? 'Ninguna categoría tiene de dónde.'
+                                : cobertura.falta.esPositivo
+                                    ? 'Alcanza para ${enPesos(cobertura.cubre)}; el resto sale de lo que apartas.'
+                                    : 'A ${cobertura.origen!.nombre} le sobrarán ${enPesos(cobertura.sobranteDespues)}',
+                            style: textos.etiqueta,
+                          ),
+                        ],
                       ),
+                    ),
                   ],
                 ),
-                if (rollup.presupuestoCentavos != null) ...[
-                  Text(
-                    'de ${rollup.presupuestoCentavos!.formateado()}'
-                    '${esFija ? '' : ' este ciclo'}',
-                    style: TextStyle(color: ColoresApp.medio),
+                if (cobertura.origen != null && rebalanceo != null) ...[
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => _moverCobertura(cobertura, rebalanceo),
+                    child: Text('Mover ${enPesos(cobertura.cubre)} desde ${cobertura.origen!.nombre}'),
                   ),
-                  if (datos.deltaCategoria != null &&
-                      !datos.deltaCategoria!.esCero)
-                    Text(
-                      'ajustado por ${signoYMonto(datos.deltaCategoria!)}',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  if (!esFija) ...[
-                    const SizedBox(height: 16),
-                    BarraRitmo(
-                      porcentajeUsado: rollup.porcentajeUsado ?? 0,
-                      avanceCiclo: widget.avanceCiclo,
-                      descripcion: widget.categoria.nombre,
-                    ),
-                  ],
                 ],
-                const SizedBox(height: 12),
-                Text(
-                  '${rollup.conteoMovimientos} movimiento(s) en el ciclo',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
+                if (rebalanceo != null && rebalanceo.candidatas.isNotEmpty)
+                  TextButton(
+                    onPressed: () => _abrirMoverPresupuesto(rebalanceo),
+                    child: const Text('Elegir otra categoría'),
+                  ),
               ],
             ),
           ),
+        ] else if (plan != null) ...[
+          const SizedBox(height: 12),
+          Aviso(tono: TonoEstado.atencion, titulo: plan.piezaNumeroASeguir, apoyo: plan.piezaCuantoQueda),
+        ],
+        EncabezadoSeccion(
+          titulo: '${movimientos.length} ${movimientos.length == 1 ? 'gasto' : 'gastos'}',
+          dato: 'Este ciclo',
         ),
-        if (pronostico != null) ...[
-          const SizedBox(height: 12),
-          _TarjetaPronostico(pronostico: pronostico),
-        ],
-        if (plan != null) ...[
-          const SizedBox(height: 12),
-          _TarjetaPlanDeAjuste(plan: plan),
-        ],
-        if (datos.cobertura case final cobertura?) ...[
-          const SizedBox(height: 12),
-          _TarjetaCobertura(
-            cobertura: cobertura,
-            onAplicar: rebalanceo != null && rebalanceo.candidatas.isNotEmpty
-                ? () => _abrirMoverPresupuesto(rebalanceo)
-                : null,
-          ),
-        ],
-        const SizedBox(height: 20),
         if (movimientos.isEmpty)
           Padding(
-            padding: EdgeInsets.symmetric(vertical: 40),
-            child: Center(
-              child: Text(
-                'Nada en esta categoría todavía.',
-                style: TextStyle(color: ColoresApp.medio),
-              ),
-            ),
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Text('Nada en esta categoría todavía.', textAlign: TextAlign.center, style: textos.etiqueta),
           )
         else
-          ...(movimientos..sort((a, b) => b.fecha.compareTo(a.fecha))).map(
-            (m) => Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
+          TarjetaApp.lista(renglones: [
+            for (final m in movimientos)
+              RenglonApp(
+                titulo: m.descripcion,
+                subtitulo: _fechaCorta(m.fecha),
+                monto: m.monto.formateado(),
                 onTap: () => _editar(m),
-                title: Text(m.descripcion),
-                subtitle: Text('${_fechaCorta(m.fecha)} · ${m.medio.name}'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      m.monto.formateado(),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.chevron_right, color: ColoresApp.medio, semanticLabel: 'Editar'),
-                  ],
-                ),
               ),
-            ),
-          ),
+          ]),
       ],
     );
   }
@@ -439,176 +520,3 @@ class _DatosDetalle {
   });
 }
 
-/// Presentación de §6 del MPC: "Súper/Comida — cierre estimado $9,200
-/// (rango $7,800 – $11,400)". El mensaje del nivel de madurez (§7) se
-/// muestra como advertencia mientras el modelo no llegue a "completo".
-class _TarjetaPronostico extends StatelessWidget {
-  final PronosticoCategoria pronostico;
-
-  const _TarjetaPronostico({required this.pronostico});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: ColoresApp.azulSuave,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Cierre estimado',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: ColoresApp.azul,
-                  ),
-                ),
-                _EtiquetaConfianza(confianza: pronostico.confianza),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              pronostico.pronosticoP50.formateado(),
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: ColoresApp.tinta,
-              ),
-            ),
-            Text(
-              'rango ${pronostico.pronosticoP10.formateado()} – ${pronostico.pronosticoP90.formateado()}',
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
-            for (final texto in pronostico.explicacion) ...[
-              const SizedBox(height: 8),
-              Text(
-                texto,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 11),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Las tres piezas fijas de addendum-v3-ajuste-y-ux.md §2.3, en su orden:
-/// cuánto queda, contra tu costumbre, el número a seguir. Nunca un
-/// porcentaje de recorte solo.
-class _TarjetaPlanDeAjuste extends StatelessWidget {
-  final PlanDeAjuste plan;
-
-  const _TarjetaPlanDeAjuste({required this.plan});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: ColoresApp.ambarSuave,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Plan de ajuste',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: ColoresApp.tinta,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              plan.piezaCuantoQueda,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            Text(
-              plan.piezaContraCostumbre,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              plan.piezaNumeroASeguir,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// addendum-v3-ajuste-y-ux.md §2.5: la categoría ya se pasó; de dónde
-/// cubrirlo, con el mismo motor que Inicio y Análisis (`calcularCoberturas`).
-/// El usuario decide — nunca se rebalancea solo.
-class _TarjetaCobertura extends StatelessWidget {
-  final Cobertura cobertura;
-
-  /// `null` si ninguna categoría tiene de dónde prestar.
-  final VoidCallback? onAplicar;
-
-  const _TarjetaCobertura({required this.cobertura, required this.onAplicar});
-
-  @override
-  Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
-    return Card(
-      color: ColoresApp.coralSuave,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Te pasaste por ${cobertura.exceso.formateado()}', style: textos.titleMedium),
-            const SizedBox(height: 6),
-            Text(cobertura.frase, style: textos.bodySmall),
-            if (onAplicar != null) ...[
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: onAplicar,
-                child: Text(
-                  cobertura.origen == null ? 'Mover presupuesto' : 'Cubrir con ${cobertura.origen!.nombre}',
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EtiquetaConfianza extends StatelessWidget {
-  final ConfianzaMpc confianza;
-
-  const _EtiquetaConfianza({required this.confianza});
-
-  @override
-  Widget build(BuildContext context) {
-    final (texto, color, colorTexto) = switch (confianza) {
-      ConfianzaMpc.alta => ('confianza alta', ColoresApp.verde, ColoresApp.verdeTexto),
-      ConfianzaMpc.media => ('confianza media', ColoresApp.ambar, ColoresApp.ambarTexto),
-      ConfianzaMpc.baja => ('confianza baja', ColoresApp.coral, ColoresApp.coralTexto),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        // El fondo se queda con el color brillante (elemento gráfico,
-        // umbral 3:1); el texto usa la variante oscurecida (umbral 4.5:1).
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Text(
-        texto,
-        style: TextStyle(
-          color: colorTexto,
-          fontWeight: FontWeight.w700,
-          fontSize: 10,
-        ),
-      ),
-    );
-  }
-}

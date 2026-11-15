@@ -58,6 +58,9 @@ final class Cobertura {
   /// Lo que no alcanza a cubrirse: sale de lo que se aparta.
   Dinero get falta => exceso - cubre;
 
+  /// Lo que le quedará de sobra a [origen] después de mover [cubre].
+  Dinero get sobranteDespues => sobranteOrigen - cubre;
+
   /// La salida en una frase (regla 1 · 6 · 12 de
   /// `docs/rediseno/design-system/README.md`). La misma en Inicio, Análisis
   /// y el detalle de categoría.
@@ -67,7 +70,7 @@ final class Cobertura {
     if (falta.esPositivo) {
       return '${o.nombre} cubre ${cubre.formateado()}; los ${falta.formateado()} restantes salen de lo que apartas.';
     }
-    return 'Mueve ${cubre.formateado()} desde ${o.nombre}: le sobrarán ${sobranteOrigen.formateado()}.';
+    return 'Mueve ${cubre.formateado()} desde ${o.nombre}: le sobrarán ${sobranteDespues.formateado()}.';
   }
 }
 

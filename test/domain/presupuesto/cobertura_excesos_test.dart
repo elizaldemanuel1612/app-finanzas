@@ -39,7 +39,7 @@ void main() {
     expect(c[0].cubre, const Dinero.pesos(500));
     expect(c[0].sobranteOrigen, const Dinero.pesos(1700));
     expect(c[0].falta, const Dinero.cero());
-    expect(c[0].frase, r'Mueve $500.00 desde auto: le sobrarán $1,700.00.');
+    expect(c[0].frase, r'Mueve $500.00 desde auto: le sobrarán $1,200.00.');
     expect(c[1].origen!.id, 'auto', reason: 'aún le quedan 1,200, más que los 100 de cafe');
     expect(c[1].sobranteOrigen, const Dinero.pesos(1200));
   });

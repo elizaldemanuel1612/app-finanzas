@@ -376,7 +376,7 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
               ? 'Sale de lo que apartas'
               : c.falta.esPositivo
                   ? 'Alcanza para ${enPesos(c.cubre)} de ${enPesos(c.exceso)}'
-                  : 'A ${c.origen!.nombre} le sobrarán ${enPesos(c.sobranteOrigen)}',
+                  : 'A ${c.origen!.nombre} le sobrarán ${enPesos(c.sobranteDespues)}',
           derecha: ElevatedButton(
             style: ElevatedButton.styleFrom(minimumSize: const Size(0, 40), padding: const EdgeInsets.symmetric(horizontal: 14)),
             onPressed: () => widget.alVerCategoria(c.categoria.id),
