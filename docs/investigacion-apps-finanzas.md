@@ -61,7 +61,7 @@ MAVfin ya evita las tres quejas grandes (no depende de bancos, no cobra, las cat
 | 5 | **Resumen del año y rango de fechas** en Análisis | **Hecho 2026-11-15** (spec §5.7, vista Periodo) |
 | 6 | **Gastos que se repiten** (suscripciones): detectarlos por descripción y monto, y cuánto suman al año | **Hecho 2026-11-15** (spec §5.7, "Lo que se repite") |
 | 7 | **Tema "Cuentas y patrimonio" en la guía por temas** (hoy la guía no habla de cuentas) | **Hecho 2026-11-15** (sección "Tu dinero": Cuentas y tarjetas, Patrimonio y objetivos) |
-| 8 | **Lo que sobra pasa al siguiente ciclo** por categoría (sobres) | Por decidir: cambia cómo se entiende el presupuesto |
+| 8 | **Lo que sobra pasa al siguiente ciclo** por categoría (sobres) | **Hecho 2026-11-15**, opcional y categoría por categoría (addendum-v3 §2.5.2) |
 | 9 | Recordatorios y presupuesto en pareja | En pausa: piden notificaciones nativas y nube |
 
 ## Fuentes

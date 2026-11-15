@@ -25,6 +25,8 @@ import '../../domain/presupuesto/apartado_estimado.dart';
 import '../../domain/presupuesto/cobertura_excesos.dart';
 import '../../domain/presupuesto/disponible_por_dia.dart';
 import '../../domain/presupuesto/meta_base.dart';
+import '../../domain/presupuesto/traslado_sobrante.dart';
+import '../ciclo/hoja_traslado_sobrante.dart';
 import '../../domain/pronostico/pronostico_del_ciclo.dart';
 import '../../domain/rollups/calcular_rollups.dart';
 import '../../domain/rollups/estado_ritmo.dart';
@@ -106,6 +108,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
   late Perfil _perfil = widget.perfil;
   _DatosInicio? _datos;
   bool _capturaAbierta = false;
+
+  /// Si ya se revisó en esta sesión si toca ofrecer el traslado de sobrante.
+  bool _trasladoRevisado = false;
   Pestana _pestana = Pestana.inicio;
 
   /// Sube cada vez que se entra a una pestaña o se registra algo: es la
@@ -191,6 +196,51 @@ class _PantallaInicioState extends State<PantallaInicio> {
     if (!mounted) return;
     setState(() => _datos = datos);
     AccesosRapidos.publicarDisponibleHoy(datos.disponibleHoy, DateTime.now());
+    _ofrecerTrasladoSiToca();
+  }
+
+  /// Ciclo nuevo: ¿pasar lo que sobró del anterior? (addendum-v3 §2.5.2).
+  /// Una vez por ciclo; nada cambia si se elige "No trasladar nada".
+  Future<void> _ofrecerTrasladoSiToca() async {
+    if (_trasladoRevisado) return;
+    _trasladoRevisado = true;
+    final anterior = _perfil.calculadoraCiclo.calcularPara(_ciclo.fechaInicio.subtract(const Duration(days: 1)));
+    final sobrantes = sobrantesDelCiclo(
+      categorias: await widget.categoriaRepositorio.listarActivas(),
+      ajustesDelCiclo: await widget.ajustePresupuestoCicloRepositorio.listarPorCiclo(anterior.id),
+      movimientos: await widget.movimientoRepositorio.listarTodos(),
+      cicloId: anterior.id,
+    );
+    if (!mounted || !debePreguntarTraslado(_perfil, _ciclo.id, sobrantes)) return;
+    final decision = await mostrarHojaTraslado(
+      context,
+      sobrantes: sobrantes,
+      preseleccion: trasladoPreseleccionado(_perfil, sobrantes),
+    );
+    final elegidas = [for (final x in sobrantes) if (decision?.elegidas.contains(x.categoria.id) ?? false) x];
+    if (elegidas.isNotEmpty) {
+      await widget.ajustePresupuestoCicloRepositorio.agregarLote(
+        ajustesDeTraslado(elegidas, cicloNuevoId: _ciclo.id, ahora: DateTime.now()),
+      );
+    }
+    final perfil = perfilTrasDecidir(
+      _perfil,
+      _ciclo.id,
+      recordar: decision != null && decision.recordar ? decision.elegidas : null,
+    );
+    await widget.perfilRepositorio.guardar(perfil);
+    if (!mounted) return;
+    setState(() => _perfil = perfil);
+    if (elegidas.isEmpty) return;
+    final total = Dinero(elegidas.fold<int>(0, (t, x) => t + x.sobrante.centavos));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(elegidas.length == 1
+            ? 'Listo, ${elegidas.single.categoria.nombre} tiene ${enPesos(total)} más este ciclo'
+            : 'Listo, trasladaste ${enPesos(total)} a ${elegidas.length} categorías'),
+      ));
+    await _cargar();
   }
 
   Future<_DatosInicio> _cargarDatos() async {
