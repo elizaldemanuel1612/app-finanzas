@@ -246,7 +246,7 @@ const _temaCiclos = TemaGuia(
   id: 'ciclos',
   emoji: '🔁',
   titulo: 'Ciclos',
-  resumen: 'Cerrar, reabrir y ver cómo te fue en meses pasados.',
+  resumen: 'Cerrar, reabrir y ver cómo te fue en meses pasados o en el año.',
   bloques: [
     Parrafo(
       'Cerrar un ciclo congela sus cifras: el pronóstico y el reparto ya '
@@ -258,6 +258,13 @@ const _temaCiclos = TemaGuia(
       'En Análisis → **Historial** está la gráfica '
       '**Cuánto has apartado por ciclo**, con tu acumulado y el promedio '
       'de alcance de tu meta a lo largo del tiempo.',
+    ),
+    Subtitulo('Más allá de un ciclo'),
+    Parrafo(
+      'En Análisis → **Periodo** ves cuánto gastaste en **Este año**, los '
+      '**Últimos 12 meses**, el **Año pasado** o entre las fechas que elijas: '
+      'el total, cuánto al mes en promedio, mes por mes, por categoría y, si '
+      'ya registrabas entonces, contra las mismas fechas del año anterior.',
     ),
   ],
 );

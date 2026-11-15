@@ -80,6 +80,11 @@ enum GuiaRapida {
       'Historial',
       'Cuánto has apartado ciclo por ciclo, y dónde cerrar o reabrir un ciclo.',
     ),
+    PasoGuiaRapida(
+      Icons.date_range,
+      'Periodo',
+      'Cuánto gastaste en el año, en los últimos 12 meses o entre las fechas que elijas, mes por mes.',
+    ),
   ]),
   cuentas('Tus cuentas y tarjetas', [
     PasoGuiaRapida(

@@ -41,6 +41,7 @@ import '../../domain/presupuesto/cobertura_excesos.dart';
 import '../../domain/presupuesto/apartado_estimado.dart';
 import '../../domain/analisis/frases_conclusion.dart';
 import 'graficas_analisis.dart';
+import 'vista_periodo.dart';
 
 /// Pestaña Análisis (spec-app-finanzas-v2.md §5.7): reportes y
 /// recomendaciones del ciclo en curso o, con el selector de arriba, de un
@@ -137,7 +138,7 @@ class _Datos {
 
 /// Análisis › Resumen · Detalle · Historial (`docs/rediseno/plan-rediseno.md`,
 /// Etapa 5). Historial reemplaza a "Ciclos anteriores" de Inicio.
-enum _Vista { resumen, detalle, historial }
+enum _Vista { resumen, detalle, historial, periodo }
 
 class _PantallaAnalisisState extends State<PantallaAnalisis> {
   _Datos? _datos;
@@ -287,13 +288,20 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
           const ButtonSegment(value: _Vista.resumen, label: Text('Resumen')),
           const ButtonSegment(value: _Vista.detalle, label: Text('Detalle')),
           if (conHistorial) const ButtonSegment(value: _Vista.historial, label: Text('Historial')),
+          const ButtonSegment(value: _Vista.periodo, label: Text('Periodo')),
         ],
         selected: {vista},
         onSelectionChanged: (s) => _elegirVista(s.first),
       ),
     );
     final Widget cuerpo;
-    if (vista == _Vista.historial) {
+    if (vista == _Vista.periodo) {
+      cuerpo = VistaPeriodo(
+        categoriaRepositorio: widget.categoriaRepositorio,
+        movimientoRepositorio: widget.movimientoRepositorio,
+        alVerCategoria: widget.alVerCategoria,
+      );
+    } else if (vista == _Vista.historial) {
       cuerpo = PantallaCiclosAnteriores(
         embebida: true,
         perfil: widget.perfil,
