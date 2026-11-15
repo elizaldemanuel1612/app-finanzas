@@ -25,6 +25,7 @@ import 'color_saldo.dart';
 import 'frase_pago.dart';
 import 'hoja_transferencia.dart';
 import 'pantalla_editar_cuenta.dart';
+import '../comun/hoja.dart';
 
 const _uuid = Uuid();
 
@@ -139,9 +140,8 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
   }
 
   Future<void> _abonar() async {
-    final guardado = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
+    final guardado = await mostrarHoja<bool>(
+      context,
       builder: (_) => _HojaAbono(
         cuenta: _cuenta,
         perfil: widget.perfil,

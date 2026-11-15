@@ -7,6 +7,7 @@ import '../../domain/modelos/cuenta.dart';
 import '../../domain/modelos/movimiento_cuenta.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/tema.dart';
+import '../comun/hoja.dart';
 
 /// Pasar dinero de una cuenta a otra (spec §7.3.1): retirar efectivo,
 /// mover entre débitos o pagar la tarjeta de crédito. No es un gasto.
@@ -19,9 +20,8 @@ Future<bool?> mostrarHojaTransferencia(
   String? destinoId,
   Dinero? montoInicial,
 }) {
-  return showModalBottomSheet<bool>(
-    context: context,
-    isScrollControlled: true,
+  return mostrarHoja<bool>(
+    context,
     builder: (_) => _HojaTransferencia(
       cuentas: [for (final c in cuentas) if (c.activa) c],
       repositorio: repositorio,

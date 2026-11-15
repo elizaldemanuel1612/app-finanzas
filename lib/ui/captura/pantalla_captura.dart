@@ -47,6 +47,7 @@ import '../comun/tema.dart';
 import 'hoja_dictado.dart';
 import 'pantalla_dividir_ticket.dart';
 import 'pantalla_revision_dictado.dart';
+import '../comun/hoja.dart';
 
 const _uuid = Uuid();
 
@@ -489,8 +490,8 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   }
 
   Future<void> _mostrarOpcionesFoto() async {
-    final origen = await showModalBottomSheet<ImageSource>(
-      context: context,
+    final origen = await mostrarHoja<ImageSource>(
+      context,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -651,8 +652,8 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
 
   Future<void> _elegirFecha() async {
     final rango = _rangoFecha;
-    await showModalBottomSheet<void>(
-      context: context,
+    await mostrarHoja<void>(
+      context,
       builder: (contexto) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -676,9 +677,8 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     // Con varias cuentas la lista no cabía en la hoja y las de abajo (las
     // tarjetas de crédito, casi siempre) quedaban fuera de alcance: se
     // desplaza.
-    final elegida = await showModalBottomSheet<Cuenta>(
-      context: context,
-      isScrollControlled: true,
+    final elegida = await mostrarHoja<Cuenta>(
+      context,
       builder: (contexto) => SafeArea(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(contexto).height * 0.8),
@@ -710,9 +710,8 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   }
 
   Future<void> _escribirNota() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
+    await mostrarHoja<void>(
+      context,
       builder: (contexto) => Padding(
         padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.of(contexto).viewInsets.bottom),
         child: Column(

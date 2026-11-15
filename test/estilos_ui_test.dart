@@ -65,4 +65,17 @@ void main() {
       );
     });
   }
+
+  // Hojas inferiores (2026-11-15): todas pasan por `mostrarHoja`
+  // (lib/ui/comun/hoja.dart), que deja crecer la hoja y la desplaza si no
+  // cabe. Con `showModalBottomSheet` a secas el contenido se recortaba.
+  test('nadie abre una hoja inferior sin mostrarHoja', () {
+    final infractores = [
+      for (final archivo in archivos)
+        if (!archivo.path.endsWith('/comun/hoja.dart') &&
+            RegExp(r'showModalBottomSheet\s*[<(]').hasMatch(archivo.readAsStringSync()))
+          archivo.path.substring(raiz.path.length + 1),
+    ];
+    expect(infractores, isEmpty, reason: 'Usa mostrarHoja(context, builder: ...) de lib/ui/comun/hoja.dart.');
+  });
 }

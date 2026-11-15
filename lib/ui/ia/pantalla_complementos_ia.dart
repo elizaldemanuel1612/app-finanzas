@@ -12,6 +12,7 @@ import '../comun/renglon_app.dart';
 import '../comun/tarjeta_app.dart';
 import '../comun/tema.dart';
 import 'pantalla_asistente.dart';
+import '../comun/hoja.dart';
 
 /// Ajustes → Complementos de IA (spec §6.5): cada quien conecta la suya.
 class PantallaComplementosIA extends StatefulWidget {
@@ -63,9 +64,8 @@ class _PantallaComplementosIAState extends State<PantallaComplementosIA> {
       await widget.servicio.conectarApple();
       _avisar('Listo, la app usará Apple Intelligence');
     } else {
-      final conectado = await showModalBottomSheet<bool>(
-        context: context,
-        isScrollControlled: true,
+      final conectado = await mostrarHoja<bool>(
+        context,
         builder: (_) => _HojaConectar(proveedor: p, servicio: widget.servicio),
       );
       if (conectado == true) _avisar('Listo, ${p.nombre} está conectado');
@@ -74,8 +74,8 @@ class _PantallaComplementosIAState extends State<PantallaComplementosIA> {
   }
 
   Future<void> _opcionesConectado(ProveedorIA p, {required bool enUso}) async {
-    final accion = await showModalBottomSheet<String>(
-      context: context,
+    final accion = await mostrarHoja<String>(
+      context,
       builder: (contexto) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),

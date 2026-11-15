@@ -39,6 +39,7 @@ import '../importacion/pantalla_importar.dart';
 import '../meta/pantalla_meta_ahorro.dart';
 import 'pantalla_cambiar_corte.dart';
 import 'pantalla_nube.dart';
+import '../comun/hoja.dart';
 
 /// §8 del paquete: "Ajustes" es donde viven la exportación de datos, los
 /// avisos legales y la eliminación de cuenta que ambas tiendas exigen para
@@ -385,9 +386,8 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
   }
 
   Future<void> _elegirApariencia() async {
-    final elegida = await showModalBottomSheet<Apariencia>(
-      context: context,
-      showDragHandle: true,
+    final elegida = await mostrarHoja<Apariencia>(
+      context,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

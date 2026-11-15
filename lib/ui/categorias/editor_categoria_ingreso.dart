@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../data/repositorios/categoria_ingreso_repositorio.dart';
 import '../../domain/modelos/categoria_ingreso.dart';
 import '../comun/tema.dart';
+import '../comun/hoja.dart';
 
 /// Hoja para crear o editar una categoría de ingreso (spec §7.3.4): nombre
 /// y emoji, sin presupuesto. Regresa la guardada, o `null` si se canceló.
@@ -12,9 +13,8 @@ Future<CategoriaIngreso?> mostrarEditorCategoriaIngreso(
   required CategoriaIngresoRepositorio repositorio,
   CategoriaIngreso? existente,
 }) =>
-    showModalBottomSheet<CategoriaIngreso>(
-      context: context,
-      isScrollControlled: true,
+    mostrarHoja<CategoriaIngreso>(
+      context,
       builder: (_) => _EditorCategoriaIngreso(repositorio: repositorio, existente: existente),
     );
 

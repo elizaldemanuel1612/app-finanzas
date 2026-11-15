@@ -56,6 +56,7 @@ import '../gastos/pantalla_gastos.dart';
 import '../ingresos/pantalla_ingresos_del_ciclo.dart';
 import '../meta/pantalla_meta_ahorro.dart';
 import '../patrimonio/pantalla_patrimonio.dart';
+import '../comun/hoja.dart';
 
 /// Las cuatro pantallas raíz de la barra inferior
 /// (`docs/rediseno/plan-rediseno.md`, navegación nueva).
@@ -802,9 +803,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
 
   Future<void> _verFijas(_DatosInicio datos, Map<String, bool> pagada) async {
     final textos = Theme.of(context).textTheme;
-    final elegida = await showModalBottomSheet<CategoriaFija>(
-      context: context,
-      isScrollControlled: true,
+    final elegida = await mostrarHoja<CategoriaFija>(
+      context,
       builder: (contexto) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -841,8 +841,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
     final textos = Theme.of(context).textTheme;
     final quedan = datos.presupuestoVariables - datos.gastadoVariables;
     final faltan = _ciclo.diasParaTerminar(DateTime.now());
-    final irAIngresos = await showModalBottomSheet<bool>(
-      context: context,
+    final irAIngresos = await mostrarHoja<bool>(
+      context,
       builder: (contexto) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),

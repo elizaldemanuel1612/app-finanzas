@@ -5,6 +5,7 @@ import '../../domain/presupuesto/traslado_sobrante.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/tarjeta_app.dart';
 import '../comun/tema.dart';
+import '../comun/hoja.dart';
 
 /// Lo que eligió el usuario; `null` si cerró la hoja sin decidir.
 typedef DecisionTraslado = ({Set<String> elegidas, bool recordar});
@@ -17,9 +18,8 @@ Future<DecisionTraslado?> mostrarHojaTraslado(
   required List<SobranteCategoria> sobrantes,
   required Set<String> preseleccion,
 }) =>
-    showModalBottomSheet<DecisionTraslado>(
-      context: context,
-      isScrollControlled: true,
+    mostrarHoja<DecisionTraslado>(
+      context,
       builder: (_) => _HojaTraslado(sobrantes: sobrantes, preseleccion: preseleccion),
     );
 

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:app_finanzas/core/ciclo.dart';
 import 'package:app_finanzas/core/money.dart';
+import 'package:app_finanzas/data/almacenamiento/archivo_texto.dart';
 import 'package:app_finanzas/data/firebase/servicio_auth.dart';
 import 'package:app_finanzas/data/repositorios/local/almacen_local.dart';
 import 'package:app_finanzas/domain/modelos/categoria.dart';
@@ -170,6 +171,40 @@ void main() {
       await tester.scrollUntilVisible(find.text('Cómo pagas'), 300, scrollable: find.byType(Scrollable).last);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
+    });
+
+    // La hoja "Cómo se calcula" de Inicio cortaba su botón a la mitad en el
+    // iPhone (2026-11-15): con mostrarHoja crece y, si no cabe, se desplaza.
+    testWidgets('La hoja Cómo se calcula no recorta su botón a ${escala}x', (tester) async {
+      tester.view.physicalSize = const Size(375, 667);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pumpEscalado(
+        tester,
+        escala: escala,
+        home: PantallaInicio(
+          perfil: _perfil,
+          categoriaRepositorio: CategoriaRepositorioMemoria([_renta, _super, _transporte]),
+          movimientoRepositorio: MovimientoRepositorioMemoria(_movimientosDeHoy()),
+          reglasAprendidasRepositorio: ReglasAprendidasRepositorioMemoria(),
+          cicloRepositorio: CicloRepositorioMemoria(),
+          ingresoExtraRepositorio: IngresoExtraRepositorioMemoria(const []),
+          ajustePresupuestoCicloRepositorio: AjustePresupuestoCicloRepositorioMemoria(),
+          perfilRepositorio: PerfilRepositorioMemoria(_perfil),
+          servicioAuth: ServicioAuth(),
+          almacenLocal: AlmacenLocal.sobre({for (final n in AlmacenLocal.nombresDeArchivo) n: ArchivoTextoMemoria()}),
+        ),
+      );
+      await tester.tap(find.byTooltip('Cómo se calcula'));
+      await tester.pumpAndSettle();
+
+      final boton = find.text('Ver ingresos del ciclo');
+      await tester.scrollUntilVisible(boton, 200, scrollable: find.byType(Scrollable).last);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      final rect = tester.getRect(find.ancestor(of: boton, matching: find.byType(OutlinedButton)));
+      expect(rect.bottom, lessThanOrEqualTo(667), reason: 'el botón queda completo a la vista');
+      expect(rect.height, greaterThanOrEqualTo(40));
     });
   }
 }
