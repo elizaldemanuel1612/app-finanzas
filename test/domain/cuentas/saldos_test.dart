@@ -461,5 +461,11 @@ void main() {
       expect(cuentasParaRegistrar(cuentas).map((c) => c.id), ['cartera', 'amex']);
       expect(cuentasParaRegistrar(cuentas, conservar: idCuentaTarjeta).map((c) => c.id), [idCuentaTarjeta, 'cartera', 'amex']);
     });
+
+    test('una base renombrada es una cuenta real y no se esconde', () {
+      final platino = base.first.copyWith(nombre: 'Banamex platino');
+      final r = cuentasParaRegistrar([platino, base.last, cuenta('bbva', TipoCuenta.debito)]);
+      expect(r.map((c) => c.id), [idCuentaTarjeta, idCuentaEfectivo, 'bbva']);
+    });
   });
 }

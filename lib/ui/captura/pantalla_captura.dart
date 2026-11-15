@@ -36,6 +36,8 @@ import '../comun/formato_dinero.dart';
 import '../comun/tarjeta_app.dart';
 import '../comun/renglon_app.dart';
 import '../comun/formato_fecha.dart';
+import '../comun/borde_para_regresar.dart';
+import '../comun/boton_burbuja.dart';
 import '../comun/popscope_descartar.dart';
 import '../comun/selector_fecha.dart';
 import '../comun/tema.dart';
@@ -270,7 +272,20 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     }
   }
 
-  bool get _hayCambiosSinGuardar =>
+  /// Al editar, solo cuenta lo que difiere del gasto original: el monto ya
+  /// viene lleno, y tratarlo como cambio bloqueaba el gesto de atrás.
+  bool get _hayCambiosSinGuardar {
+    final e = widget.paraEditar;
+    if (e == null) return _hayCambiosEnNuevo;
+    return _monto != e.monto ||
+        _descripcionControlador.text != e.descripcion ||
+        (_seleccionada != null && _seleccionada!.id != e.categoriaId) ||
+        _fecha != e.fecha ||
+        (_cuentaId != null && _cuentaId != cuentaDe(e)) ||
+        (_fotoUrl != null && _fotoUrl != e.fotoUrl);
+  }
+
+  bool get _hayCambiosEnNuevo =>
       _montoControlador.text.isNotEmpty ||
       _descripcionControlador.text.isNotEmpty ||
       _seleccionada != null ||
@@ -624,12 +639,18 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   }
 
   Future<void> _elegirCuentaEnHoja() async {
+    // Con varias cuentas la lista no cabía en la hoja y las de abajo (las
+    // tarjetas de crédito, casi siempre) quedaban fuera de alcance: se
+    // desplaza.
     final elegida = await showModalBottomSheet<Cuenta>(
       context: context,
+      isScrollControlled: true,
       builder: (contexto) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-          child: Column(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(contexto).height * 0.8),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -646,6 +667,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                   ),
               ]),
             ],
+          ),
           ),
         ),
       ),
@@ -698,16 +720,19 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     final estiloMonto = textos.cifraHeroe.copyWith(fontSize: 56, height: 64 / 56, color: hayMonto ? p.texto : p.textoDesactivado);
 
     Widget chip(IconData icono, String texto, VoidCallback onTap, {bool desplegable = true}) => ActionChip(
-          avatar: Icon(icono, size: 16, color: p.texto),
+          avatar: Icon(icono, size: 18, color: p.accion),
           label: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(child: Text(texto, overflow: TextOverflow.ellipsis)),
-              if (desplegable) Icon(Icons.expand_more_rounded, size: 16, color: p.texto2),
+              if (desplegable) ...[const SizedBox(width: 2), Icon(Icons.expand_more_rounded, size: 18, color: p.texto2)],
             ],
           ),
-          backgroundColor: p.superficieHundida,
-          side: BorderSide.none,
+          backgroundColor: p.superficie,
+          side: BorderSide(color: p.bordeControl),
+          shape: const StadiumBorder(),
+          labelStyle: textos.cuerpoFuerte,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           onPressed: onTap,
         );
 
@@ -716,23 +741,19 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
       child: Focus(
         autofocus: !widget.iniciarDictado,
         onKeyEvent: _alTeclaFisica,
-        child: Scaffold(
+        child: _conBordeSiHayCambios(Scaffold(
           backgroundColor: p.superficie,
           appBar: AppBar(
             backgroundColor: p.superficie,
-            leading: IconButton(
-              icon: const Icon(Icons.close_rounded),
-              tooltip: 'Cerrar',
-              onPressed: () => Navigator.of(context).maybePop(),
-            ),
+            leading: const CloseButton(),
             centerTitle: true,
             title: Text(editando ? 'Editar gasto' : 'Nuevo gasto', style: textos.cuerpoFuerte),
             actions: [
-              IconButton(icon: const Icon(Icons.mic_none_rounded), tooltip: 'Dictar gasto', onPressed: _dictar),
+              BotonBurbuja(icono: Icons.mic_none_rounded, tooltip: 'Dictar gasto', onPressed: _dictar),
               // En la web no hay dónde guardar fotos (spec §4.2.2).
               if (!kIsWeb)
-                IconButton(
-                  icon: const Icon(Icons.photo_camera_outlined),
+                BotonBurbuja(
+                  icono: Icons.photo_camera_outlined,
                   tooltip: 'Foto del ticket',
                   onPressed: _cargandoFoto ? null : _mostrarOpcionesFoto,
                 ),
@@ -832,10 +853,16 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
               ],
             ),
           ),
-        ),
+        )),
       ),
     );
   }
+
+  /// Con algo capturado, el `PopScope` apaga el deslizar de iOS; la franja
+  /// del borde lo devuelve y pasa por `maybePop`, que pregunta "¿Descartar?".
+  Widget _conBordeSiHayCambios(Widget pantalla) => _hayCambiosSinGuardar
+      ? BordeParaRegresar(alRegresar: () => Navigator.of(context).maybePop(), child: pantalla)
+      : pantalla;
 
   /// Rejilla de 4 columnas: emoji, nombre y cuánto le queda. Sin monto, las
   /// categorías van deshabilitadas; la sugerida, resaltada.
@@ -954,35 +981,51 @@ class _Teclado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = ColoresApp.actual;
     final textos = Theme.of(context).textTheme;
     const teclas = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'];
+    // Panel propio, separado de la rejilla por un borde y esquinas
+    // redondeadas arriba; cada tecla es una pastilla con su contorno.
     return Semantics(
       label: 'Teclado numérico',
       container: true,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: p.superficieHundida,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radios.l)),
+          border: Border(top: BorderSide(color: p.borde)),
+          boxShadow: sombra1(p),
+        ),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
         child: MediaQuery.withClampedTextScaling(
           maxScaleFactor: 1.3,
           child: GridView.count(
             crossAxisCount: 3,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 6,
-            crossAxisSpacing: 6,
-            childAspectRatio: 2.4,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 2.6,
             children: [
               for (final t in teclas)
                 Semantics(
                   button: true,
                   label: t == '⌫' ? 'Borrar' : (t == '.' ? 'Punto' : t),
                   excludeSemantics: true,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(Radios.m),
-                    onTap: () => alTeclear(t),
-                    child: Center(
-                      child: t == '⌫'
-                          ? Icon(Icons.backspace_outlined, color: ColoresApp.texto)
-                          : Text(t, style: textos.titulo.copyWith(fontWeight: FontWeight.w500)),
+                  child: Material(
+                    color: t == '⌫' || t == '.' ? Colors.transparent : p.superficie,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(Radios.m),
+                      side: t == '⌫' || t == '.' ? BorderSide.none : BorderSide(color: p.borde),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () => alTeclear(t),
+                      child: Center(
+                        child: t == '⌫'
+                            ? Icon(Icons.backspace_outlined, color: p.texto)
+                            : Text(t, style: textos.titulo.copyWith(fontWeight: FontWeight.w500)),
+                      ),
                     ),
                   ),
                 ),

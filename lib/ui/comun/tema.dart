@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'boton_burbuja.dart';
 import 'paleta.dart';
 
 /// Una paleta completa, clara u oscura. Los hex viven en `paleta.dart`
@@ -518,6 +519,13 @@ ThemeData construirTema([Paleta p = Paleta.clara]) {
         borderRadius: BorderRadius.circular(Radios.l),
         side: BorderSide(color: p.borde),
       ),
+    ),
+    // Atrás y cerrar en burbuja en toda la app (estilo iOS, pedido del
+    // usuario el 2026-11-15): cada BackButton/CloseButton de los AppBar lo
+    // toma de aquí.
+    actionIconTheme: ActionIconThemeData(
+      backButtonIconBuilder: (_) => const IconoBurbuja(Icons.chevron_left_rounded),
+      closeButtonIconBuilder: (_) => const IconoBurbuja(Icons.close_rounded),
     ),
     appBarTheme: AppBarTheme(
       backgroundColor: p.fondo,

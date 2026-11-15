@@ -455,17 +455,26 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
             _seccion('Tu plan', [
               RenglonApp(
                 icono: Icons.savings_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.verde,
+                colorIcono: Colors.white,
                 titulo: 'Meta del ciclo',
                 derecha: Text(_textoMeta, style: textos.etiqueta),
                 onTap: _irAMetaAhorro,
               ),
               RenglonApp(
                 icono: Icons.grid_view_rounded,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.azul,
+                colorIcono: Colors.white,
                 titulo: 'Categorías y presupuestos',
                 onTap: _irACategorias,
               ),
               RenglonApp(
                 icono: Icons.event_repeat,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.naranja,
+                colorIcono: Colors.white,
                 titulo: 'Día de corte',
                 subtitulo: _subtituloCorte,
                 onTap: _irACambiarCorte,
@@ -476,6 +485,9 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                 valueListenable: AparienciaApp.actual,
                 builder: (context, apariencia, _) => RenglonApp(
                   icono: Icons.dark_mode_outlined,
+                  iconoCuadrado: true,
+                  fondoIcono: _TinteAjustes.indigo,
+                  colorIcono: Colors.white,
                   titulo: 'Apariencia',
                   derecha: Text(apariencia.etiqueta, style: textos.etiqueta),
                   onTap: _elegirApariencia,
@@ -483,6 +495,9 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
               ),
               RenglonApp(
                 icono: Icons.lock_outline,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.gris,
+                colorIcono: Colors.white,
                 titulo: 'Seguridad',
                 subtitulo: 'Bloqueo con PIN, Face ID o huella',
                 onTap: () => Navigator.of(context).push(
@@ -495,24 +510,36 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
             _seccion('Tus datos', [
               RenglonApp(
                 icono: Icons.cloud_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.azul,
+                colorIcono: Colors.white,
                 titulo: 'Respaldo en tu Google Drive',
                 subtitulo: 'Una copia privada en tu propia cuenta',
                 onTap: _irANube,
               ),
               RenglonApp(
                 icono: Icons.ios_share_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.verde,
+                colorIcono: Colors.white,
                 titulo: 'Exportar mis gastos',
                 subtitulo: 'Un archivo CSV con todo tu historial',
                 onTap: _exportarCsv,
               ),
               RenglonApp(
                 icono: Icons.file_upload_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.naranja,
+                colorIcono: Colors.white,
                 titulo: 'Importar gastos',
                 subtitulo: 'Desde un CSV, en cualquier momento',
                 onTap: _irAImportar,
               ),
               RenglonApp(
                 icono: Icons.description_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.turquesa,
+                colorIcono: Colors.white,
                 titulo: 'Descargar plantilla de ejemplo',
                 subtitulo: 'El formato que espera la importación',
                 onTap: _descargarPlantilla,
@@ -521,12 +548,18 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
             _seccion('Ayuda', [
               RenglonApp(
                 icono: Icons.help_outline,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.azul,
+                colorIcono: Colors.white,
                 titulo: 'Cómo funciona la app',
                 subtitulo: 'Guía por temas',
                 onTap: _irAComoFunciona,
               ),
               RenglonApp(
                 icono: Icons.replay,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.morado,
+                colorIcono: Colors.white,
                 titulo: 'Ver de nuevo las guías rápidas',
                 onTap: () async {
                   await reiniciarGuiasRapidas();
@@ -538,11 +571,17 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
               ),
               RenglonApp(
                 icono: Icons.privacy_tip_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.gris,
+                colorIcono: Colors.white,
                 titulo: 'Política de privacidad',
                 onTap: () => _abrirDocumentoLegal('Política de privacidad', 'docs/legal/privacidad.md'),
               ),
               RenglonApp(
                 icono: Icons.gavel_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.gris,
+                colorIcono: Colors.white,
                 titulo: 'Términos y condiciones',
                 onTap: () => _abrirDocumentoLegal('Términos y condiciones', 'docs/legal/terminos.md'),
               ),
@@ -566,10 +605,19 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
               ),
             ]),
             _seccion('Cuenta', [
-              RenglonApp(icono: Icons.logout, titulo: 'Cerrar sesión', onTap: _cerrarSesion),
+              RenglonApp(
+                icono: Icons.logout,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.gris,
+                colorIcono: Colors.white,
+                titulo: 'Cerrar sesión',
+                onTap: _cerrarSesion,
+              ),
               RenglonApp(
                 icono: Icons.delete_outline,
-                colorIcono: p.peligroTexto,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.rojo,
+                colorIcono: Colors.white,
                 titulo: 'Eliminar cuenta',
                 onTap: _eliminarCuenta,
               ),
@@ -581,4 +629,18 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       ),
     );
   }
+}
+
+/// Colores de los íconos en cuadro de Ajustes (estilo de las listas de
+/// configuración de iOS). Fijos en los dos modos: el ícono va en blanco y
+/// cada fondo pasa 3:1 contra él (umbral de gráficos, WCAG 1.4.11).
+abstract final class _TinteAjustes {
+  static const azul = Color(0xFF1F6FE0);
+  static const verde = Color(0xFF248A3D);
+  static const naranja = Color(0xFFC9590B);
+  static const indigo = Color(0xFF4B4ACF);
+  static const morado = Color(0xFF8344C7);
+  static const turquesa = Color(0xFF0E7C86);
+  static const gris = Color(0xFF6B6F7A);
+  static const rojo = Color(0xFFD12E2E);
 }

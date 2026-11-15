@@ -231,14 +231,20 @@ List<Cuenta> ordenarCuentasPorUso(List<Cuenta> cuentas, List<Movimiento> gastos)
 /// esconde en cuanto hay una tarjeta real (débito o crédito activa), y la
 /// base "Efectivo", si el usuario dio de alta otra de efectivo. [conservar]
 /// (la cuenta del gasto que se edita) se queda siempre.
+///
+/// Una base que el usuario renombró ya no es genérica: es su cuenta real
+/// (por ejemplo, "Tarjeta" convertida en "Banamex platino") y nunca se
+/// esconde.
 List<Cuenta> cuentasParaRegistrar(List<Cuenta> ordenadas, {String? conservar}) {
   bool hay(bool Function(Cuenta) condicion) => ordenadas.any((c) => c.activa && condicion(c));
-  final tarjetaReal = hay((c) => c.id != idCuentaTarjeta && (c.tipo == TipoCuenta.debito || c.tipo == TipoCuenta.credito));
-  final efectivoReal = hay((c) => c.id != idCuentaEfectivo && c.tipo == TipoCuenta.efectivo);
+  final nombresBase = {for (final b in cuentasBase(DateTime(2000))) b.id: b.nombre};
+  bool generica(Cuenta c, String id) => c.id == id && c.nombre.trim() == nombresBase[id];
+  final tarjetaReal = hay((c) => !generica(c, idCuentaTarjeta) && (c.tipo == TipoCuenta.debito || c.tipo == TipoCuenta.credito));
+  final efectivoReal = hay((c) => !generica(c, idCuentaEfectivo) && c.tipo == TipoCuenta.efectivo);
   return [
     for (final c in ordenadas)
       if (c.id == conservar ||
-          !((c.id == idCuentaTarjeta && tarjetaReal) || (c.id == idCuentaEfectivo && efectivoReal)))
+          !((generica(c, idCuentaTarjeta) && tarjetaReal) || (generica(c, idCuentaEfectivo) && efectivoReal)))
         c,
   ];
 }

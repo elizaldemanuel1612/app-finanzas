@@ -19,6 +19,10 @@ class RenglonApp extends StatelessWidget {
   final Color? fondoIcono;
   final Color? colorIcono;
 
+  /// Ícono en cuadro redondeado de color (renglones de Ajustes, como en las
+  /// listas de configuración de iOS) en vez del círculo.
+  final bool iconoCuadrado;
+
   final String titulo;
   final String? subtitulo;
 
@@ -43,6 +47,7 @@ class RenglonApp extends StatelessWidget {
     this.icono,
     this.fondoIcono,
     this.colorIcono,
+    this.iconoCuadrado = false,
     required this.titulo,
     this.subtitulo,
     this.monto,
@@ -62,14 +67,17 @@ class RenglonApp extends StatelessWidget {
 
     Widget? lider;
     if (emoji != null || icono != null) {
+      final lado = iconoCuadrado ? 32.0 : 40.0;
       lider = Container(
-        width: 40,
-        height: 40,
+        width: lado,
+        height: lado,
         alignment: Alignment.center,
-        decoration: BoxDecoration(color: fondoIcono ?? p.superficieHundida, shape: BoxShape.circle),
+        decoration: iconoCuadrado
+            ? BoxDecoration(color: fondoIcono ?? p.superficieHundida, borderRadius: BorderRadius.circular(9))
+            : BoxDecoration(color: fondoIcono ?? p.superficieHundida, shape: BoxShape.circle),
         child: emoji != null
             ? ExcludeSemantics(child: Text(emoji!, style: textos.cuerpo, textScaler: TextScaler.noScaling))
-            : Icon(icono, size: 20, color: colorIcono ?? p.texto),
+            : Icon(icono, size: iconoCuadrado ? 19 : 20, color: colorIcono ?? p.texto),
       );
     }
     final montoTexto = monto == null
