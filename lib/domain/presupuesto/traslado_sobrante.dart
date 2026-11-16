@@ -15,8 +15,13 @@ final class SobranteCategoria {
   const SobranteCategoria({required this.categoria, required this.sobrante});
 }
 
+/// Lo mínimo que se ofrece trasladar: con menos, la hoja diría
+/// "Sobraron \$0" (los montos se muestran en pesos enteros).
+const sobranteMinimo = Dinero.pesos(1);
+
 /// Lo que le sobró a cada variable activa en [cicloId] (presupuesto con los
-/// ajustes de ese ciclo menos lo gastado), de mayor a menor. Vacío si en ese
+/// ajustes de ese ciclo menos lo gastado), de mayor a menor; solo lo que
+/// llega a [sobranteMinimo]. Vacío si en ese
 /// ciclo no hubo gastos: sin uso, todo "sobra" y no tiene sentido ofrecerlo.
 List<SobranteCategoria> sobrantesDelCiclo({
   required List<Categoria> categorias,
@@ -33,7 +38,7 @@ List<SobranteCategoria> sobrantesDelCiclo({
   final efectivas = presupuestosEfectivosParaCiclo(base: categorias, ajustesDelCiclo: ajustesDelCiclo);
   return [
     for (final c in efectivas.whereType<CategoriaVariable>())
-      if (c.activa && c.presupuestoMensualCentavos.centavos > (gastado[c.id] ?? 0))
+      if (c.activa && c.presupuestoMensualCentavos.centavos - (gastado[c.id] ?? 0) >= sobranteMinimo.centavos)
         SobranteCategoria(
           categoria: c,
           sobrante: Dinero(c.presupuestoMensualCentavos.centavos - (gastado[c.id] ?? 0)),

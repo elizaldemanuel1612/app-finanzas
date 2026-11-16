@@ -108,6 +108,10 @@ final class CategoriaVariable extends Categoria {
     required this.presupuestoMensualCentavos,
   });
 
+  /// Presupuesto $0: se registra sin juzgar (spec §7.3.6) — sin ritmo,
+  /// exceso, sobrante ni coberturas.
+  bool get sinPresupuesto => !presupuestoMensualCentavos.esPositivo;
+
   @override
   Map<String, dynamic> toJson() => {
         'tipo': 'variable',

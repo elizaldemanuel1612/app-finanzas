@@ -147,9 +147,13 @@ class GraficaRitmo extends StatelessWidget {
   }
 }
 
-/// Verde si el cierre pronosticado cabe en el presupuesto; coral si lo rebasa.
-Color colorPronostico(Dinero cierre, Dinero presupuesto) =>
-    cierre <= presupuesto ? ColoresApp.verde : ColoresApp.coral;
+/// Verde si el cierre pronosticado cabe en el presupuesto; coral si lo
+/// rebasa. Sin presupuesto (spec §7.3.6) no hay juicio: azul.
+Color colorPronostico(Dinero cierre, Dinero presupuesto) => !presupuesto.esPositivo
+    ? ColoresApp.azul
+    : cierre <= presupuesto
+        ? ColoresApp.verde
+        : ColoresApp.coral;
 
 class _PintorRitmo extends CustomPainter {
   final List<Dinero> acumulado;

@@ -193,8 +193,9 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     if (!mounted) return;
     setState(() {
       _quedan = {
+        // Sin presupuesto (spec §7.3.6) no hay "lo que le queda".
         for (final c in efectivas.whereType<CategoriaVariable>())
-          c.id: c.presupuestoMensualCentavos - Dinero(gastado[c.id] ?? 0),
+          if (!c.sinPresupuesto) c.id: c.presupuestoMensualCentavos - Dinero(gastado[c.id] ?? 0),
       };
     });
   }

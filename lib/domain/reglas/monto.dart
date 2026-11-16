@@ -12,3 +12,12 @@ Resultado<void> validarMontoPositivo(Dinero monto, {String etiqueta = 'monto'}) 
   }
   return const Exito(null);
 }
+
+/// Para el presupuesto de una variable (spec §7.3.6): $0 es válido y
+/// significa "sin presupuesto"; negativo nunca.
+Resultado<void> validarMontoNoNegativo(Dinero monto, {String etiqueta = 'monto'}) {
+  if (monto.esNegativo) {
+    return Falla('El $etiqueta no puede ser negativo (recibido: $monto).');
+  }
+  return const Exito(null);
+}

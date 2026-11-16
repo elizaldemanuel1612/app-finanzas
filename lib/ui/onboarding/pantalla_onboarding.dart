@@ -111,6 +111,10 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
   final Set<String> _marcadasComoFijas =
       {for (final c in _categoriasSugeridas) if (c.fijaSugerida) c.id};
   final Map<String, Dinero> _montosEditados = {};
+
+  /// "Solo quiero registrar mis gastos" (spec §7.3.6): las variables van
+  /// en $0, sin presupuesto; las fijas conservan su monto.
+  bool _soloRegistrar = false;
   final Map<String, TextEditingController> _montoControladores = {
     for (final c in _categoriasSugeridas) c.id: TextEditingController(),
   };
@@ -222,7 +226,9 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
     return {
       for (final c in _categoriasSugeridas)
         if (_seleccionadas.contains(c.id))
-          c.id: _montosEditados[c.id] ?? porcentajeDelIngreso(ingreso, c.porcentaje),
+          c.id: _soloRegistrar && !_marcadasComoFijas.contains(c.id)
+              ? const Dinero.cero()
+              : _montosEditados[c.id] ?? porcentajeDelIngreso(ingreso, c.porcentaje),
     };
   }
 
@@ -231,7 +237,10 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
     final montos = _montosCalculados();
     for (final c in _categoriasSugeridas) {
       final monto = montos[c.id];
-      if (monto == null || !monto.esPositivo) {
+      final esFija = _marcadasComoFijas.contains(c.id);
+      // Una variable en $0 se queda, sin presupuesto (spec §7.3.6); una fija
+      // sin monto no tiene sentido.
+      if (monto == null || (esFija ? !monto.esPositivo : monto.esNegativo)) {
         // Si regresó y la desmarcó, la que ya se había guardado se archiva
         // en vez de quedar activa con el monto de la primera vuelta.
         final previa = await widget.categoriaRepositorio.buscarPorId(c.id);
@@ -240,7 +249,6 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
         }
         continue;
       }
-      final esFija = _marcadasComoFijas.contains(c.id);
       final resultado = esFija
           ? crearCategoriaFija(
               id: c.id,
@@ -509,7 +517,17 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
               );
             }).toList(),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _soloRegistrar,
+            onChanged: (v) => setState(() => _soloRegistrar = v),
+            title: const Text('Solo quiero registrar mis gastos'),
+            subtitle: const Text(
+              'Sin presupuestos: verás en qué se te va el dinero y cuánto te entra. Las fijas sí llevan su monto.',
+            ),
+          ),
+          const SizedBox(height: 8),
           for (final c in _categoriasSugeridas)
             if (_seleccionadas.contains(c.id))
               Padding(
@@ -533,6 +551,9 @@ class _PantallaOnboardingState extends State<PantallaOnboarding> {
                       label: Text(_marcadasComoFijas.contains(c.id) ? 'Fijo' : 'Varía'),
                     ),
                     const SizedBox(width: 8),
+                    if (_soloRegistrar && !_marcadasComoFijas.contains(c.id))
+                      const SizedBox(width: 116, child: Text('Sin presupuesto', textAlign: TextAlign.end))
+                    else
                     SizedBox(
                       width: 116,
                       child: TextField(

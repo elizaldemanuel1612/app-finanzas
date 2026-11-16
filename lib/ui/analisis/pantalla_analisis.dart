@@ -412,7 +412,8 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
     final r = datos.reporte;
     final avance = r.diaDelCiclo / r.diasDelCiclo;
     final presupuesto = r.presupuestoVariables;
-    final porcentaje = presupuesto.esPositivo ? r.gastadoVariables.centavos / presupuesto.centavos : 0.0;
+    // Solo lo de las categorías con presupuesto se compara (spec §7.3.6).
+    final porcentaje = presupuesto.esPositivo ? r.gastadoConPresupuesto.centavos / presupuesto.centavos : 0.0;
     final tono = tonoDeRitmo(porcentajeUsado: presupuesto.esPositivo ? porcentaje : null, avanceCiclo: avance);
     final meta = datos.metaCiclo;
     final apartado = datos.apartadoEstimado;
@@ -461,10 +462,17 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ChipEstado(
-                tono: tonoEstadoDeRitmo(tono),
-                texto: r.terminado ? veredicto.titulo : etiquetaTonoRitmo(tono),
-              ),
+              if (r.soloRegistro)
+                ChipEstado(
+                  tono: TonoEstado.neutro,
+                  texto: r.terminado ? 'Ciclo cerrado' : 'Día ${r.diaDelCiclo} de ${r.diasDelCiclo}',
+                  icono: Icons.calendar_today_rounded,
+                )
+              else
+                ChipEstado(
+                  tono: tonoEstadoDeRitmo(tono),
+                  texto: r.terminado ? veredicto.titulo : etiquetaTonoRitmo(tono),
+                ),
               const SizedBox(height: 14),
               Text(r.terminado ? 'Apartaste' : 'Si sigues así, apartas', style: textos.etiqueta),
               Row(
@@ -481,16 +489,23 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
                   if (meta.esPositivo) ...[const SizedBox(width: 8), Text('de ${enPesos(meta)}', style: textos.etiqueta)],
                 ],
               ),
-              const SizedBox(height: 14),
-              BarraRitmo(
-                porcentajeUsado: porcentaje,
-                avanceCiclo: avance,
-                descripcion: 'Tus variables',
-                gastado: r.gastadoVariables,
-                presupuesto: presupuesto,
-              ),
-              const SizedBox(height: 4),
-              Text('${enPesos(r.gastadoVariables)} de ${enPesos(presupuesto)} en variables', style: textos.etiqueta),
+              if (r.soloRegistro) ...[
+                const SizedBox(height: 10),
+                Text('Llevas ${enPesos(r.gastadoVariables)} en variables', style: textos.etiqueta),
+              ] else ...[
+                const SizedBox(height: 14),
+                BarraRitmo(
+                  porcentajeUsado: porcentaje,
+                  avanceCiclo: avance,
+                  descripcion: 'Tus variables',
+                  gastado: r.gastadoConPresupuesto,
+                  presupuesto: presupuesto,
+                ),
+                const SizedBox(height: 4),
+                Text('${enPesos(r.gastadoConPresupuesto)} de ${enPesos(presupuesto)} en variables', style: textos.etiqueta),
+                if (r.gastadoSinPresupuesto.esPositivo)
+                  Text('Además, ${enPesos(r.gastadoSinPresupuesto)} en categorías sin presupuesto', style: textos.etiqueta),
+              ],
             ],
           ),
         ),
@@ -510,13 +525,16 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
                 titulo: e.categoria.nombre,
                 monto: enPesos(e.gastado),
                 onTap: () => widget.alVerCategoria(e.categoria.id),
-                abajo: BarraRitmo(
-                  porcentajeUsado: e.presupuesto.esPositivo ? e.gastado.centavos / e.presupuesto.centavos : 0,
-                  avanceCiclo: avance,
-                  descripcion: e.categoria.nombre,
-                  gastado: e.gastado,
-                  presupuesto: e.presupuesto,
-                ),
+                subtitulo: e.categoria.sinPresupuesto ? 'Sin presupuesto' : null,
+                abajo: e.categoria.sinPresupuesto
+                    ? null
+                    : BarraRitmo(
+                        porcentajeUsado: e.gastado.centavos / e.presupuesto.centavos,
+                        avanceCiclo: avance,
+                        descripcion: e.categoria.nombre,
+                        gastado: e.gastado,
+                        presupuesto: e.presupuesto,
+                      ),
               ),
           ]),
         ],
@@ -528,9 +546,11 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
   Widget _contenidoDetalle(BuildContext context, _Datos datos) {
     final r = datos.reporte;
     final parejo = Dinero(r.presupuestoVariables.centavos * r.diaDelCiclo ~/ r.diasDelCiclo);
-    final arriba = r.gastadoVariables > parejo;
-    final diferencia = (r.gastadoVariables - parejo).absoluto;
-    final ritmo = r.terminado
+    final arriba = r.gastadoConPresupuesto > parejo;
+    final diferencia = (r.gastadoConPresupuesto - parejo).absoluto;
+    final ritmo = r.soloRegistro
+        ? (r.terminado ? 'Así gastaste este ciclo' : 'Así vas gastando este ciclo')
+        : r.terminado
         ? 'Cerraste ${enPesos(diferencia)} ${arriba ? 'arriba' : 'abajo'} de tu presupuesto'
         : 'Vas ${enPesos(diferencia)} ${arriba ? 'arriba' : 'abajo'} del ritmo parejo';
     final faltaMeta = datos.metaCiclo - datos.apartadoEstimado;
@@ -1141,7 +1161,10 @@ class _Ritmo extends StatelessWidget {
               diasDelCiclo: r.diasDelCiclo,
               presupuesto: r.presupuestoVariables,
               proyeccion: quedanDias ? r.proyeccionVariables : null,
-              descripcion: r.terminado
+              descripcion: r.soloRegistro
+                  ? '${r.terminado ? 'Gastaste' : 'Llevas'} ${r.gastadoVariables.formateado()} en variables.'
+                      '${quedanDias ? ' Si sigues así, cerrarías en ${r.proyeccionVariables.formateado()}.' : ''}'
+                  : r.terminado
                   ? 'Gastaste ${r.gastadoVariables.formateado()} en variables de ${r.presupuestoVariables.formateado()}.'
                   : 'Llevas ${r.gastadoVariables.formateado()} en variables; '
                       'a ritmo parejo llevarías ${parejo.formateado()}.'
@@ -1153,7 +1176,7 @@ class _Ritmo extends StatelessWidget {
               runSpacing: 6,
               children: [
                 _Leyenda(color: ColoresApp.azul, texto: r.terminado ? 'Lo que gastaste' : 'Lo que llevas'),
-                _Leyenda(color: ColoresApp.oro, texto: 'Ritmo parejo'),
+                if (!r.soloRegistro) _Leyenda(color: ColoresApp.oro, texto: 'Ritmo parejo'),
                 if (quedanDias)
                   _Leyenda(
                     color: colorPronostico(r.proyeccionVariables, r.presupuestoVariables),
@@ -1166,9 +1189,15 @@ class _Ritmo extends StatelessWidget {
             if (quedanDias) ...[
               const SizedBox(height: 4),
               Text(
-                'Estimado al cierre: ${enPesos(r.proyeccionVariables)} de ${enPesos(r.presupuestoVariables)}.',
+                r.soloRegistro
+                    ? 'Estimado al cierre: ${enPesos(r.proyeccionVariables)}.'
+                    : 'Estimado al cierre: ${enPesos(r.proyeccionVariables)} de ${enPesos(r.presupuestoVariables)}.',
                 style: textos.bodySmall?.copyWith(
-                  color: cierreSeRebasa ? ColoresApp.coralTexto : ColoresApp.verdeTexto,
+                  color: r.soloRegistro
+                      ? null
+                      : cierreSeRebasa
+                          ? ColoresApp.coralTexto
+                          : ColoresApp.verdeTexto,
                 ),
               ),
             ],

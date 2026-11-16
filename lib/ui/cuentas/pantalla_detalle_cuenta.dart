@@ -8,6 +8,8 @@ import '../../data/repositorios/cuenta_repositorio.dart';
 import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
+import '../../domain/cuentas/apartados.dart';
+import '../../domain/cuentas/eliminar_cuenta.dart';
 import '../../domain/cuentas/fechas_tarjeta.dart';
 import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/categoria_ingreso.dart';
@@ -20,9 +22,12 @@ import '../../domain/reglas/creacion_ingreso_extra.dart';
 import '../categorias/editor_categoria_ingreso.dart';
 import '../comun/aviso.dart';
 import '../comun/formato_dinero.dart';
+import '../comun/renglon_app.dart';
+import '../comun/tarjeta_app.dart';
 import '../comun/tema.dart';
 import 'color_saldo.dart';
 import 'frase_pago.dart';
+import 'hoja_apartado.dart';
 import 'hoja_transferencia.dart';
 import 'pantalla_editar_cuenta.dart';
 import '../comun/hoja.dart';
@@ -68,6 +73,15 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
   PagoTarjeta? _pago;
   Dinero _gastadoCiclo = const Dinero.cero();
   List<_Renglon>? _renglones;
+
+  /// Apartados (spec §7.3.5): los de esta cuenta con su saldo, lo que hay
+  /// contando todos, y la cuenta donde vive si esta es un apartado.
+  List<(Cuenta, Dinero?)> _apartados = const [];
+  Dinero? _total;
+  Cuenta? _padre;
+
+  /// Qué haría "Eliminar cuenta" (spec §7.3.1).
+  QuitarCuenta? _quitar;
 
   @override
   void initState() {
@@ -122,6 +136,10 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
       _pago = pagoDeTarjeta(cuenta, gastos, abonos, hoy: DateTime.now());
       _gastadoCiclo = Dinero(suyos.where((g) => g.cicloId == ciclo.id).fold(0, (s, g) => s + g.monto.centavos));
       _renglones = renglones.take(60).toList();
+      _apartados = [for (final a in apartadosDe(cuenta, cuentas)) (a, saldoDe(a, gastos, abonos))];
+      _total = totalConApartados(cuenta, cuentas, gastos, abonos);
+      _padre = cuentas.where((c) => c.id == cuenta.cuentaPadreId).firstOrNull;
+      _quitar = comoQuitarCuenta(cuenta, cuentas, gastos, abonos);
     });
   }
 
@@ -137,6 +155,60 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
   Future<void> _archivar() async {
     await widget.cuentaRepositorio.guardar(_cuenta.copyWith(activa: !_cuenta.activa));
     await _cargar();
+  }
+
+  /// "Eliminar cuenta" (spec §7.3.1): se borra si nunca se usó; si tiene
+  /// movimientos, se archiva y su historial se conserva.
+  Future<void> _eliminarCuenta() async {
+    final quitar = _quitar;
+    if (quitar == null || quitar == QuitarCuenta.noSePuede) return;
+    final nombre = _cuenta.nombre;
+    if (quitar == QuitarCuenta.tieneApartados) {
+      await showDialog<void>(
+        context: context,
+        builder: (contexto) => AlertDialog(
+          title: const Text('Primero elimina sus apartados'),
+          content: Text(
+            '$nombre tiene ${_apartados.length == 1 ? 'un apartado' : '${_apartados.length} apartados'}. '
+            'Elimínalos (su dinero regresa a $nombre) y después podrás quitar la cuenta.',
+          ),
+          actions: [TextButton(onPressed: () => Navigator.pop(contexto), child: const Text('Entendido'))],
+        ),
+      );
+      return;
+    }
+    final borrar = quitar == QuitarCuenta.eliminar;
+    final saldo = _saldo;
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: Text('¿Eliminar $nombre?'),
+        content: Text(
+          borrar
+              ? 'No tiene movimientos, así que se borra por completo. '
+                  'Si un objetivo se juntaba aquí, después elígele otra cuenta.'
+              : 'Tiene movimientos registrados, así que no se borra: se archiva. Deja de verse y de contar '
+                  'en tu patrimonio${saldo != null && !saldo.esCero ? ' (hoy marca ${saldo.formateado()})' : ''}, '
+                  'y su historial se conserva; puedes reactivarla desde "Ver archivadas". '
+                  'Si un objetivo se juntaba aquí, después elígele otra cuenta.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(contexto, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, true),
+            style: TextButton.styleFrom(foregroundColor: ColoresApp.actual.peligroTexto),
+            child: Text(borrar ? 'Eliminar' : 'Archivar'),
+          ),
+        ],
+      ),
+    );
+    if (si != true) return;
+    if (borrar) {
+      await widget.cuentaRepositorio.eliminar(_cuenta.id);
+    } else {
+      await widget.cuentaRepositorio.guardar(_cuenta.copyWith(activa: false));
+    }
+    if (mounted) Navigator.of(context).pop();
   }
 
   Future<void> _abonar() async {
@@ -163,6 +235,78 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
       repositorio: widget.movimientoCuentaRepositorio,
       origenId: esCredito ? null : _cuenta.id,
       destinoId: esCredito ? _cuenta.id : null,
+    );
+    if (hecha == true) await _cargar();
+  }
+
+  Future<void> _nuevoApartado() async {
+    final creado = await mostrarHojaNuevoApartado(
+      context,
+      padre: _cuenta,
+      disponible: _saldo,
+      cuentaRepositorio: widget.cuentaRepositorio,
+      movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio,
+    );
+    if (creado == true) await _cargar();
+  }
+
+  Future<void> _abrirApartado(Cuenta apartado) async {
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => PantallaDetalleCuenta(
+        cuenta: apartado,
+        perfil: widget.perfil,
+        cuentaRepositorio: widget.cuentaRepositorio,
+        movimientoRepositorio: widget.movimientoRepositorio,
+        movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio,
+        ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+        categoriaIngresoRepositorio: widget.categoriaIngresoRepositorio,
+      ),
+    ));
+    await _cargar();
+  }
+
+  /// Eliminar este apartado (spec §7.3.5): lo que tenga regresa a su
+  /// cuenta y el apartado se archiva; el historial se conserva.
+  Future<void> _eliminarApartado() async {
+    final padre = _padre;
+    final saldo = _saldo ?? const Dinero.cero();
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: Text('¿Eliminar ${_cuenta.nombre}?'),
+        content: Text(
+          '${saldo.esPositivo ? 'Los ${saldo.formateado()} que tiene regresan a ${padre?.nombre ?? 'su cuenta'}. ' : ''}'
+          'Si un objetivo se juntaba aquí, después elígele otra cuenta.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(contexto, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, true),
+            style: TextButton.styleFrom(foregroundColor: ColoresApp.actual.peligroTexto),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (si != true) return;
+    final r = eliminarApartado(apartado: _cuenta, saldo: saldo, clientId: _uuid.v4(), ahora: DateTime.now());
+    if (r == null) return;
+    final liberacion = r.liberacion;
+    if (liberacion != null) await widget.movimientoCuentaRepositorio.guardar(liberacion);
+    await widget.cuentaRepositorio.guardar(r.archivado);
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  /// Guardar en este apartado (desde su cuenta) o sacar de él (a su cuenta).
+  Future<void> _moverConPadre({required bool guardar}) async {
+    final padre = _padre;
+    if (padre == null) return;
+    final hecha = await mostrarHojaTransferencia(
+      context,
+      cuentas: _cuentas,
+      repositorio: widget.movimientoCuentaRepositorio,
+      origenId: guardar ? padre.id : _cuenta.id,
+      destinoId: guardar ? _cuenta.id : padre.id,
     );
     if (hecha == true) await _cargar();
   }
@@ -240,13 +384,15 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
     final esEfectivoBase = _cuenta.id == idCuentaEfectivo;
     final esCredito = _cuenta.tipo == TipoCuenta.credito;
     final esAhorro = _cuenta.tipo == TipoCuenta.ahorro;
+    final apartado = _cuenta.esApartado;
+    final conApartados = _cuenta.puedeTenerApartados && _cuenta.activa && saldo != null;
     final lectura = saldo == null ? null : lecturaDeSaldo(_cuenta, saldo);
     return Scaffold(
       appBar: AppBar(
         title: Text('${_cuenta.emoji} ${_cuenta.nombre}'),
         actions: [
           IconButton(icon: const Icon(Icons.edit_outlined), tooltip: 'Editar', onPressed: _editar),
-          if (!esEfectivoBase)
+          if (!esEfectivoBase && !_cuenta.esApartado)
             IconButton(
               icon: Icon(_cuenta.activa ? Icons.archive_outlined : Icons.unarchive_outlined),
               tooltip: _cuenta.activa ? 'Archivar' : 'Reactivar',
@@ -279,16 +425,51 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                                 : 'Disponible: ${disponible.formateado()} de ${_cuenta.limite!.formateado()}',
                             style: textos.bodySmall?.copyWith(color: disponible.esNegativo ? ColoresApp.coralTexto : null),
                           ),
+                        if (_apartados.isNotEmpty && _total != null)
+                          Text('Con tus apartados: ${_total!.formateado()}', style: textos.bodySmall),
                         if (saldo != null && saldo.esNegativo && !esCredito)
                           Text('Gastaste más de lo que tenías.', style: textos.bodySmall?.copyWith(color: ColoresApp.coralTexto)),
                         if (saldo != null) ...[
                           const SizedBox(height: 4),
                           Text(
-                            esAhorro
-                                ? 'Cuenta para tu patrimonio. Transfiérele lo que apartas y actualiza su valor cuando cambie.'
-                                : 'Gastado este ciclo: ${_gastadoCiclo.formateado()}',
+                            apartado
+                                ? 'Apartado en ${_padre?.nombre ?? 'otra cuenta'}. Guarda desde ella o saca para usarlo.'
+                                : esAhorro
+                                    ? 'Cuenta para tu patrimonio. Transfiérele lo que apartas y actualiza su valor cuando cambie.'
+                                    : 'Gastado este ciclo: ${_gastadoCiclo.formateado()}',
                             style: textos.bodySmall,
                           ),
+                          if (apartado && _padre != null) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () => _moverConPadre(guardar: true),
+                                    child: const Text('Guardar'),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () => _moverConPadre(guardar: false),
+                                    child: const Text('Sacar'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                TextButton(onPressed: _ajustar, child: const Text('Actualizar valor')),
+                                const Spacer(),
+                                TextButton(
+                                  onPressed: _eliminarApartado,
+                                  style: TextButton.styleFrom(foregroundColor: ColoresApp.actual.peligroTexto),
+                                  child: const Text('Eliminar apartado'),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
                           const SizedBox(height: 12),
                           Row(
                             children: [
@@ -311,11 +492,12 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                               ),
                             ],
                           ),
+                          ],
                         ] else ...[
                           const SizedBox(height: 8),
                           TextButton(onPressed: _editar, child: Text(esCredito ? 'Llevar lo que debes' : 'Llevar su saldo')),
                         ],
-                        if (_cuentas.where((c) => c.activa).length > 1) ...[
+                        if (!apartado && _cuentas.where((c) => c.activa).length > 1) ...[
                           const SizedBox(height: 8),
                           OutlinedButton.icon(
                             onPressed: _transferir,
@@ -356,6 +538,39 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                     onAccion: _editar,
                   ),
                 ],
+                if (conApartados) ...[
+                  EncabezadoSeccion(
+                    titulo: 'Apartados',
+                    dato: _apartados.isEmpty
+                        ? null
+                        : enPesos(Dinero(_apartados.fold<int>(0, (t, a) => t + (a.$2?.centavos ?? 0)))),
+                  ),
+                  if (_apartados.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+                      child: Text(
+                        'Separa tu dinero para algo —un viaje, tu fondo de emergencia— sin sacarlo de '
+                        '${_cuenta.nombre}, como en tu banco.',
+                        style: textos.etiqueta,
+                      ),
+                    )
+                  else
+                    TarjetaApp.lista(renglones: [
+                      for (final (a, s) in _apartados)
+                        RenglonApp(
+                          emoji: a.emoji,
+                          titulo: a.nombre,
+                          monto: s?.formateado(),
+                          onTap: () => _abrirApartado(a),
+                        ),
+                    ]),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _nuevoApartado,
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Nuevo apartado'),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 if (renglones.isEmpty)
                   Padding(
@@ -375,6 +590,19 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                       ),
                     ),
                   ),
+                // Una archivada con historial ya no tiene nada más que quitar.
+                if (!apartado &&
+                    _quitar != null &&
+                    _quitar != QuitarCuenta.noSePuede &&
+                    (_cuenta.activa || _quitar == QuitarCuenta.eliminar)) ...[
+                  const SizedBox(height: 16),
+                  TextButton.icon(
+                    onPressed: _eliminarCuenta,
+                    style: TextButton.styleFrom(foregroundColor: ColoresApp.actual.peligroTexto),
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    label: const Text('Eliminar cuenta'),
+                  ),
+                ],
               ],
             ),
     );

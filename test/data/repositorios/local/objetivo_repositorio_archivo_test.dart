@@ -27,6 +27,23 @@ void main() {
     expect(todos.first.activo, isFalse);
   });
 
+  test('eliminar lo quita por completo; uno que no existe no hace nada', () async {
+    final repo = ObjetivoRepositorioArchivo.sobre(ArchivoTextoMemoria());
+    Objetivo obj(String id) => Objetivo(
+          id: id,
+          nombre: id,
+          emoji: '🎯',
+          monto: const Dinero.pesos(1000),
+          cuentaId: 'cetes',
+          creado: DateTime(2026, 11, 14),
+        );
+    await repo.guardar(obj('fondo'));
+    await repo.guardar(obj('viaje'));
+    await repo.eliminar('fondo');
+    await repo.eliminar('no-existe');
+    expect((await repo.listarTodos()).map((o) => o.id), ['viaje']);
+  });
+
   test('objetivos.json es parte de los datos de la app y se respalda por id', () {
     expect(AlmacenLocal.nombresDeArchivo, contains('objetivos.json'));
     expect(claveDeArchivo('objetivos.json')!({'id': 'fondo'}), 'fondo');

@@ -24,7 +24,15 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MAVfin">
-  <meta name="theme-color" content="#0B1F3B">
+  <meta name="theme-color" content="#FCFAF7">
+  <!-- Fondo de la página = fondo de la app (2026-11-15). Safari pinta la
+       franja de la hora con él; sin esto salía blanca en modo oscuro. Al
+       arrancar, la app lo ajusta a la apariencia elegida
+       (lib/plataforma/color_pagina.dart); esto cubre el primer instante. -->
+  <style>
+    html, body { background-color: #FCFAF7; }
+    @media (prefers-color-scheme: dark) { html, body { background-color: #0A1424; } }
+  </style>
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
   <!-- Favicon -->

@@ -50,8 +50,9 @@ Resultado<CategoriaVariable> crearCategoriaVariable({
   if (id.trim().isEmpty) return const Falla('La categoría necesita un id.');
   if (nombre.trim().isEmpty) return const Falla('La categoría necesita un nombre.');
 
+  // $0 = sin presupuesto: se registra sin juzgar (spec §7.3.6).
   final montoValido =
-      validarMontoPositivo(presupuestoMensualCentavos, etiqueta: 'presupuesto');
+      validarMontoNoNegativo(presupuestoMensualCentavos, etiqueta: 'presupuesto');
   if (montoValido case Falla(:final mensaje)) return Falla(mensaje);
 
   return Exito(CategoriaVariable(
@@ -95,12 +96,12 @@ Resultado<CategoriaFija> actualizarMontoFijo({
 
 /// Cambia el presupuesto mensual de una categoría variable — usada por
 /// edición manual y por rebalanceo (`rebalanceo.dart`, addendum-v3 §2.5).
-/// Nunca se acepta un presupuesto en cero o negativo.
+/// $0 lo deja sin presupuesto (spec §7.3.6); negativo nunca.
 Resultado<CategoriaVariable> actualizarPresupuestoVariable({
   required CategoriaVariable categoria,
   required Dinero nuevoPresupuesto,
 }) {
-  final montoValido = validarMontoPositivo(nuevoPresupuesto, etiqueta: 'presupuesto');
+  final montoValido = validarMontoNoNegativo(nuevoPresupuesto, etiqueta: 'presupuesto');
   if (montoValido case Falla(:final mensaje)) return Falla(mensaje);
 
   return Exito(CategoriaVariable(

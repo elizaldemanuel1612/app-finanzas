@@ -49,9 +49,11 @@ void main() {
     expect(_ids(original), ['a', 'b']);
   });
 
-  test('gastado sin presupuesto va primero al ordenar por consumido', () {
+  test('sin presupuesto va al final al ordenar por consumido: no se juzga (spec §7.3.6)', () {
     final r = {'chica': _rollup('chica', 1, null), 'grande': _rollup('grande', 99, 100)};
-    expect(_ids(ordenarCategorias(categorias, r, OrdenCategorias.porcentajeUsado)).first, 'chica');
+    final orden = _ids(ordenarCategorias(categorias, r, OrdenCategorias.porcentajeUsado)).toList();
+    expect(orden.first, 'grande');
+    expect(orden.indexOf('chica'), greaterThan(orden.indexOf('grande')));
   });
 
   test('sin presupuesto ni gasto cuenta como cero', () {
@@ -135,5 +137,15 @@ void main() {
       'muy-pasada': _rollup('muy-pasada', 150, 100),
     };
     expect(_ids(ordenarPorAtencion(cats, r, avanceCiclo: 0.5)), ['muy-pasada', 'pasada', 'rapida', 'a-bien', 'bien', 'nada']);
+  });
+
+  test('sin presupuesto van al final, de mayor a menor gasto (spec §7.3.6)', () {
+    final cats = [_cat('cafe'), _cat('super'), _cat('bien'), _cat('nada')];
+    final r = {
+      'cafe': _rollup('cafe', 200, 0),
+      'super': _rollup('super', 900, 0),
+      'bien': _rollup('bien', 10, 100),
+    };
+    expect(_ids(ordenarPorAtencion(cats, r, avanceCiclo: 0.5)), ['bien', 'nada', 'super', 'cafe']);
   });
 }

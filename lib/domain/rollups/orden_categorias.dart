@@ -27,7 +27,8 @@ List<T> ordenarCategorias<T extends Categoria>(
   double usado(T c) {
     final porcentaje = rollups[c.id]?.porcentajeUsado;
     if (porcentaje != null) return porcentaje;
-    return gastado(c) > 0 ? double.infinity : 0;
+    // Sin presupuesto (spec §7.3.6) no hay porcentaje: al final, sin juicio.
+    return -1;
   }
 
   int porUsado(T a, T b) => usado(b).compareTo(usado(a));
@@ -48,14 +49,18 @@ List<T> ordenarCategorias<T extends Categoria>(
 /// Etapa 2): **lo que necesita atención va primero** — las que se pasaron
 /// (de mayor a menor porcentaje), luego las que van rápido ([tonoDeRitmo],
 /// el mismo veredicto del chip y la barra) y al final las que van bien, de
-/// mayor a menor porcentaje usado. Empates, por nombre.
+/// mayor a menor porcentaje usado. Las que no tienen presupuesto (spec
+/// §7.3.6) van al final, de mayor a menor gasto. Empates, por nombre.
 List<T> ordenarPorAtencion<T extends Categoria>(
   List<T> categorias,
   Map<String, Rollup> rollups, {
   required double avanceCiclo,
 }) {
   double usado(T c) => rollups[c.id]?.porcentajeUsado ?? 0;
-  int prioridad(T c) => switch (tonoDeRitmo(porcentajeUsado: rollups[c.id]?.porcentajeUsado, avanceCiclo: avanceCiclo)) {
+  int gastado(T c) => rollups[c.id]?.totalCentavos.centavos ?? 0;
+  int prioridad(T c) => rollups[c.id] != null && rollups[c.id]!.porcentajeUsado == null
+      ? 3
+      : switch (tonoDeRitmo(porcentajeUsado: rollups[c.id]?.porcentajeUsado, avanceCiclo: avanceCiclo)) {
         TonoRitmo.tePasaste => 0,
         TonoRitmo.vasRapido => 1,
         TonoRitmo.vasBien => 2,
@@ -65,7 +70,9 @@ List<T> ordenarPorAtencion<T extends Categoria>(
       final p = prioridad(a).compareTo(prioridad(b));
       if (p != 0) return p;
       final u = usado(b).compareTo(usado(a));
-      return u != 0 ? u : a.nombre.compareTo(b.nombre);
+      if (u != 0) return u;
+      final g = gastado(b).compareTo(gastado(a));
+      return g != 0 ? g : a.nombre.compareTo(b.nombre);
     });
 }
 

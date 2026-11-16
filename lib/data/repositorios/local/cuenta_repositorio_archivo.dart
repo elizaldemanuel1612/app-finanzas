@@ -34,4 +34,12 @@ final class CuentaRepositorioArchivo implements CuentaRepositorio {
     }
     await _almacen.escribir(items);
   }
+
+  @override
+  Future<void> eliminar(String id) async {
+    final items = await _almacen.leer();
+    final antes = items.length;
+    items.removeWhere((i) => i['id'] == id);
+    if (items.length != antes) await _almacen.escribir(items);
+  }
 }

@@ -4,6 +4,7 @@
 // `?modo=oscuro` o `?modo=claro` en la URL fija la apariencia;
 // `?pantalla=importar` abre directo la importación de CSV; `?pantalla=ia`,
 // los complementos de IA;
+// `?sinpresupuesto` deja las variables sin presupuesto;
 // `?corte=15` cambia el día de corte (para ver un ciclo a la mitad).
 import 'package:app_finanzas/core/ciclo.dart';
 import 'package:app_finanzas/core/money.dart';
@@ -55,8 +56,19 @@ Future<void> main() async {
       presupuestoMensualCentavos: Dinero.pesos(3850),
     ),
   ];
+  // `?sinpresupuesto` deja las variables en $0 (spec §7.3.6).
+  final sinPresupuesto = Uri.base.queryParameters.containsKey('sinpresupuesto');
   for (final c in categorias) {
-    await almacen.categorias.guardar(c);
+    await almacen.categorias.guardar(c is CategoriaVariable && sinPresupuesto
+        ? CategoriaVariable(
+            id: c.id,
+            nombre: c.nombre,
+            emoji: c.emoji,
+            activa: c.activa,
+            esNecesaria: c.esNecesaria,
+            presupuestoMensualCentavos: const Dinero.cero(),
+          )
+        : c);
   }
   final inicioCiclo = perfil.calculadoraCiclo.calcularPara(DateTime.now()).fechaInicio;
   await almacen.cuentas.listarTodas(); // crea Tarjeta y Efectivo
@@ -90,6 +102,26 @@ Future<void> main() async {
     llevaSaldo: true,
     saldoInicial: const Dinero.pesos(30000),
     fechaSaldoInicial: DateTime(inicioCiclo.year, inicioCiclo.month - 3, 5),
+  ));
+  // Un apartado dentro de BBVA (spec §7.3.5), donde se junta el viaje.
+  await almacen.cuentas.guardar(Cuenta(
+    id: 'bbva-viaje',
+    nombre: 'Viaje',
+    emoji: '✈️',
+    tipo: TipoCuenta.ahorro,
+    llevaSaldo: true,
+    saldoInicial: const Dinero.cero(),
+    fechaSaldoInicial: inicioCiclo,
+    cuentaPadreId: 'bbva',
+  ));
+  await almacen.movimientosCuenta.guardar(MovimientoCuenta(
+    clientId: 'demo-apartado',
+    cuentaId: 'bbva',
+    cuentaDestinoId: 'bbva-viaje',
+    fecha: inicioCiclo,
+    monto: const Dinero.pesos(7000),
+    tipo: TipoMovimientoCuenta.transferencia,
+    entra: false,
   ));
   // Ingresos con categoría (spec §7.3.4), para ver Análisis → Ingresos.
   for (final (i, (dias, pesos, categoria, nota)) in const [
@@ -136,7 +168,7 @@ Future<void> main() async {
     nombre: 'Viaje a Japón',
     emoji: '🗾',
     monto: const Dinero.pesos(60000),
-    cuentaId: 'cetes',
+    cuentaId: 'bbva-viaje',
     creado: inicioCiclo,
     fechaLimite: DateTime(inicioCiclo.year, inicioCiclo.month + 8, 15),
   ));

@@ -44,4 +44,20 @@ void main() {
     expect((await repo.listarTodos()).single.estado, EstadoMovimientoCuenta.anulado);
     expect(() => repo.anular('no'), throwsStateError);
   });
+
+  test('eliminar quita la cuenta; una que no existe no hace nada', () async {
+    final repo = CuentaRepositorioArchivo.sobre(ArchivoTextoMemoria(), reloj: () => DateTime(2026, 11, 2));
+    await repo.guardar(Cuenta(
+      id: 'nu',
+      nombre: 'Nu',
+      emoji: '💳',
+      tipo: TipoCuenta.debito,
+      llevaSaldo: true,
+      saldoInicial: const Dinero.cero(),
+      fechaSaldoInicial: DateTime(2026, 11, 2),
+    ));
+    await repo.eliminar('nu');
+    await repo.eliminar('no-existe');
+    expect([for (final c in await repo.listarTodas()) c.id], [idCuentaTarjeta, idCuentaEfectivo]);
+  });
 }

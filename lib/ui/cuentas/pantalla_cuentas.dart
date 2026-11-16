@@ -139,11 +139,25 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
       children: [
         EncabezadoSeccion(titulo: titulo, dato: dato),
         TarjetaApp.lista(renglones: [
-          for (final (c, saldo) in cuentas) _FilaCuenta(cuenta: c, saldo: saldo, pago: _pagos[c.id], alTocar: () => _abrir(c)),
+          for (final (c, saldo) in cuentas)
+            _FilaCuenta(
+              cuenta: c,
+              saldo: saldo,
+              pago: _pagos[c.id],
+              padre: _nombreDe(c.cuentaPadreId),
+              apartados: _cuantosApartados(c),
+              alTocar: () => _abrir(c),
+            ),
         ]),
       ],
     );
   }
+
+  String? _nombreDe(String? id) =>
+      id == null ? null : (_cuentas ?? const <(Cuenta, Dinero?)>[]).where((c) => c.$1.id == id).firstOrNull?.$1.nombre;
+
+  int _cuantosApartados(Cuenta c) =>
+      (_cuentas ?? const <(Cuenta, Dinero?)>[]).where((x) => x.$1.activa && x.$1.cuentaPadreId == c.id).length;
 
   @override
   Widget build(BuildContext context) {
@@ -151,10 +165,18 @@ class _PantallaCuentasState extends State<PantallaCuentas> {
     final textos = Theme.of(context).textTheme;
     final todas = cuentas ?? const <(Cuenta, Dinero?)>[];
     final activas = [for (final c in todas) if (c.$1.activa) c];
-    final archivadas = [for (final c in todas) if (!c.$1.activa) c];
+    // Un apartado eliminado (spec §7.3.5) queda archivado, pero ya no se ve.
+    final archivadas = [for (final c in todas) if (!c.$1.activa && !c.$1.esApartado) c];
     List<(Cuenta, Dinero?)> deTipo(Set<TipoCuenta> tipos) => [for (final c in activas) if (tipos.contains(c.$1.tipo)) c];
     final paraGastar = deTipo({TipoCuenta.efectivo, TipoCuenta.debito});
-    final ahorro = deTipo({TipoCuenta.ahorro});
+    // Los apartados (spec §7.3.5) son ahorro: cada uno junto a la cuenta de
+    // ahorro donde vive; los de débito, al final.
+    final ahorroPropio = [for (final c in deTipo({TipoCuenta.ahorro})) if (!c.$1.esApartado) c];
+    final apartados = [for (final c in deTipo({TipoCuenta.ahorro})) if (c.$1.esApartado) c];
+    final ahorro = [
+      for (final c in ahorroPropio) ...[c, ...apartados.where((a) => a.$1.cuentaPadreId == c.$1.id)],
+      ...apartados.where((a) => !ahorroPropio.any((c) => c.$1.id == a.$1.cuentaPadreId)),
+    ];
     final tarjetas = deTipo({TipoCuenta.credito});
 
     final cuerpo = cuentas == null
@@ -310,7 +332,20 @@ class _FilaCuenta extends StatelessWidget {
   final PagoTarjeta? pago;
   final VoidCallback alTocar;
 
-  const _FilaCuenta({required this.cuenta, required this.saldo, required this.alTocar, this.pago});
+  /// Si es un apartado, el nombre de la cuenta donde vive.
+  final String? padre;
+
+  /// Cuántos apartados activos tiene.
+  final int apartados;
+
+  const _FilaCuenta({
+    required this.cuenta,
+    required this.saldo,
+    required this.alTocar,
+    this.pago,
+    this.padre,
+    this.apartados = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -319,15 +354,18 @@ class _FilaCuenta extends StatelessWidget {
     final disponible = lectura?.disponible;
     final p = pago;
     final linea = p == null ? null : lineaDePago(p);
-    final base = cuenta.tipo == TipoCuenta.debito && !cuenta.llevaSaldo
+    final conApartados = apartados == 0 ? '' : ' · ${apartados == 1 ? '1 apartado' : '$apartados apartados'}';
+    final base = padre != null
+        ? 'Apartado en $padre'
+        : cuenta.tipo == TipoCuenta.debito && !cuenta.llevaSaldo
         ? 'Débito · define su saldo'
         : cuenta.tipo == TipoCuenta.credito && disponible != null
             ? (disponible.esNegativo
                 ? 'Te pasaste del límite por ${enPesos(disponible.absoluto)}'
                 : 'Te quedan ${enPesos(disponible)} de crédito')
             : cuenta.tipo.etiqueta == cuenta.nombre
-                ? null
-                : cuenta.tipo.etiqueta;
+                ? (conApartados.isEmpty ? null : conApartados.substring(3))
+                : '${cuenta.tipo.etiqueta}$conApartados';
     return RenglonApp(
       emoji: cuenta.emoji,
       titulo: cuenta.nombre,

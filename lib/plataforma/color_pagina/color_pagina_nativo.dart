@@ -1,0 +1,1 @@
+void pintarFondoDePagina(int argb) {}
