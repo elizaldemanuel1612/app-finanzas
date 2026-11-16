@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../plataforma/color_pagina.dart';
 import 'tema.dart';
 
 /// Claro, oscuro o lo que diga el teléfono (2026-10-26). Es una preferencia
@@ -70,6 +71,8 @@ class SincronizarPaleta extends StatelessWidget {
         if (raiz.mounted) raiz.visitChildren(marcar);
       });
     }
+    // En la web, la franja de la hora toma el fondo de la página.
+    pintarFondoDePagina(ColoresApp.fondo.toARGB32());
     // Hora y batería claras sobre fondo oscuro (y al revés) en las
     // pantallas sin barra superior, como Inicio.
     return AnnotatedRegion<SystemUiOverlayStyle>(
