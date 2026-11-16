@@ -1,0 +1,160 @@
+import '../../core/ciclo.dart';
+import '../../core/money.dart';
+import '../../core/result.dart';
+import '../modelos/cuenta.dart';
+import '../modelos/estado_movimiento.dart';
+import '../modelos/movimiento.dart';
+import '../reglas/creacion_movimiento.dart';
+
+// Compras a meses sin intereses (spec-app-finanzas-v2.md §7.3.1,
+// 2026-11-16): una compra a N meses son N gastos, uno por mensualidad, cada
+// uno en el ciclo de su fecha. Así el presupuesto de cada ciclo y el pago
+// de cada corte de la tarjeta cargan solo su mensualidad.
+
+/// Los plazos que se ofrecen al registrar.
+const plazosAMeses = [3, 6, 9, 12, 18, 24];
+
+/// Lo más que se acepta (también al importar).
+const maxMeses = 48;
+
+/// El total entre [meses]: al centavo hacia abajo, y lo que sobra en la
+/// primera. Siempre suma el total exacto.
+List<Dinero> repartirEnMensualidades(Dinero total, int meses) {
+  final base = total.centavos ~/ meses;
+  final resto = total.centavos - base * meses;
+  return [for (var i = 0; i < meses; i++) Dinero(i == 0 ? base + resto : base)];
+}
+
+/// La fecha de la mensualidad [numero] (1 = el día de la compra): un mes
+/// después por cada una, mismo día y hora; en meses más cortos, el último.
+DateTime fechaDeMensualidad(DateTime compra, int numero) {
+  final mes = compra.month + numero - 1;
+  final ultimo = DateTime(compra.year, mes + 1, 0).day;
+  return DateTime(
+    compra.year,
+    mes,
+    compra.day < ultimo ? compra.day : ultimo,
+    compra.hour,
+    compra.minute,
+    compra.second,
+  );
+}
+
+/// El `clientId` de la mensualidad [numero]: estable, para que reimportar
+/// o reintentar no duplique (regla #2).
+String clientIdDeMensualidad(String compraId, int numero) => '$compraId-m$numero';
+
+/// Las [meses] mensualidades de una compra de [total], listas para guardar.
+/// Cada una pasa por `crearMovimiento` (reglas #1, #2, #5, #18).
+Resultado<List<Movimiento>> crearCompraAMeses({
+  required String compraId,
+  required DateTime fecha,
+  required CalculadoraCiclo calculadoraCiclo,
+  required Dinero total,
+  required int meses,
+  required String categoriaId,
+  required String descripcion,
+  required OrigenCaptura origenCaptura,
+  required String? cuentaId,
+}) {
+  if (meses < 2 || meses > maxMeses) return Falla('Una compra a meses va de 2 a $maxMeses meses.');
+  if (total.centavos < meses) return Falla('El monto es muy chico para dividirlo en $meses meses.');
+  final montos = repartirEnMensualidades(total, meses);
+  final lista = <Movimiento>[];
+  for (var n = 1; n <= meses; n++) {
+    final creado = crearMovimiento(
+      clientId: clientIdDeMensualidad(compraId, n),
+      fecha: fechaDeMensualidad(fecha, n),
+      calculadoraCiclo: calculadoraCiclo,
+      monto: montos[n - 1],
+      categoriaId: categoriaId,
+      medio: MedioPago.tarjeta,
+      descripcion: descripcion,
+      origenCaptura: origenCaptura,
+    );
+    switch (creado) {
+      case Falla(:final mensaje):
+        return Falla(mensaje);
+      case Exito(:final valor):
+        lista.add(valor.copyWith(cuentaId: cuentaId, compraId: compraId, mensualidad: n, meses: meses));
+    }
+  }
+  return Exito(lista);
+}
+
+/// Las mensualidades de [compraId], en orden.
+List<Movimiento> mensualidadesDe(String compraId, List<Movimiento> movimientos) =>
+    [for (final m in movimientos) if (m.compraId == compraId) m]
+      ..sort((a, b) => (a.mensualidad ?? 0).compareTo(b.mensualidad ?? 0));
+
+/// Lo que viene de compras a meses en [cuenta]: las mensualidades activas
+/// con fecha después de hoy. Es parte de lo que se debe, pero no se paga
+/// en este corte.
+Dinero porPagarAMeses(Cuenta cuenta, List<Movimiento> gastos, {required DateTime hoy}) {
+  final finDeHoy = DateTime(hoy.year, hoy.month, hoy.day + 1);
+  return Dinero.suma([
+    for (final g in gastos)
+      if (g.esAMeses && g.estado == EstadoMovimiento.activo && cuentaDe(g) == cuenta.id && !g.fecha.isBefore(finDeHoy))
+        g.monto,
+  ]);
+}
+
+/// Una compra a meses vista entera, para el detalle de la tarjeta.
+final class CompraAMeses {
+  final String compraId;
+  final String descripcion;
+  final Dinero total;
+  final Dinero mensualidad;
+  final int meses;
+
+  /// Las que ya pasaron (su fecha es hoy o antes).
+  final int pagadas;
+
+  /// Lo que falta: las mensualidades futuras.
+  final Dinero falta;
+
+  const CompraAMeses({
+    required this.compraId,
+    required this.descripcion,
+    required this.total,
+    required this.mensualidad,
+    required this.meses,
+    required this.pagadas,
+    required this.falta,
+  });
+
+  bool get terminada => pagadas >= meses;
+}
+
+/// Las compras a meses activas de [cuenta] que aún tienen mensualidades por
+/// venir, de la más reciente a la más vieja.
+List<CompraAMeses> comprasAMesesDe(Cuenta cuenta, List<Movimiento> gastos, {required DateTime hoy}) {
+  final finDeHoy = DateTime(hoy.year, hoy.month, hoy.day + 1);
+  final porCompra = <String, List<Movimiento>>{};
+  for (final g in gastos) {
+    if (g.esAMeses && g.estado == EstadoMovimiento.activo && cuentaDe(g) == cuenta.id) {
+      porCompra.putIfAbsent(g.compraId!, () => []).add(g);
+    }
+  }
+  final compras = <(DateTime, CompraAMeses)>[];
+  for (final MapEntry(key: id, value: lista) in porCompra.entries) {
+    lista.sort((a, b) => (a.mensualidad ?? 0).compareTo(b.mensualidad ?? 0));
+    final futuras = [for (final m in lista) if (!m.fecha.isBefore(finDeHoy)) m];
+    if (futuras.isEmpty) continue;
+    final meses = lista.first.meses ?? lista.length;
+    compras.add((
+      lista.first.fecha,
+      CompraAMeses(
+        compraId: id,
+        descripcion: lista.first.descripcion,
+        total: Dinero.suma(lista.map((m) => m.monto)),
+        mensualidad: lista.last.monto,
+        meses: meses,
+        pagadas: meses - futuras.length,
+        falta: Dinero.suma(futuras.map((m) => m.monto)),
+      ),
+    ));
+  }
+  compras.sort((a, b) => b.$1.compareTo(a.$1));
+  return [for (final (_, c) in compras) c];
+}

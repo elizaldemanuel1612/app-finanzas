@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../../data/firebase/servicio_auth.dart';
+import '../../data/repositorios/anular_gasto.dart';
 import '../../data/repositorios/ajuste_presupuesto_ciclo_repositorio.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
@@ -372,10 +373,14 @@ class _PantallaInicioState extends State<PantallaInicio> {
     } else {
       texto = categoria == null ? 'Listo, quedó registrado' : 'Listo, quedó en ${categoria.nombre}';
     }
+    final meses = m.meses;
+    final aviso = m.esAMeses && meses != null
+        ? '$texto · $meses meses de ${enPesos(m.monto)}'
+        : texto;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
-        content: Text(texto),
+        content: Text(aviso),
         duration: const Duration(seconds: 7),
         // Con botón, Flutter la deja fija hasta tocarla; se va sola.
         persist: false,
@@ -383,7 +388,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
           label: 'Deshacer',
           // Nada se borra: se anula (regla #3).
           onPressed: () async {
-            await widget.movimientoRepositorio.anular(m.id ?? m.clientId);
+            await anularGasto(widget.movimientoRepositorio, m);
             if (!mounted) return;
             setState(() => _version++);
             await _cargar();

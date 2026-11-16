@@ -400,6 +400,15 @@ const _temaCuentasYTarjetas = TemaGuia(
       'antes de qué fecha; el aviso te lleva a la tarjeta, donde **Pagar '
       'esta tarjeta** registra el pago desde tu débito.',
     ),
+    Subtitulo('Meses sin intereses'),
+    Parrafo(
+      'Al registrar un gasto con una tarjeta de crédito, toca el chip **Meses** y '
+      'elige el plazo (3, 6, 9, 12, 18 o 24). La app lo divide en mensualidades: '
+      'a tu presupuesto de cada ciclo solo va la suya, y el pago de cada corte de '
+      'la tarjeta incluye solo la que le toca. En la tarjeta ves **A meses sin '
+      'intereses**, con lo que falta de cada compra. Si eliminas una mensualidad, '
+      'se elimina toda la compra.',
+    ),
     Nota(
       tono: TonoNota.tip,
       etiqueta: 'PAGAR NO ES GASTAR',

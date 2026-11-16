@@ -20,6 +20,9 @@ enum CampoImportado {
   cuenta,
   estado,
   origen,
+
+  /// "2 de 12": la mensualidad de una compra a meses (spec §7.3.1).
+  meses,
   id,
 }
 
@@ -38,6 +41,7 @@ const _aliasPorCampo = {
   CampoImportado.cuenta: ['cuenta'],
   CampoImportado.estado: ['estado', 'estatus', 'status'],
   CampoImportado.origen: ['como se registro', 'origen'],
+  CampoImportado.meses: ['meses', 'mensualidad'],
 };
 
 /// Alias cortos que solo cuentan si son el encabezado completo: "id"

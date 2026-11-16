@@ -23,6 +23,7 @@ import '../../data/repositorios/reglas_aprendidas_repositorio.dart';
 import '../../domain/clasificacion/cascada_clasificacion.dart';
 import '../../domain/clasificacion/historial_comercios.dart';
 import '../../domain/clasificacion/regla_aprendida.dart';
+import '../../domain/cuentas/compra_a_meses.dart';
 import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/categoria.dart';
 import '../../domain/modelos/cuenta.dart';
@@ -124,6 +125,10 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   /// Activas, la más usada primero; vacía si no hay [PantallaCaptura.cuentaRepositorio].
   List<Cuenta> _cuentas = [];
   String? _cuentaId;
+
+  /// Compra a meses sin intereses (spec §7.3.1): `null` = de contado. Solo
+  /// con una tarjeta de crédito y al crear.
+  int? _meses;
   late DateTime _fecha;
   String? _error;
   bool _guardando = false;
@@ -230,6 +235,57 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   void _elegirCuenta(Cuenta cuenta) {
     _cuentaId = cuenta.id;
     _medio = cuenta.tipo.medio;
+    if (cuenta.tipo != TipoCuenta.credito) _meses = null;
+  }
+
+  /// Una mensualidad: solo se cambian la categoría y la nota, para toda la
+  /// compra (spec §7.3.1).
+  bool get _editandoAMeses => widget.paraEditar?.esAMeses ?? false;
+
+  Future<void> _elegirMeses() async {
+    final monto = _monto;
+    final hayMonto = monto != null && monto.esPositivo;
+    final elegido = await mostrarHoja<int>(
+      context,
+      builder: (contexto) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('¿A meses sin intereses?', style: Theme.of(contexto).textTheme.seccion),
+              const SizedBox(height: 4),
+              Text(
+                'Cada mensualidad cuenta en su mes: en tu presupuesto y en el pago de tu tarjeta.',
+                style: Theme.of(contexto).textTheme.etiqueta,
+              ),
+              const SizedBox(height: 12),
+              TarjetaApp.lista(renglones: [
+                RenglonApp(
+                  icono: Icons.payments_outlined,
+                  titulo: 'De contado',
+                  subtitulo: 'Todo en este mes',
+                  derecha: _meses == null ? Icon(Icons.check_rounded, color: ColoresApp.texto) : null,
+                  onTap: () => Navigator.of(contexto).pop(0),
+                ),
+                for (final n in plazosAMeses)
+                  RenglonApp(
+                    icono: Icons.calendar_view_month_outlined,
+                    titulo: '$n meses',
+                    subtitulo: hayMonto && monto.centavos >= n
+                        ? '${enPesos(repartirEnMensualidades(monto, n).last)} al mes'
+                        : null,
+                    derecha: _meses == n ? Icon(Icons.check_rounded, color: ColoresApp.texto) : null,
+                    onTap: () => Navigator.of(contexto).pop(n),
+                  ),
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (elegido != null && mounted) setState(() => _meses = elegido == 0 ? null : elegido);
   }
 
   /// Lo que dijo el dictado ("en efectivo"): la cuenta elegida si ya es de
@@ -389,6 +445,21 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
         ? categoria.nombre
         : _descripcionControlador.text.trim();
 
+    if (paraEditar != null && paraEditar.esAMeses) {
+      // Una mensualidad: la categoría y la nota cambian en toda la compra;
+      // monto, fecha y cuenta no se tocan (spec §7.3.1).
+      final todos = await widget.movimientoRepositorio.listarTodos();
+      Movimiento? editado;
+      for (final m in mensualidadesDe(paraEditar.compraId!, todos)) {
+        final cambiado = m.copyWith(categoriaId: categoria.id, descripcion: descripcion);
+        await widget.movimientoRepositorio.actualizar(cambiado);
+        if (m.clientId == paraEditar.clientId) editado = cambiado;
+      }
+      if (!mounted) return;
+      Navigator.of(context).pop(editado ?? paraEditar.copyWith(categoriaId: categoria.id, descripcion: descripcion));
+      return;
+    }
+
     if (paraEditar != null) {
       final montoValido = validarMontoPositivo(
         monto,
@@ -424,6 +495,40 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
           await widget.movimientoRepositorio.actualizar(editado);
           if (!mounted) return;
           Navigator.of(context).pop(editado);
+      }
+      return;
+    }
+
+    final meses = _meses;
+    if (meses != null) {
+      final compra = crearCompraAMeses(
+        compraId: _uuid.v4(),
+        fecha: _fecha,
+        calculadoraCiclo: calculadoraCiclo,
+        total: monto,
+        meses: meses,
+        categoriaId: categoria.id,
+        descripcion: descripcion,
+        origenCaptura: OrigenCaptura.manual,
+        cuentaId: _cuentaId,
+      );
+      switch (compra) {
+        case Falla(:final mensaje):
+          setState(() {
+            _error = mensaje;
+            _guardando = false;
+          });
+        case Exito(valor: final mensualidades):
+          final fotoUrl = _fotoUrl;
+          final primera = fotoUrl == null
+              ? mensualidades.first
+              : mensualidades.first.copyWith(ticketId: _uuid.v4(), fotoUrl: fotoUrl);
+          for (final m in [primera, ...mensualidades.skip(1)]) {
+            await widget.movimientoRepositorio.guardar(m);
+          }
+          await _aprenderDeLaCaptura(descripcion, categoria.id);
+          if (!mounted) return;
+          Navigator.of(context).pop(primera);
       }
       return;
     }
@@ -628,6 +733,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   /// El teclado numérico propio (componentes/Campo.md): sin teclado del
   /// sistema, con punto y ⌫. Máximo dos decimales y nueve cifras.
   void _teclear(String tecla) {
+    if (_editandoAMeses) return;
     final actual = _montoControlador.text.replaceAll(',', '');
     String nuevo;
     if (tecla == '⌫') {
@@ -783,7 +889,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     final (enteros, decimales) = punto < 0 ? (textoMonto, '') : (textoMonto.substring(0, punto), textoMonto.substring(punto));
     final estiloMonto = textos.cifraHeroe.copyWith(fontSize: 56, height: 64 / 56, color: hayMonto ? p.texto : p.textoDesactivado);
 
-    Widget chip(IconData icono, String texto, VoidCallback onTap, {bool desplegable = true}) => ActionChip(
+    Widget chip(IconData icono, String texto, VoidCallback? onTap, {bool desplegable = true}) => ActionChip(
           avatar: Icon(icono, size: 18, color: p.accion),
           label: Row(
             mainAxisSize: MainAxisSize.min,
@@ -862,11 +968,37 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          chip(Icons.calendar_today_rounded, _textoFecha, _elegirFecha),
-                          if (cuenta != null) chip(Icons.account_balance_wallet_outlined, cuenta.nombre, _elegirCuentaEnHoja),
+                          chip(Icons.calendar_today_rounded, _textoFecha, _editandoAMeses ? null : _elegirFecha,
+                              desplegable: !_editandoAMeses),
+                          if (cuenta != null)
+                            chip(Icons.account_balance_wallet_outlined, cuenta.nombre, _editandoAMeses ? null : _elegirCuentaEnHoja,
+                                desplegable: !_editandoAMeses),
+                          if (_editandoAMeses)
+                            chip(Icons.calendar_view_month_outlined,
+                                'Mensualidad ${widget.paraEditar!.mensualidad} de ${widget.paraEditar!.meses}', null,
+                                desplegable: false)
+                          else if (!editando && cuenta?.tipo == TipoCuenta.credito)
+                            chip(Icons.calendar_view_month_outlined, _meses == null ? 'Meses' : '$_meses meses', _elegirMeses),
                           chip(Icons.edit_outlined, nota.isEmpty ? 'Nota' : nota, _escribirNota, desplegable: false),
                         ],
                       ),
+                      if (_meses case final n? when hayMonto && monto.centavos >= n) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          '$n mensualidades de ${enPesos(repartirEnMensualidades(monto, n).last)}. '
+                          'A tu presupuesto de este ciclo solo va la primera.',
+                          textAlign: TextAlign.center,
+                          style: textos.etiqueta,
+                        ),
+                      ],
+                      if (_editandoAMeses) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          'Es parte de una compra a meses: la categoría y la nota cambian en todas sus mensualidades.',
+                          textAlign: TextAlign.center,
+                          style: textos.etiqueta,
+                        ),
+                      ],
                       if (_cargandoFoto) ...[const SizedBox(height: 12), const LinearProgressIndicator()],
                       if (_fotoUrl != null) ...[
                         const SizedBox(height: 12),

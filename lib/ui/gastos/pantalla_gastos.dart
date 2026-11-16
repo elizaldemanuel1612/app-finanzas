@@ -7,6 +7,7 @@ import '../../core/money.dart';
 import '../../domain/ciclo_de_vida/cierre_ciclo.dart';
 import '../../core/ciclo.dart';
 import '../../core/result.dart';
+import '../../data/repositorios/anular_gasto.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
 import '../../data/repositorios/cuenta_repositorio.dart';
@@ -619,7 +620,7 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
   Future<bool> _anular(BuildContext context, Movimiento m) async {
     final puedeModificar = await asegurarCicloAbierto(context, cicloId: m.cicloId, cicloRepositorio: cicloRepositorio);
     if (!puedeModificar || !context.mounted) return false;
-    await movimientoRepositorio.anular(m.id!);
+    await anularGasto(movimientoRepositorio, m);
     onCambio();
     if (!context.mounted) return true;
     if (await avisarGestoPrimeraVez(context, GestoApp.eliminarGasto)) return true;
@@ -627,14 +628,16 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
-        content: Text('Anulaste ${m.descripcion} · ${m.monto.formateado()}'),
+        content: Text(m.esAMeses
+            ? 'Anulaste ${m.descripcion}: sus ${m.meses} mensualidades'
+            : 'Anulaste ${m.descripcion} · ${m.monto.formateado()}'),
         duration: const Duration(seconds: 7),
         // Con botón, Flutter la deja fija hasta tocarla; se va sola.
         persist: false,
         action: SnackBarAction(
           label: 'Deshacer',
           onPressed: () async {
-            await movimientoRepositorio.actualizar(m.copyWith(estado: EstadoMovimiento.activo));
+            await restaurarGasto(movimientoRepositorio, m);
             onCambio();
           },
         ),
@@ -659,7 +662,8 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
       final fila = RenglonApp(
         emoji: categoria?.emoji ?? '❔',
         titulo: m.descripcion,
-        subtitulo: '${categoria?.nombre ?? m.categoriaId} · $cuenta',
+        subtitulo: '${categoria?.nombre ?? m.categoriaId} · $cuenta'
+            '${m.esAMeses ? ' · ${m.mensualidad} de ${m.meses} meses' : ''}',
         monto: m.monto.formateado(),
         onTap: () => _editar(context, m),
       );
@@ -680,7 +684,8 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
           );
       return Dismissible(
         key: ValueKey(m.id),
-        direction: DismissDirection.horizontal,
+        // Una mensualidad no se duplica (spec §7.3.1): solo se anula.
+        direction: m.esAMeses ? DismissDirection.endToStart : DismissDirection.horizontal,
         background: fondo(p.exitoFondo, Icons.copy_rounded, 'Duplicar', Alignment.centerLeft),
         secondaryBackground: fondo(p.peligroFondo, Icons.block_rounded, 'Anular', Alignment.centerRight),
         confirmDismiss: (direccion) => direccion == DismissDirection.startToEnd

@@ -300,7 +300,8 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
       case Falla(:final mensaje):
         problemas.add(RenglonConProblema(numeroDeRenglon: numeroDeRenglon, motivo: mensaje));
       case Exito(valor: final sinCuenta):
-        final leido = cuenta == null ? sinCuenta : sinCuenta.copyWith(cuentaId: cuenta.id);
+        final conCuenta = cuenta == null ? sinCuenta : sinCuenta.copyWith(cuentaId: cuenta.id);
+        final leido = _conMeses(conCuenta, campo(CampoImportado.meses), avisar);
         final previo = existentesPorClientId[leido.clientId];
         final valor = previo == null
             ? leido
@@ -357,6 +358,20 @@ Resultado<ResultadoImportacion> previsualizarImportacion({
     categoriasAdivinadas: adivinadas,
     sinCategoria: sinCategoria,
   ));
+}
+
+/// La columna Meses ("2 de 12", spec §7.3.1): con un ID de mensualidad
+/// (`{compraId}-m2`) se vuelve a ligar a su compra. Sin ID que lo diga, el
+/// gasto entra de contado, con aviso.
+Movimiento _conMeses(Movimiento m, String texto, void Function(String) avisar) {
+  if (texto.isEmpty) return m;
+  final leido = leerMensualidad(texto);
+  final id = RegExp(r'^(.+)-m(\d+)$').firstMatch(m.clientId);
+  if (leido == null || id == null || int.parse(id.group(2)!) != leido.$1) {
+    avisar('Meses "$texto" no se pudo ligar a una compra a meses; se importó de contado.');
+    return m;
+  }
+  return m.copyWith(compraId: id.group(1), mensualidad: leido.$1, meses: leido.$2);
 }
 
 /// Una cuenta que el archivo nombra y no existía. El tipo sale del medio de

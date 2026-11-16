@@ -26,6 +26,8 @@ const encabezadosExportacion = [
   'Estado',
   'Cómo se registró',
   'ID',
+  // Al final, para no mover las columnas de antes (2026-11-16, §7.3.1).
+  'Meses',
 ];
 
 /// Cómo se escribe cada valor en el CSV, en palabras que entiende quien
@@ -87,6 +89,7 @@ String exportarMovimientosCsv({
       etiquetaEstado[m.estado]!,
       etiquetaOrigen[m.origenCaptura]!,
       _neutralizarFormula(m.clientId),
+      m.esAMeses ? textoDeMensualidad(m.mensualidad!, m.meses!) : '',
     ];
     buffer.writeln(fila.map(_celda).join(','));
   }
@@ -95,7 +98,7 @@ String exportarMovimientosCsv({
   // solo lo que viene en el archivo, sin este renglón se perdería.
   for (final c in categorias) {
     if (conGastos.contains(c.id)) continue;
-    final fila = ['', '', ..._columnasDeCategoria(c, c.id), '', '', '', '', '', ''];
+    final fila = ['', '', ..._columnasDeCategoria(c, c.id), '', '', '', '', '', '', ''];
     buffer.writeln(fila.map(_celda).join(','));
   }
 
@@ -177,6 +180,21 @@ List<String> _columnasDeCategoria(Categoria? categoria, String idSiNoExiste) => 
     };
 
 String _siNo(bool valor) => valor ? 'Sí' : 'No';
+
+/// "2 de 12": la columna Meses (spec §7.3.1). La importación la lee con
+/// [leerMensualidad].
+String textoDeMensualidad(int mensualidad, int meses) => '$mensualidad de $meses';
+
+/// Lo inverso de [textoDeMensualidad]; `null` si no se entiende o no tiene
+/// sentido (la mensualidad pasa del plazo, o el plazo de 2 a 48).
+(int, int)? leerMensualidad(String texto) {
+  final m = RegExp(r'^\s*(\d+)\s*(?:de|/)\s*(\d+)\s*$').firstMatch(texto.toLowerCase());
+  if (m == null) return null;
+  final n = int.parse(m.group(1)!);
+  final de = int.parse(m.group(2)!);
+  if (n < 1 || n > de || de < 2 || de > 48) return null;
+  return (n, de);
+}
 
 /// `aaaa-mm-dd`, y la hora (`aaaa-mm-dd HH:mm`) solo si la tiene: así la
 /// hoja de cálculo la reconoce como fecha y el orden del día se conserva.

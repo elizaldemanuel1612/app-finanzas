@@ -35,7 +35,7 @@ enum GuiaRapida {
       Icons.credit_card,
       'Antes, si hace falta, cambia la cuenta',
       'El chip de cuenta dice con qué pagaste: efectivo, débito o crédito. Así el saldo de tus cuentas se '
-          'actualiza solo.',
+          'actualiza solo. Con crédito aparece Meses, para compras a meses sin intereses.',
     ),
     PasoGuiaRapida(
       Icons.mic_none,
