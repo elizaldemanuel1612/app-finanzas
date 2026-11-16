@@ -359,6 +359,11 @@ const _temaTusDatos = TemaGuia(
           'contesta cómo hacer algo o dónde está un botón, con base en esta guía.',
       '**Sugerir categorías**: al escribir la nota de un gasto que la app no '
           'reconoce, tu IA resalta la categoría que cree; tú decides al tocarla.',
+      '**Dejar que tu IA vea tus números** (apagado de fábrica): con él '
+          'encendido puedes preguntarle cuánto llevas, cuánto te queda en una '
+          'categoría o cómo van tus objetivos. La app le pasa un resumen ya '
+          'calculado, nunca cada gasto. Con Apple Intelligence no sale de tu '
+          'iPhone; con Gemini ese resumen se manda a Google.',
     ]),
   ],
 );

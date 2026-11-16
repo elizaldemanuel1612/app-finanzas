@@ -108,7 +108,8 @@ final class ReporteAnalisis {
   final List<GastoCategoria> porCategoria;
 
   /// Gasto acumulado de variables al final de cada día transcurrido
-  /// (índice 0 = primer día del ciclo).
+  /// (índice 0 = primer día del ciclo). Con presupuestos, solo lo de las
+  /// categorías que lo tienen, para compararse contra él (spec §7.3.6).
   final List<Dinero> acumuladoVariablesPorDia;
 
   /// `null` si no hay ciclo anterior con movimientos.
@@ -248,8 +249,13 @@ ReporteAnalisis calcularReporteAnalisis({
   ]..sort((a, b) => b.total.compareTo(a.total));
 
   // Ritmo del ciclo.
+  // La línea se compara contra el presupuesto, así que solo acumula lo de
+  // las categorías que lo tienen (spec §7.3.6); si ninguna lo tiene, todo.
+  final paraRitmo = presupuestoVariables.esPositivo
+      ? [for (final m in variables) if (!(porId[m.categoriaId] as CategoriaVariable).sinPresupuesto) m]
+      : variables;
   final porDia = List<int>.filled(diaDelCiclo, 0);
-  for (final m in variables) {
+  for (final m in paraRitmo) {
     final i = _diasEntre(ciclo.fechaInicio, _dia(m.fecha));
     if (i >= 0 && i < diaDelCiclo) porDia[i] += m.monto.centavos;
   }

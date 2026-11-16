@@ -76,6 +76,75 @@ void main() {
       expect(enviado['generationConfig']['responseMimeType'], 'application/json');
     });
 
+    test('pensar apagado según el modelo: 2.5 flash con presupuesto 0, del 3 en adelante con nivel', () {
+      expect(ClienteGemini.configuracionDePensar('gemini-2.5-flash'), {'thinkingBudget': 0});
+      expect(ClienteGemini.configuracionDePensar('gemini-3.5-flash'), {'thinkingLevel': 'minimal'});
+      expect(ClienteGemini.configuracionDePensar('gemini-3-flash-preview'), {'thinkingLevel': 'minimal'});
+      expect(ClienteGemini.configuracionDePensar('gemini-2.0-flash'), isNull);
+      expect(ClienteGemini.configuracionDePensar('gemini-2.5-pro'), isNull);
+      expect(ClienteGemini.configuracionDePensar('gemini-flash-latest'), isNull);
+    });
+
+    Map<String, dynamic> respuesta(String texto, {bool pensado = false}) => {
+          'candidates': [
+            {
+              'content': {
+                'parts': [
+                  if (pensado) {'text': 'pensando…', 'thought': true},
+                  if (texto.isNotEmpty) {'text': texto},
+                ],
+              },
+            },
+          ],
+        };
+
+    test('manda el pensar apagado y no cuenta lo pensado como respuesta', () async {
+      final enviados = <Map<String, dynamic>>[];
+      final g = ClienteGemini('k', modelo: 'gemini-2.5-flash', cliente: MockClient((r) async {
+        enviados.add(jsonDecode(r.body) as Map<String, dynamic>);
+        return _json(respuesta('Salidas', pensado: true));
+      }));
+      expect(await g.responder(sistema: 's', mensajes: const [MensajeIA.usuario('a')], maxTokens: 30), 'Salidas');
+      expect(enviados.single['generationConfig'], {'maxOutputTokens': 30, 'thinkingConfig': {'thinkingBudget': 0}});
+    });
+
+    test('si el modelo rechaza esa forma (400), reintenta sin ella y con holgura', () async {
+      final enviados = <Map<String, dynamic>>[];
+      final g = ClienteGemini('k', modelo: 'gemini-3.5-flash', cliente: MockClient((r) async {
+        final cuerpo = jsonDecode(r.body) as Map<String, dynamic>;
+        enviados.add(cuerpo);
+        if ((cuerpo['generationConfig'] as Map).containsKey('thinkingConfig')) return http.Response('{"error": "campo"}', 400);
+        return _json(respuesta('ok'));
+      }));
+      expect(await g.responder(sistema: 's', mensajes: const [MensajeIA.usuario('a')], maxTokens: 30), 'ok');
+      expect(enviados, hasLength(2));
+      expect(enviados.last['generationConfig'], {'maxOutputTokens': 4126});
+    });
+
+    test('respuesta vacía (se le fue en pensar): una vez más con holgura; si sigue vacía, lo dice', () async {
+      var n = 0;
+      final g = ClienteGemini('k', modelo: 'gemini-2.5-flash', cliente: MockClient((_) async => _json(respuesta(n++ == 0 ? '' : 'ya'))));
+      expect(await g.responder(sistema: 's', mensajes: const [MensajeIA.usuario('a')]), 'ya');
+      expect(n, 2);
+      var m = 0;
+      final vacio = ClienteGemini('k', modelo: 'gemini-2.0-flash', cliente: MockClient((_) async {
+        m++;
+        return _json(respuesta(''));
+      }));
+      await expectLater(vacio.responder(sistema: 's', mensajes: const [MensajeIA.usuario('a')]), throwsA(isA<ErrorIA>()));
+      expect(m, 2);
+    });
+
+    test('una clave mala no se reintenta', () async {
+      var n = 0;
+      final g = ClienteGemini('k', modelo: 'gemini-2.5-flash', cliente: MockClient((_) async {
+        n++;
+        return http.Response('API key not valid', 400);
+      }));
+      await expectLater(g.responder(sistema: 's', mensajes: const []), throwsA(isA<ErrorIA>()));
+      expect(n, 1);
+    });
+
     test('los errores se dicen en palabras', () async {
       Future<String> conCodigo(int codigo, {String cuerpo = '{}'}) async {
         final g = ClienteGemini('k', modelo: 'm', cliente: MockClient((_) async => http.Response(cuerpo, codigo)));

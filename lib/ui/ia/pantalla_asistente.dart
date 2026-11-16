@@ -10,7 +10,8 @@ import '../comun/tema.dart';
 import 'pantalla_complementos_ia.dart';
 
 /// "Pregúntale a tu IA" (spec §6.5): contesta cómo usar la app con base en
-/// la guía por temas. No ve los datos del usuario.
+/// la guía por temas. Solo ve los números del usuario (un resumen que
+/// calcula la app) si él lo permitió en Complementos de IA.
 class PantallaAsistente extends StatefulWidget {
   final ServicioIA servicio;
   const PantallaAsistente({super.key, required this.servicio});
@@ -27,6 +28,15 @@ const _sugerencias = [
   '¿Cómo creo un objetivo de ahorro?',
 ];
 
+/// Con "Dejar que tu IA vea tus números" encendido.
+const _sugerenciasConNumeros = [
+  '¿Cómo voy este ciclo?',
+  '¿En qué se me ha ido más?',
+  '¿Cuánto me queda para gastar?',
+  '¿Cómo van mis objetivos?',
+  '¿Cómo registro un gasto?',
+];
+
 class _Burbuja {
   final MensajeIA mensaje;
   final bool error;
@@ -40,6 +50,7 @@ class _PantallaAsistenteState extends State<PantallaAsistente> {
   ProveedorIA? _activo;
   bool _cargando = true;
   bool _pensando = false;
+  bool _veNumeros = false;
 
   @override
   void initState() {
@@ -59,6 +70,7 @@ class _PantallaAsistenteState extends State<PantallaAsistente> {
     if (mounted) {
       setState(() {
         _activo = config.conectado(config.activo ?? ProveedorIA.gemini) ? config.activo : null;
+        _veNumeros = config.verMisNumeros && widget.servicio.datosDelUsuario != null;
         _cargando = false;
       });
     }
@@ -77,10 +89,13 @@ class _PantallaAsistenteState extends State<PantallaAsistente> {
       final cliente = await widget.servicio.clienteActivo();
       if (cliente == null) throw const ErrorIA('Conecta tu IA en Complementos de IA.');
       final esApple = _activo == ProveedorIA.apple;
+      // Frescos en cada pregunta: pudo registrar un gasto entre una y otra.
+      final datos = await widget.servicio.datosParaAsistente();
       final respuesta = await cliente.responder(
         sistema: instructivoDelAsistente(
           pregunta: pregunta,
           maxCaracteres: esApple ? IAApple.maxCaracteresInstructivo : null,
+          datos: datos,
         ),
         // Las últimas vueltas bastan para seguir el hilo.
         mensajes: [
@@ -146,15 +161,18 @@ class _PantallaAsistenteState extends State<PantallaAsistente> {
                           children: [
                             if (_conversacion.isEmpty) ...[
                               _BurbujaIA(
-                                texto: 'Hola. Pregúntame cómo se hace algo en la app o dónde está un botón. '
-                                    'Contesto con base en la guía de la app; no veo tus gastos.',
+                                texto: _veNumeros
+                                    ? 'Hola. Pregúntame por tus números de este ciclo —cuánto llevas, cuánto te queda, '
+                                        'tus cuentas y objetivos— o cómo se hace algo en la app. No doy consejos de inversión.'
+                                    : 'Hola. Pregúntame cómo se hace algo en la app o dónde está un botón. '
+                                        'Contesto con base en la guía de la app; no veo tus gastos.',
                               ),
                               const SizedBox(height: 12),
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: [
-                                  for (final s in _sugerencias)
+                                  for (final s in _veNumeros ? _sugerenciasConNumeros : _sugerencias)
                                     ActionChip(label: Text(s), onPressed: () => _preguntar(s)),
                                 ],
                               ),

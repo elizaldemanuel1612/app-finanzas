@@ -9,7 +9,7 @@ enum ProveedorIA {
   ),
   gemini(
     nombre: 'Gemini',
-    descripcion: 'De Google, gratis sin tarjeta. Solo recibe la nota del gasto y tus categorías.',
+    descripcion: 'De Google. Gratis con tu clave, sin tarjeta.',
     urlClave: 'https://aistudio.google.com/apikey',
     sitioClave: 'Google AI Studio',
   );

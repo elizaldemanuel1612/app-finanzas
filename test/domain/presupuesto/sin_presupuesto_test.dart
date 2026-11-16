@@ -84,6 +84,9 @@ void main() {
       expect(r.soloRegistro, isFalse);
       final v = calcularVeredicto(reporte: r, hoy: hoy);
       expect(v.tono, isNot(TonoVeredicto.pasado), reason: r'$900 sin presupuesto no hacen "te pasaste"');
+      // La línea de la gráfica se compara contra el presupuesto: solo lo
+      // de las categorías que lo tienen.
+      expect(r.acumuladoVariablesPorDia.last, const Dinero.pesos(300));
     });
 
     test('solo registro: sin presupuestos no se pide ponerlos', () {
@@ -93,6 +96,7 @@ void main() {
       expect(v.tono, TonoVeredicto.neutro);
       expect(v.titulo, r'Llevas $1,200.00 este ciclo');
       expect(v.detalle, isNot(contains('Ponles presupuesto')));
+      expect(r.acumuladoVariablesPorDia.last, const Dinero.pesos(1200), reason: 'sin presupuestos, la línea es todo lo gastado');
     });
   });
 }

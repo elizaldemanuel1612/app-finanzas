@@ -26,6 +26,11 @@ void main() {
     expect(elegirModelo(ProveedorIA.gemini, ['models/embedding-001']), isNull);
   });
 
+  test('a igual versión gana el alias sin fecha; una revisión numerada es más nueva', () {
+    expect(elegirModelo(ProveedorIA.gemini, ['models/gemini-2.5-flash-20250617', 'models/gemini-2.5-flash']), 'gemini-2.5-flash');
+    expect(elegirModelo(ProveedorIA.gemini, ['models/gemini-2.5-flash', 'models/gemini-2.5-flash-002']), 'gemini-2.5-flash-002');
+  });
+
   test('solo Apple y Gemini: ChatGPT y Claude se quitaron (cobran aparte)', () {
     expect(ProveedorIA.values, [ProveedorIA.apple, ProveedorIA.gemini]);
   });

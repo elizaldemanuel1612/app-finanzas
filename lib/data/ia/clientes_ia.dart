@@ -87,11 +87,24 @@ final class ClienteGemini extends ClienteApi {
     ];
   }
 
-  @override
-  Future<String> responder({required String sistema, required List<MensajeIA> mensajes, int maxTokens = 800, bool json = false}) async {
-    final datos = await _enviar(
-      ProveedorIA.gemini,
-      () => _http.post(
+  /// Cómo pedirle al modelo que no "piense" antes de contestar: lo que
+  /// piensa cuenta contra `maxOutputTokens` y, en respuestas cortas (la
+  /// categoría de un gasto), se lo acababa todo y la respuesta salía vacía.
+  /// Los 2.5 flash lo apagan con `thinkingBudget: 0`; del 3 en adelante es
+  /// `thinkingLevel` (y mandar los dos da error). Otros modelos, nada.
+  static Map<String, Object>? configuracionDePensar(String modelo) {
+    final id = modelo.toLowerCase();
+    if (!id.contains('flash')) return null;
+    final version = RegExp(r'gemini-(\d+)(?:\.(\d+))?').firstMatch(id);
+    final mayor = int.tryParse(version?.group(1) ?? '');
+    if (mayor == null) return null;
+    if (mayor >= 3) return {'thinkingLevel': 'minimal'};
+    if (mayor == 2 && version?.group(2) == '5') return {'thinkingBudget': 0};
+    return null;
+  }
+
+  Future<http.Response> _generar(String sistema, List<MensajeIA> mensajes, int maxTokens, bool json, Map<String, Object>? pensar) =>
+      _http.post(
         Uri.parse('$_base/models/$_modelo:generateContent'),
         headers: _cabeceras,
         body: jsonEncode({
@@ -112,12 +125,39 @@ final class ClienteGemini extends ClienteApi {
           'generationConfig': {
             'maxOutputTokens': maxTokens,
             if (json) 'responseMimeType': 'application/json',
+            'thinkingConfig': ?pensar,
           },
         }),
-      ),
-    );
+      );
+
+  static String _textoDe(Map<String, dynamic> datos) {
     final partes = ((datos['candidates'] as List?)?.firstOrNull as Map?)?['content']?['parts'] as List?;
-    final texto = [for (final p in partes ?? const []) (p as Map)['text'] ?? ''].join().trim();
+    return [
+      for (final p in partes ?? const [])
+        if ((p as Map)['thought'] != true) p['text'] ?? '',
+    ].join().trim();
+  }
+
+  @override
+  Future<String> responder({required String sistema, required List<MensajeIA> mensajes, int maxTokens = 800, bool json = false}) async {
+    final pensar = configuracionDePensar(_modelo);
+    // Con espacio de sobra por si el modelo piensa de todos modos.
+    const holgura = 4096;
+    Map<String, dynamic> datos;
+    try {
+      datos = await _enviar(ProveedorIA.gemini, () => _generar(sistema, mensajes, maxTokens, json, pensar));
+    } on ErrorIA catch (e) {
+      // Un modelo que no acepta esa forma de apagar el pensar contesta 400:
+      // se reintenta sin ella.
+      if (pensar == null || !e.mensaje.contains('código 400')) rethrow;
+      datos = await _enviar(ProveedorIA.gemini, () => _generar(sistema, mensajes, maxTokens + holgura, json, null));
+    }
+    var texto = _textoDe(datos);
+    if (texto.isEmpty) {
+      // Se le fue el espacio en pensar: una vez más, con holgura.
+      datos = await _enviar(ProveedorIA.gemini, () => _generar(sistema, mensajes, maxTokens + holgura, json, null));
+      texto = _textoDe(datos);
+    }
     if (texto.isEmpty) throw const ErrorIA('Tu IA no dio respuesta. Prueba a preguntarlo de otra forma.');
     return texto;
   }

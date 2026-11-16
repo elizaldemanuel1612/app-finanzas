@@ -27,4 +27,21 @@ void main() {
     // Sin espacio para temas, quedan solo las reglas.
     expect(instructivoDelAsistente(pregunta: 'x', maxCaracteres: 10), isNot(contains('## ')));
   });
+
+  test('con datos: van antes de la guía, cambian la regla y cuentan para el tamaño', () {
+    final sin = instructivoDelAsistente(pregunta: '¿cuánto llevo?');
+    expect(sin, contains('No ves los datos'));
+    expect(sin, isNot(contains('DATOS (calculados por la app)')));
+
+    final con = instructivoDelAsistente(pregunta: '¿cuánto llevo?', datos: 'Total gastado en el ciclo (todo): \$4,860.');
+    expect(con, isNot(contains('No ves los datos')));
+    expect(con, contains('Son los únicos números que conoces'));
+    expect(con.indexOf('DATOS (calculados por la app)'), lessThan(con.indexOf('GUÍA:')));
+    expect(con, contains(r'$4,860'));
+    expect(con, contains('No des asesoría financiera'));
+
+    final corto = instructivoDelAsistente(pregunta: '¿cuánto llevo?', maxCaracteres: 6000, datos: 'x' * 1500);
+    expect(corto.length, lessThanOrEqualTo(6000 + 20));
+    expect(corto, contains('x' * 1500));
+  });
 }

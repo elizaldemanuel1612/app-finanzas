@@ -20,12 +20,17 @@ final class ConfiguracionIA {
   /// Nivel 3 de la cascada: sugerir categorías con la IA activa.
   final bool sugerirCategorias;
 
+  /// El asistente recibe el resumen de los números del usuario (spec §6.5,
+  /// uso 4). Apagado por omisión.
+  final bool verMisNumeros;
+
   const ConfiguracionIA({
     this.activo,
     this.claves = const {},
     this.modelos = const {},
     this.appleConectado = false,
     this.sugerirCategorias = false,
+    this.verMisNumeros = false,
   });
 
   bool conectado(ProveedorIA p) => p == ProveedorIA.apple ? appleConectado : claves.containsKey(p);
@@ -38,6 +43,7 @@ final class ConfiguracionIA {
         modelos: modelos,
         appleConectado: appleConectado,
         sugerirCategorias: sugerirCategorias,
+        verMisNumeros: verMisNumeros,
       );
 
   ConfiguracionIA conectar(ProveedorIA p, {String? clave, String? modelo}) => ConfiguracionIA(
@@ -46,6 +52,7 @@ final class ConfiguracionIA {
         modelos: {...modelos, p: ?modelo},
         appleConectado: appleConectado || p == ProveedorIA.apple,
         sugerirCategorias: sugerirCategorias,
+        verMisNumeros: verMisNumeros,
       );
 
   /// Quita el proveedor; si era el activo, pasa al siguiente conectado.
@@ -63,6 +70,7 @@ final class ConfiguracionIA {
       modelos: modelos,
       appleConectado: apple,
       sugerirCategorias: sugerirCategorias && quedan.isNotEmpty,
+      verMisNumeros: verMisNumeros && quedan.isNotEmpty,
     );
   }
 
@@ -72,6 +80,16 @@ final class ConfiguracionIA {
         modelos: modelos,
         appleConectado: appleConectado,
         sugerirCategorias: v,
+        verMisNumeros: verMisNumeros,
+      );
+
+  ConfiguracionIA conVerMisNumeros(bool v) => ConfiguracionIA(
+        activo: activo,
+        claves: claves,
+        modelos: modelos,
+        appleConectado: appleConectado,
+        sugerirCategorias: sugerirCategorias,
+        verMisNumeros: v,
       );
 
   Map<String, dynamic> toJson() => {
@@ -80,6 +98,7 @@ final class ConfiguracionIA {
         'modelos': {for (final e in modelos.entries) e.key.name: e.value},
         'appleConectado': appleConectado,
         'sugerirCategorias': sugerirCategorias,
+        'verMisNumeros': verMisNumeros,
       };
 
   factory ConfiguracionIA.fromJson(Map<String, dynamic> json) {
@@ -95,6 +114,7 @@ final class ConfiguracionIA {
       modelos: mapa(json['modelos']),
       appleConectado: json['appleConectado'] as bool? ?? false,
       sugerirCategorias: json['sugerirCategorias'] as bool? ?? false,
+      verMisNumeros: json['verMisNumeros'] as bool? ?? false,
     );
   }
 }
