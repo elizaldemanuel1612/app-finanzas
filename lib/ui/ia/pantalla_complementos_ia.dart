@@ -8,6 +8,7 @@ import '../../data/ia/servicio_ia.dart';
 import '../../domain/ia/proveedor_ia.dart';
 import '../../plataforma/ia_apple.dart';
 import '../comun/chip_estado.dart';
+import '../comun/guia_rapida.dart';
 import '../comun/renglon_app.dart';
 import '../comun/tarjeta_app.dart';
 import '../comun/tema.dart';
@@ -37,6 +38,7 @@ class _PantallaComplementosIAState extends State<PantallaComplementosIA> {
   void initState() {
     super.initState();
     _cargar();
+    WidgetsBinding.instance.addPostFrameCallback((_) => mostrarGuiaRapidaPrimeraVez(context, GuiaRapida.complementosIA));
   }
 
   Future<void> _cargar() async {

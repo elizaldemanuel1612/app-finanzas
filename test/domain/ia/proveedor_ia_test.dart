@@ -43,4 +43,23 @@ void main() {
       expect(p.sitioClave, isNotEmpty);
     }
   });
+
+  test('respaldos si el modelo se satura: otros flash estables, luego lite; sin vistas previas', () {
+    final ids = [
+      'models/gemini-3.8-flash',
+      'models/gemini-3.5-flash',
+      'models/gemini-2.5-flash',
+      'models/gemini-3.5-flash-lite',
+      'models/gemini-3.9-flash-preview',
+      'models/gemini-3.5-flash-image',
+      'models/gemini-3.5-pro',
+    ];
+    expect(modelosDeRespaldo(ProveedorIA.gemini, ids, 'gemini-3.8-flash'), ['gemini-3.5-flash', 'gemini-2.5-flash']);
+    expect(modelosDeRespaldo(ProveedorIA.gemini, ['models/gemini-3.8-flash', 'models/gemini-3.5-flash-lite'], 'models/gemini-3.8-flash'),
+        ['gemini-3.5-flash-lite']);
+    expect(modelosDeRespaldo(ProveedorIA.gemini, ['models/gemini-3.8-flash'], 'gemini-3.8-flash'), isEmpty);
+    expect(modelosDeRespaldo(ProveedorIA.apple, ids, 'x'), isEmpty);
+    expect(modelosDeRespaldo(ProveedorIA.gemini, ['gemini-2.5-flash-001', 'gemini-2.5-flash'], 'gemini-3.8-flash'),
+        ['gemini-2.5-flash-001', 'gemini-2.5-flash']);
+  });
 }

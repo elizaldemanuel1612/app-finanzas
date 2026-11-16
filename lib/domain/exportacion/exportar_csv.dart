@@ -1,7 +1,9 @@
 import '../modelos/categoria.dart';
+import '../modelos/categoria_ingreso.dart';
 import '../modelos/cuenta.dart';
 import '../modelos/estado_movimiento.dart';
 import '../modelos/movimiento.dart';
+import '../modelos/movimiento_cuenta.dart';
 
 /// Pública para que `domain/importacion/plantilla_csv.dart` genere la
 /// plantilla de ejemplo con los mismos encabezados — lo que la app exporta
@@ -97,6 +99,58 @@ String exportarMovimientosCsv({
     buffer.writeln(fila.map(_celda).join(','));
   }
 
+  return buffer.toString();
+}
+
+/// Encabezados del segundo archivo: lo que entra o se mueve entre cuentas
+/// sin ser gasto (spec-app-finanzas-v2.md §7.4, 2026-11-16): ingresos,
+/// ajustes de saldo y transferencias, con su categoría de ingreso.
+const encabezadosMovimientosCuenta = [
+  'Fecha',
+  'Tipo',
+  'Monto',
+  'Cuenta',
+  'Hacia la cuenta',
+  'Categoría de ingreso',
+  'Nota',
+  'Estado',
+  'ID',
+];
+
+const etiquetaTipoMovimientoCuenta = {
+  TipoMovimientoCuenta.abono: 'Ingreso',
+  TipoMovimientoCuenta.ajuste: 'Ajuste de saldo',
+  TipoMovimientoCuenta.transferencia: 'Transferencia',
+};
+
+/// Ingresos, ajustes y transferencias a CSV, con las mismas reglas que
+/// [exportarMovimientosCsv] (BOM, RFC 4180, fórmulas neutralizadas, todo
+/// incluido lo anulado). El monto lleva signo solo en un ajuste que baja
+/// el saldo; una transferencia sale de "Cuenta" hacia "Hacia la cuenta".
+String exportarMovimientosCuentaCsv({
+  required List<MovimientoCuenta> movimientos,
+  List<Cuenta> cuentas = const [],
+  List<CategoriaIngreso> categoriasIngreso = const [],
+}) {
+  final cuentaPorId = {for (final c in cuentas) c.id: c.nombre};
+  final categoriaPorId = {for (final c in categoriasIngreso) c.id: c.nombre};
+  final buffer = StringBuffer('\uFEFF');
+  buffer.writeln(encabezadosMovimientosCuenta.map(_celda).join(','));
+  final ordenados = [...movimientos]..sort((a, b) => a.fecha.compareTo(b.fecha));
+  for (final m in ordenados) {
+    final fila = [
+      fechaParaCsv(m.fecha),
+      etiquetaTipoMovimientoCuenta[m.tipo]!,
+      _montoPlano(m.tipo == TipoMovimientoCuenta.ajuste ? m.efecto.centavos : m.monto.centavos),
+      _neutralizarFormula(cuentaPorId[m.cuentaId] ?? m.cuentaId),
+      _neutralizarFormula(m.cuentaDestinoId == null ? '' : cuentaPorId[m.cuentaDestinoId] ?? m.cuentaDestinoId!),
+      _neutralizarFormula(m.categoriaIngresoId == null ? '' : categoriaPorId[m.categoriaIngresoId] ?? ''),
+      _neutralizarFormula(m.nota),
+      m.estado == EstadoMovimientoCuenta.anulado ? 'Anulado' : 'Activo',
+      _neutralizarFormula(m.clientId),
+    ];
+    buffer.writeln(fila.map(_celda).join(','));
+  }
   return buffer.toString();
 }
 

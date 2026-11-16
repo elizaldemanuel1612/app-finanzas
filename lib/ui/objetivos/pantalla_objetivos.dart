@@ -16,6 +16,7 @@ import '../analisis/graficas_analisis.dart';
 import '../../core/money.dart';
 import '../../domain/voz/monto_hablado.dart';
 import '../comun/aviso.dart';
+import '../comun/guia_rapida.dart';
 import '../comun/chip_estado.dart';
 import '../comun/esqueleto.dart';
 import '../comun/formato_dinero.dart';
@@ -105,6 +106,7 @@ class _PantallaObjetivosState extends State<PantallaObjetivos> {
   void initState() {
     super.initState();
     _cargar();
+    WidgetsBinding.instance.addPostFrameCallback((_) => mostrarGuiaRapidaPrimeraVez(context, GuiaRapida.objetivos));
   }
 
   Future<void> _cargar() async {

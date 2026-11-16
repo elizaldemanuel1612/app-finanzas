@@ -324,7 +324,9 @@ const _temaTusDatos = TemaGuia(
     Parrafo(
       '**Exportar mis gastos** genera un CSV con todo tu historial —incluido '
       'lo anulado, y el emoji y presupuesto de cada categoría—, listo para compartir, '
-      'guardar aparte o volver a importar sin perder nada.',
+      'guardar aparte o volver a importar sin perder nada. '
+      '**Exportar ingresos y cuentas** da otro CSV con lo que te entró, los ajustes de saldo '
+      'y las transferencias entre tus cuentas (ese es solo para consultar: no se importa).',
     ),
     Subtitulo('Importar desde CSV'),
     Pasos([
