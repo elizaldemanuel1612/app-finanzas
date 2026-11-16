@@ -350,9 +350,9 @@ const _temaTusDatos = TemaGuia(
     Subtitulo('Complementos de IA'),
     Parrafo(
       'En Ajustes → **Complementos de IA** conectas tu propia IA: Apple '
-      'Intelligence en el iPhone (gratis, sin clave), o una clave de API de '
-      'Gemini, ChatGPT o Claude. La clave se queda solo en tu teléfono y la '
-      'app le habla directo a tu IA; nunca ve tus gastos ni tus saldos.',
+      'Intelligence en el iPhone (gratis, sin clave) o una clave gratuita de '
+      'Gemini. La clave se queda solo en tu teléfono y la app le habla '
+      'directo a tu IA; nunca ve tus gastos ni tus saldos.',
     ),
     Vinetas([
       '**Pregúntale a tu IA** (en Ajustes → Ayuda y arriba en esta guía) te '

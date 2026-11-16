@@ -494,7 +494,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                 fondoIcono: _TinteAjustes.morado,
                 colorIcono: Colors.white,
                 titulo: 'Complementos de IA',
-                subtitulo: 'Conecta tu Apple Intelligence, Gemini, ChatGPT o Claude',
+                subtitulo: 'Conecta Apple Intelligence o Gemini',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => PantallaComplementosIA(servicio: servicioIADe(widget.almacenLocal))),
                 ),

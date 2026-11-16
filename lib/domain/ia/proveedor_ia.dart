@@ -9,22 +9,14 @@ enum ProveedorIA {
   ),
   gemini(
     nombre: 'Gemini',
-    descripcion: 'De Google. Tiene uso gratuito.',
+    descripcion: 'De Google, gratis sin tarjeta. Solo recibe la nota del gasto y tus categorías.',
     urlClave: 'https://aistudio.google.com/apikey',
     sitioClave: 'Google AI Studio',
-  ),
-  chatgpt(
-    nombre: 'ChatGPT',
-    descripcion: 'De OpenAI. Se cobra en tu cuenta de API, aparte de ChatGPT Plus.',
-    urlClave: 'https://platform.openai.com/api-keys',
-    sitioClave: 'la plataforma de OpenAI',
-  ),
-  claude(
-    nombre: 'Claude',
-    descripcion: 'De Anthropic. Se cobra en tu cuenta de API, aparte de Claude Pro.',
-    urlClave: 'https://console.anthropic.com/settings/keys',
-    sitioClave: 'la consola de Anthropic',
   );
+
+  // ChatGPT y Claude se quitaron el 2026-11-15: su API se cobra aparte de
+  // la suscripción y la app no debe costarle extra a nadie (spec §6.5). Un
+  // `ia.json` que aún los nombre se lee sin ellos (`ConfiguracionIA.fromJson`).
 
   final String nombre;
   final String descripcion;
@@ -44,8 +36,8 @@ enum ProveedorIA {
 /// Fechas en los ids: "20251001" o "2025-04-14".
 final _fecha = RegExp(r'\d{4}-\d{2}-\d{2}|\d{6,}');
 
-/// Los números de versión de un id de modelo ("gpt-4.1-mini" → [4, 1];
-/// "claude-haiku-4-5-20251001" → [4, 5]); las fechas no cuentan.
+/// Los números de versión de un id de modelo ("gemini-2.5-flash" → [2, 5];
+/// "gemini-2.0-flash-001" → [2, 0, 1]); las fechas no cuentan.
 List<int> _version(String id) =>
     [for (final m in RegExp(r'\d+').allMatches(id.replaceAll(_fecha, ''))) int.parse(m.group(0)!)];
 
@@ -93,13 +85,5 @@ String? elegirModelo(ProveedorIA proveedor, List<String> ids) {
           _mejor(gemini.where((id) => id.contains('flash') && !id.contains('lite'))) ??
           _mejor(estables) ??
           _mejor(gemini);
-    case ProveedorIA.chatgpt:
-      final gpt = limpios.where((id) => id.startsWith('gpt-') && util(id));
-      return _mejor(gpt.where((id) => id.contains('mini'))) ?? _mejor(gpt);
-    case ProveedorIA.claude:
-      final claude = limpios.where((id) => id.startsWith('claude') && util(id));
-      return _mejor(claude.where((id) => id.contains('haiku'))) ??
-          _mejor(claude.where((id) => id.contains('sonnet'))) ??
-          _mejor(claude);
   }
 }

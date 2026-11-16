@@ -316,9 +316,10 @@ Reemplaza la idea de una Cloud Function con la llave de la app: **la app no paga
 | Complemento | Cómo se conecta | Dónde funciona |
 |---|---|---|
 | **Apple Intelligence** | Sin cuenta ni clave: el modelo de Apple corre en el iPhone (Foundation Models, iOS 26+, con Apple Intelligence activo). Gratis y privado. | Solo app de iPhone |
-| **Gemini** | Clave de API de Google AI Studio (tiene uso gratuito). | iPhone, Android y web |
-| **ChatGPT** | Clave de API de OpenAI (se cobra en la cuenta de API del usuario, aparte de ChatGPT Plus). "Iniciar sesión con ChatGPT" (programa de OpenAI de 2026-09) queda para cuando OpenAI apruebe la app. | iPhone, Android y web |
-| **Claude** | Clave de API de Anthropic (se cobra aparte de Claude Pro: Anthropic no permite usar la suscripción en otras apps desde 2026-02). | iPhone, Android y web |
+| **Gemini** | Clave de API de Google AI Studio, en su nivel gratuito (sin tarjeta). En ese nivel Google puede usar lo que se le manda para mejorar sus productos: la app solo le manda la frase o nota del gasto y los nombres de las categorías, nunca saldos ni movimientos. | iPhone, Android y web |
+| **Gemini Nano** *(pendiente, solo Android)* | Sin cuenta ni clave: el modelo de Google corre dentro del teléfono con ML Kit (Prompt API, sobre AICore). Gratis, sin internet y privado, como Apple Intelligence. Solo en teléfonos compatibles (Pixel 9 y 10, Galaxy S25 y S26, varios Xiaomi, OnePlus, Honor y vivo) y solo con la app en pantalla. Se agrega cuando se haga la parte de Android (widget, App Actions). | Solo app de Android |
+
+**Sin complementos que cobren aparte (2026-11-15).** ChatGPT y Claude se quitaron: su API se cobra en una cuenta aparte de la suscripción (OpenAI y Anthropic), y la app no debe costarle extra a nadie. Anthropic no permite usar la suscripción de Claude en otras apps (desde 2026-02). "Iniciar sesión con ChatGPT" (programa de OpenAI de 2026-09, que sí usa el plan del usuario sin cobro extra) se puede reconsiderar si OpenAI aprueba la app. Un `ia.json` que todavía los nombre se lee sin ellos.
 
 - **La clave vive solo en el dispositivo** (`ia.json` junto al candado, §7.3): no se respalda en Drive ni sale a ningún servidor de la app. La app llama directo a la IA del usuario. "Eliminar cuenta" la borra.
 - **Conectar = probar.** Al pegar la clave, la app pide la lista de modelos del proveedor y elige uno rápido y barato (`domain/ia/proveedor_ia.dart`, `elegirModelo`); si la clave no sirve, lo dice en palabras y no se guarda.

@@ -103,6 +103,15 @@ Intelligence: ahí Siri pregunta la categoría (lo previsto sin IA).
       registra un gasto") — `lib/plataforma/accesos_rapidos.dart` ya es un
       no-op fuera de iOS, así que solo hay que agregar el lado nativo y
       quitar esa guarda.
+- [ ] **Android: Gemini Nano dentro del teléfono (spec §6.5, pendiente).**
+      ML Kit GenAI Prompt API (sobre AICore): gratis, sin internet ni
+      clave, solo en teléfonos compatibles y con la app en pantalla. Sería
+      el equivalente de Apple Intelligence solo para Android: un
+      `ProveedorIA` nuevo sin clave y un puente nativo con
+      `categoriaDeGasto` (mismas instrucciones y opciones de
+      `domain/voz/interpretar_gasto.dart`) y `responder` para "Pregúntale
+      a tu IA". Medir con las frases de `tool/ia_gasto/frases.dart` como
+      se hizo con Apple.
 
 Orden de los pasos la primera vez que haya Mac a la mano (el paso 1 no
 necesita Mac, se puede hacer antes desde cualquier navegador):
