@@ -9,6 +9,7 @@ import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/cuentas/apartados.dart';
+import '../../domain/cuentas/eliminar_cuenta.dart';
 import '../../domain/cuentas/fechas_tarjeta.dart';
 import '../../domain/cuentas/saldos.dart';
 import '../../domain/modelos/categoria_ingreso.dart';
@@ -79,6 +80,9 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
   Dinero? _total;
   Cuenta? _padre;
 
+  /// Qué haría "Eliminar cuenta" (spec §7.3.1).
+  QuitarCuenta? _quitar;
+
   @override
   void initState() {
     super.initState();
@@ -135,6 +139,7 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
       _apartados = [for (final a in apartadosDe(cuenta, cuentas)) (a, saldoDe(a, gastos, abonos))];
       _total = totalConApartados(cuenta, cuentas, gastos, abonos);
       _padre = cuentas.where((c) => c.id == cuenta.cuentaPadreId).firstOrNull;
+      _quitar = comoQuitarCuenta(cuenta, cuentas, gastos, abonos);
     });
   }
 
@@ -150,6 +155,60 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
   Future<void> _archivar() async {
     await widget.cuentaRepositorio.guardar(_cuenta.copyWith(activa: !_cuenta.activa));
     await _cargar();
+  }
+
+  /// "Eliminar cuenta" (spec §7.3.1): se borra si nunca se usó; si tiene
+  /// movimientos, se archiva y su historial se conserva.
+  Future<void> _eliminarCuenta() async {
+    final quitar = _quitar;
+    if (quitar == null || quitar == QuitarCuenta.noSePuede) return;
+    final nombre = _cuenta.nombre;
+    if (quitar == QuitarCuenta.tieneApartados) {
+      await showDialog<void>(
+        context: context,
+        builder: (contexto) => AlertDialog(
+          title: const Text('Primero elimina sus apartados'),
+          content: Text(
+            '$nombre tiene ${_apartados.length == 1 ? 'un apartado' : '${_apartados.length} apartados'}. '
+            'Elimínalos (su dinero regresa a $nombre) y después podrás quitar la cuenta.',
+          ),
+          actions: [TextButton(onPressed: () => Navigator.pop(contexto), child: const Text('Entendido'))],
+        ),
+      );
+      return;
+    }
+    final borrar = quitar == QuitarCuenta.eliminar;
+    final saldo = _saldo;
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: Text('¿Eliminar $nombre?'),
+        content: Text(
+          borrar
+              ? 'No tiene movimientos, así que se borra por completo. '
+                  'Si un objetivo se juntaba aquí, después elígele otra cuenta.'
+              : 'Tiene movimientos registrados, así que no se borra: se archiva. Deja de verse y de contar '
+                  'en tu patrimonio${saldo != null && !saldo.esCero ? ' (hoy marca ${saldo.formateado()})' : ''}, '
+                  'y su historial se conserva; puedes reactivarla desde "Ver archivadas". '
+                  'Si un objetivo se juntaba aquí, después elígele otra cuenta.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(contexto, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, true),
+            style: TextButton.styleFrom(foregroundColor: ColoresApp.actual.peligroTexto),
+            child: Text(borrar ? 'Eliminar' : 'Archivar'),
+          ),
+        ],
+      ),
+    );
+    if (si != true) return;
+    if (borrar) {
+      await widget.cuentaRepositorio.eliminar(_cuenta.id);
+    } else {
+      await widget.cuentaRepositorio.guardar(_cuenta.copyWith(activa: false));
+    }
+    if (mounted) Navigator.of(context).pop();
   }
 
   Future<void> _abonar() async {
@@ -531,6 +590,19 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                       ),
                     ),
                   ),
+                // Una archivada con historial ya no tiene nada más que quitar.
+                if (!apartado &&
+                    _quitar != null &&
+                    _quitar != QuitarCuenta.noSePuede &&
+                    (_cuenta.activa || _quitar == QuitarCuenta.eliminar)) ...[
+                  const SizedBox(height: 16),
+                  TextButton.icon(
+                    onPressed: _eliminarCuenta,
+                    style: TextButton.styleFrom(foregroundColor: ColoresApp.actual.peligroTexto),
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    label: const Text('Eliminar cuenta'),
+                  ),
+                ],
               ],
             ),
     );
