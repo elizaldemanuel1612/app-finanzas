@@ -72,6 +72,28 @@ void main() {
     expect([for (final x in s) (x.categoria.id, x.sobrante.centavos ~/ 100)], [('auto', 1000), ('super', 300)]);
   });
 
+  test('unos centavos no se ofrecen: se verían como "Sobraron \$0"', () {
+    final casi = Movimiento(
+      clientId: 'casi',
+      fecha: DateTime(2026, 10, 10),
+      cicloId: 'oct',
+      periodoNatural: '2026-10',
+      monto: const Dinero(99950), // le sobran 50 centavos
+      categoriaId: 'salidas',
+      medio: MedioPago.tarjeta,
+      descripcion: 'x',
+      estado: EstadoMovimiento.activo,
+      origenCaptura: OrigenCaptura.manual,
+    );
+    final s = sobrantesDelCiclo(
+      categorias: [_var('salidas', 1000), _var('auto', 2000)],
+      ajustesDelCiclo: const [],
+      movimientos: [casi, _mov('auto', 1999)],
+      cicloId: 'oct',
+    );
+    expect([for (final x in s) (x.categoria.id, x.sobrante)], [('auto', const Dinero.pesos(1))]);
+  });
+
   test('sin gastos en el ciclo no hay nada que ofrecer', () {
     expect(sobrantesDelCiclo(categorias: categorias, ajustesDelCiclo: const [], movimientos: const [], cicloId: 'oct'), isEmpty);
   });
