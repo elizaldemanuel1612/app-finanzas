@@ -12,6 +12,13 @@ import 'package:flutter/material.dart';
 /// desplazamiento (un `ListView` dentro de un `Flexible`, por ejemplo), que
 /// dentro de otro desplazamiento no tendrían altura.
 ///
+/// El teclado se descuenta aquí, **fuera** del desplazamiento: así la zona
+/// visible de la hoja termina arriba del teclado y el campo que se enfoca
+/// se desplaza solo a la vista. Si cada hoja sumaba el teclado como relleno
+/// dentro de su contenido, el campo "se veía" para Flutter aunque estuviera
+/// tapado (la nota de "Aportar a tu ahorro" quedaba bajo el teclado). Al
+/// contenido le llega `viewInsets` en cero, para que nadie lo sume dos veces.
+///
 /// `test/estilos_ui_test.dart` vigila que nadie llame a
 /// `showModalBottomSheet` fuera de este archivo.
 Future<T?> mostrarHoja<T>(
@@ -23,5 +30,14 @@ Future<T?> mostrarHoja<T>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (contexto) => desplazable ? SingleChildScrollView(child: builder(contexto)) : builder(contexto),
+      builder: (contexto) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(contexto).bottom),
+        child: MediaQuery.removeViewInsets(
+          context: contexto,
+          removeBottom: true,
+          child: Builder(
+            builder: (contenido) => desplazable ? SingleChildScrollView(child: builder(contenido)) : builder(contenido),
+          ),
+        ),
+      ),
     );
