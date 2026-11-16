@@ -628,7 +628,9 @@ class _ListaAgrupadaPorDia extends StatelessWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
         content: Text('Anulaste ${m.descripcion} · ${m.monto.formateado()}'),
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 7),
+        // Con botón, Flutter la deja fija hasta tocarla; se va sola.
+        persist: false,
         action: SnackBarAction(
           label: 'Deshacer',
           onPressed: () async {

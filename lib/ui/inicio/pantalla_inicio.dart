@@ -376,7 +376,9 @@ class _PantallaInicioState extends State<PantallaInicio> {
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
         content: Text(texto),
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 7),
+        // Con botón, Flutter la deja fija hasta tocarla; se va sola.
+        persist: false,
         action: SnackBarAction(
           label: 'Deshacer',
           // Nada se borra: se anula (regla #3).

@@ -96,4 +96,65 @@ void main() {
     expect(find.text(GestoApp.duplicarGasto.explicacion), findsNothing);
     expect(find.textContaining('Gasto duplicado:'), findsOneWidget);
   });
+
+  testWidgets('anular deslizando: el Deshacer se va solo a los 7 segundos', (tester) async {
+    const perfil = Perfil(diaCorte: 1, ingresoBaseMensual: Dinero.pesos(30000));
+    final hoy = DateTime.now();
+    final cicloId = perfil.calculadoraCiclo.calcularPara(hoy).id;
+    final movimientos = MovimientoRepositorioMemoria([
+      Movimiento(
+        id: 'm1',
+        clientId: 'm1',
+        fecha: hoy,
+        cicloId: cicloId,
+        periodoNatural: periodoNatural(hoy),
+        monto: const Dinero.pesos(50),
+        categoriaId: 'super',
+        medio: MedioPago.tarjeta,
+        descripcion: 'Compra',
+        estado: EstadoMovimiento.activo,
+        origenCaptura: OrigenCaptura.manual,
+      ),
+    ]);
+    late BuildContext contexto;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: Builder(builder: (c) {
+        contexto = c;
+        return const SizedBox();
+      })),
+    ));
+    // El gesto ya se explicó antes: va directo al aviso con Deshacer.
+    await tester.runAsync(() => avisarGestoPrimeraVez(contexto, GestoApp.eliminarGasto));
+    await tester.pumpWidget(MaterialApp(
+      home: PantallaGastos(
+        cicloId: cicloId,
+        perfil: perfil,
+        categoriaRepositorio: CategoriaRepositorioMemoria(<Categoria>[
+          const CategoriaVariable(
+            id: 'super',
+            nombre: 'Súper',
+            emoji: '🛒',
+            activa: true,
+            esNecesaria: false,
+            presupuestoMensualCentavos: Dinero.pesos(100),
+          ),
+        ]),
+        movimientoRepositorio: movimientos,
+        reglasAprendidasRepositorio: ReglasAprendidasRepositorioMemoria(),
+        cicloRepositorio: CicloRepositorioMemoria(),
+        documentos: Directory.systemTemp,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.text('Compra').first, const Offset(-600, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Deshacer'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 6));
+    expect(find.text('Deshacer'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(find.text('Deshacer'), findsNothing);
+  });
 }
