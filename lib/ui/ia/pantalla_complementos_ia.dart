@@ -27,8 +27,6 @@ class PantallaComplementosIA extends StatefulWidget {
 (Color, IconData) apariencia(ProveedorIA p) => switch (p) {
       ProveedorIA.apple => (const Color(0xFF1C1C1E), Icons.apple),
       ProveedorIA.gemini => (const Color(0xFF1F6FE0), Icons.auto_awesome),
-      ProveedorIA.chatgpt => (const Color(0xFF0E7C66), Icons.chat_bubble_outline_rounded),
-      ProveedorIA.claude => (const Color(0xFFC15F3C), Icons.brightness_7_outlined),
     };
 
 class _PantallaComplementosIAState extends State<PantallaComplementosIA> {

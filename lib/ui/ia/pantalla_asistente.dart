@@ -190,7 +190,7 @@ class _PantallaAsistenteState extends State<PantallaAsistente> {
           Text('Conecta tu IA', textAlign: TextAlign.center, style: textos.titulo),
           const SizedBox(height: 8),
           Text(
-            'Usa la tuya: Apple Intelligence en el iPhone, o tu clave de Gemini, ChatGPT o Claude. '
+            'Usa la tuya: Apple Intelligence en el iPhone, o tu clave de Gemini. '
             'Te contesta cómo hacer cualquier cosa en la app.',
             textAlign: TextAlign.center,
             style: textos.cuerpo,

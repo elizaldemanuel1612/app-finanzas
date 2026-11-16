@@ -21,12 +21,16 @@ import '../comun/hoja.dart';
 /// botón, antes de cualquier espera, porque Safari solo deja abrir el
 /// micrófono directo desde un toque. Si es `null` (o el navegador no da
 /// permiso), la hoja cae al dictado del teclado.
-Future<List<GastoDictado>?> mostrarHojaDictado(
+/// Lo que se dictó: la frase completa (para entender fecha y cuenta,
+/// spec §5.6.3) y los gastos que encontró `parsearDictado`.
+typedef Dictado = ({String texto, List<GastoDictado> gastos});
+
+Future<Dictado?> mostrarHojaDictado(
   BuildContext context, {
   required List<Categoria> categorias,
   DictadoWeb? dictadoWeb,
 }) {
-  return mostrarHoja<List<GastoDictado>>(
+  return mostrarHoja<Dictado>(
     context,
     builder: (_) => _HojaDictado(categorias: categorias, dictadoWeb: dictadoWeb),
   );
@@ -147,7 +151,7 @@ class _HojaDictadoState extends State<_HojaDictado> {
 
   void _usarTexto() {
     final gastos = parsearDictado(_texto, categorias: widget.categorias);
-    Navigator.of(context).pop(gastos);
+    Navigator.of(context).pop((texto: _texto, gastos: gastos));
   }
 
   void _cancelar() {

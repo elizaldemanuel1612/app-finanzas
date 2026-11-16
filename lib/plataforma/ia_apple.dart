@@ -65,5 +65,27 @@ final class IAApple implements ClienteIA {
   }
 }
 
+extension CategoriaDeGastoApple on IAApple {
+  /// La categoría de un gasto dicho (spec §5.6.3): el modelo elige solo
+  /// entre [opciones] (generación guiada). `null` si no pudo.
+  Future<String?> categoriaDeGasto({
+    required String instrucciones,
+    required String mensaje,
+    required List<String> opciones,
+  }) async {
+    try {
+      return await IAApple._canal.invokeMethod<String>('categoriaDeGasto', {
+        'instrucciones': instrucciones,
+        'mensaje': mensaje,
+        'opciones': opciones,
+      });
+    } on PlatformException {
+      return null;
+    } on MissingPluginException {
+      return null;
+    }
+  }
+}
+
 /// El cliente de Apple si este dispositivo puede tenerlo.
 ClienteIA? clienteAppleSiAplica() => IAApple.posible ? const IAApple() : null;

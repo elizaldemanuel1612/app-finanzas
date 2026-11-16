@@ -61,7 +61,8 @@ List<GastoDictado> parsearDictado(String texto, {required List<Categoria> catego
 }
 
 List<String> _dividirEnSegmentos(String texto) {
-  final porComas = texto.split(',');
+  // La coma de miles ("1,500") no separa gastos.
+  final porComas = texto.split(RegExp(r'(?<!\d),|,(?!\d)'));
   final segmentos = <String>[];
   for (final chunk in porComas) {
     segmentos.addAll(_dividirPorY(chunk));
@@ -91,24 +92,41 @@ GastoDictado? _parsearSegmento(String segmento, List<Categoria> categorias) {
   final tokensCrudos = segmento.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
   final tokensLimpios = tokensCrudos.map(_quitarPuntuacion).toList();
 
-  // Agrupa corridas contiguas de tokens numéricos en candidatos de monto.
+  // Agrupa corridas contiguas de tokens numéricos en candidatos de monto,
+  // en centavos. Una cifra con decimales o signo ("\$1,250.50") es un monto
+  // por sí sola; "230 pesos con 50 (centavos)" es uno solo.
   final montos = <int>[];
   final indicesUsados = <int>{};
   var i = 0;
   while (i < tokensLimpios.length) {
-    if (esPalabraDeNumero(tokensLimpios[i])) {
+    final cifra = _cifraEscrita(tokensCrudos[i]);
+    if (cifra != null) {
+      if (cifra > 0) montos.add(cifra);
+      indicesUsados.add(i);
+      i++;
+    } else if (esPalabraDeNumero(tokensLimpios[i]) && tokensLimpios[i] != 'y') {
       final inicio = i;
       final corrida = <String>[];
-      while (i < tokensLimpios.length && esPalabraDeNumero(tokensLimpios[i])) {
+      while (i < tokensLimpios.length && esPalabraDeNumero(tokensLimpios[i]) && _cifraEscrita(tokensCrudos[i]) == null) {
         corrida.add(tokensLimpios[i]);
         i++;
       }
       final valor = valorDeTokensNumericos(corrida);
       if (valor != null && valor > 0) {
-        montos.add(valor);
+        var centavos = valor * 100;
         for (var j = inicio; j < i; j++) {
           indicesUsados.add(j);
         }
+        // "… pesos con cincuenta (centavos)".
+        final conCentavos = _centavosDespues(tokensLimpios, i);
+        if (conCentavos != null) {
+          centavos += conCentavos.centavos;
+          for (var j = i; j < conCentavos.fin; j++) {
+            indicesUsados.add(j);
+          }
+          i = conCentavos.fin;
+        }
+        montos.add(centavos);
       }
     } else {
       i++;
@@ -127,6 +145,7 @@ GastoDictado? _parsearSegmento(String segmento, List<Categoria> categorias) {
   for (var k = 0; k < tokensCrudos.length; k++) {
     if (indicesUsados.contains(k)) continue;
     final palabra = tokensLimpios[k];
+    if (palabra.isEmpty) continue;
     if (_conectores.contains(palabra)) continue;
     if (palabra == 'tarjeta' || palabra == 'efectivo') continue;
     palabrasDescripcion.add(tokensCrudos[k]);
@@ -147,7 +166,7 @@ GastoDictado? _parsearSegmento(String segmento, List<Categoria> categorias) {
   if (montos.length > 1) {
     return GastoDictado(
       monto: null,
-      montosAmbiguos: montos.map(Dinero.pesos).toList(),
+      montosAmbiguos: [for (final m in montos) Dinero(m)],
       descripcion: descripcion,
       medio: medio,
       categoriaId: categoriaId,
@@ -156,7 +175,7 @@ GastoDictado? _parsearSegmento(String segmento, List<Categoria> categorias) {
   }
 
   return GastoDictado(
-    monto: Dinero.pesos(montos.single),
+    monto: Dinero(montos.single),
     descripcion: descripcion,
     medio: medio,
     categoriaId: categoriaId,
@@ -180,8 +199,45 @@ String? _inferirCategoria(String segmento, List<Categoria> categorias) {
   return mejorId;
 }
 
+/// Minúsculas y sin acentos ("veintidós" se reconoce como número).
 String _quitarPuntuacion(String palabra) =>
-    palabra.replaceAll(RegExp(r'[^\wÁÉÍÓÚÜÑáéíóúüñ]'), '').toLowerCase();
+    _quitarAcentos(palabra.replaceAll(RegExp(r'[^\wÁÉÍÓÚÜÑáéíóúüñ]'), '').toLowerCase());
+
+final _cifra = RegExp(r'^\$?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?$');
+
+/// Una cifra escrita con signo de pesos, comas de miles o decimales, en
+/// centavos ("\$1,250.50" → 125050). `null` si no es una de esas: un "230"
+/// a secas sigue el camino de las palabras ("230 mil" funciona).
+int? _cifraEscrita(String crudo) {
+  final limpio = crudo.replaceAll(RegExp(r'[.,;:!?)]+$'), '').replaceAll(RegExp(r'^[(¿¡]+'), '');
+  if (!limpio.contains(r'$') && !limpio.contains(',') && !limpio.contains('.')) return null;
+  final m = _cifra.firstMatch(limpio);
+  if (m == null) return null;
+  final pesos = int.parse(m.group(1)!.replaceAll(',', ''));
+  final decimales = m.group(2);
+  final centavos = decimales == null ? 0 : int.parse(decimales.padRight(2, '0'));
+  return pesos * 100 + centavos;
+}
+
+/// "pesos con cincuenta (centavos)" justo después de un monto: los
+/// centavos y dónde termina. `null` si no viene eso.
+({int centavos, int fin})? _centavosDespues(List<String> tokens, int i) {
+  var k = i;
+  if (k < tokens.length && (tokens[k] == 'pesos' || tokens[k] == 'peso')) k++;
+  if (k >= tokens.length || tokens[k] != 'con') return null;
+  k++;
+  final inicio = k;
+  final corrida = <String>[];
+  while (k < tokens.length && esPalabraDeNumero(tokens[k])) {
+    corrida.add(tokens[k]);
+    k++;
+  }
+  if (k == inicio) return null;
+  final valor = valorDeTokensNumericos(corrida);
+  if (valor == null || valor <= 0 || valor >= 100) return null;
+  if (k < tokens.length && (tokens[k] == 'centavos' || tokens[k] == 'centavo')) k++;
+  return (centavos: valor, fin: k);
+}
 
 const _mapaAcentos = {
   'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u',

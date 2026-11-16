@@ -1,8 +1,8 @@
 import 'package:app_finanzas/domain/ia/proveedor_ia.dart';
 import 'package:test/test.dart';
 
-// spec-app-finanzas-v2.md §6.5: de los modelos que dice tener cada
-// proveedor, uno rápido y barato; a igual versión, el alias sin fecha.
+// spec-app-finanzas-v2.md §6.5: de los modelos que dice tener Gemini,
+// uno rápido y barato; a igual versión, el alias sin fecha.
 
 void main() {
   test('Gemini: el flash estable más nuevo, sin lite, ni vista previa, ni de imagen', () {
@@ -26,38 +26,8 @@ void main() {
     expect(elegirModelo(ProveedorIA.gemini, ['models/embedding-001']), isNull);
   });
 
-  test('ChatGPT: el mini más nuevo y, a igual versión, el alias sin fecha', () {
-    expect(
-      elegirModelo(ProveedorIA.chatgpt, [
-        'gpt-4o-mini',
-        'gpt-4.1-mini-2025-04-14',
-        'gpt-4.1-mini',
-        'gpt-4o-mini-audio-preview',
-        'gpt-4o-mini-realtime-preview',
-        'gpt-5',
-        'dall-e-3',
-      ]),
-      'gpt-4.1-mini',
-    );
-    expect(elegirModelo(ProveedorIA.chatgpt, ['gpt-4o-mini', 'gpt-4.1-mini-2025-04-14', 'gpt-4.1-mini', 'gpt-4.1']),
-        'gpt-4.1-mini');
-    expect(elegirModelo(ProveedorIA.chatgpt, ['gpt-4o', 'gpt-4.1']), 'gpt-4.1');
-    expect(elegirModelo(ProveedorIA.chatgpt, ['whisper-1']), isNull);
-  });
-
-  test('Claude: haiku, luego sonnet, luego el que haya', () {
-    expect(
-      elegirModelo(ProveedorIA.claude, [
-        'claude-sonnet-4-5-20250929',
-        'claude-haiku-4-5-20251001',
-        'claude-haiku-4-5',
-        'claude-3-5-haiku-20241022',
-      ]),
-      'claude-haiku-4-5',
-    );
-    expect(elegirModelo(ProveedorIA.claude, ['claude-opus-4-1', 'claude-sonnet-4-5']), 'claude-sonnet-4-5');
-    expect(elegirModelo(ProveedorIA.claude, ['claude-opus-4-1']), 'claude-opus-4-1');
-    expect(elegirModelo(ProveedorIA.claude, const []), isNull);
+  test('solo Apple y Gemini: ChatGPT y Claude se quitaron (cobran aparte)', () {
+    expect(ProveedorIA.values, [ProveedorIA.apple, ProveedorIA.gemini]);
   });
 
   test('Apple no elige modelo; los demás traen dónde sacar la clave', () {

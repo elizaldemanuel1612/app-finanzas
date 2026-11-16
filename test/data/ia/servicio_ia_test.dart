@@ -76,58 +76,6 @@ void main() {
       expect(enviado['generationConfig']['responseMimeType'], 'application/json');
     });
 
-    test('ChatGPT y Claude: mismas piezas con su formato', () async {
-      final cliente = MockClient((r) async {
-        if (r.url.host == 'api.openai.com') {
-          expect(r.headers['authorization'], 'Bearer k');
-          if (r.method == 'GET') {
-            return _json({
-              'data': [
-                {'id': 'gpt-4.1-mini'},
-              ],
-            });
-          }
-          final body = jsonDecode(r.body) as Map<String, dynamic>;
-          expect(body['messages'][0], {'role': 'system', 'content': 'S'});
-          expect(body['response_format'], {'type': 'json_object'});
-          return _json({
-            'choices': [
-              {
-                'message': {'content': ' ok '},
-              },
-            ],
-          });
-        }
-        expect(r.headers['x-api-key'], 'k');
-        expect(r.headers['anthropic-dangerous-direct-browser-access'], 'true');
-        if (r.method == 'GET') {
-          return _json({
-            'data': [
-              {'id': 'claude-haiku-4-5'},
-            ],
-          });
-        }
-        final body = jsonDecode(r.body) as Map<String, dynamic>;
-        expect(body['system'], 'S');
-        expect(body['messages'][1]['role'], 'assistant');
-        return _json({
-          'content': [
-            {'type': 'text', 'text': 'listo'},
-            {'type': 'tool_use'},
-          ],
-        });
-      });
-      final o = ClienteOpenAI('k', modelo: 'gpt-4.1-mini', cliente: cliente);
-      expect(await o.listarModelos(), ['gpt-4.1-mini']);
-      expect(await o.responder(sistema: 'S', mensajes: const [MensajeIA.usuario('a')], json: true), 'ok');
-      final c = ClienteClaude('k', modelo: 'claude-haiku-4-5', cliente: cliente);
-      expect(await c.listarModelos(), ['claude-haiku-4-5']);
-      expect(
-        await c.responder(sistema: 'S', mensajes: const [MensajeIA.usuario('a'), MensajeIA.asistente('b')]),
-        'listo',
-      );
-    });
-
     test('los errores se dicen en palabras', () async {
       Future<String> conCodigo(int codigo, {String cuerpo = '{}'}) async {
         final g = ClienteGemini('k', modelo: 'm', cliente: MockClient((_) async => http.Response(cuerpo, codigo)));
@@ -148,16 +96,21 @@ void main() {
       expect(await conCodigo(200, cuerpo: 'no es json'), contains('No entendí'));
       expect(await conCodigo(200, cuerpo: '{"candidates": []}'), contains('no dio respuesta'));
 
-      final sinRed = ClienteOpenAI('k', modelo: 'm', cliente: MockClient((_) async => throw Exception('x')));
+      final sinRed = ClienteGemini('k', modelo: 'm', cliente: MockClient((_) async => throw Exception('x')));
       expect(() => sinRed.listarModelos(), throwsA(isA<ErrorIA>().having((e) => e.mensaje, 'mensaje', contains('conexión'))));
-      final sinModelo = ClienteClaude('k', cliente: MockClient((_) async => _json({})));
-      expect(() => sinModelo.responder(sistema: 's', mensajes: const []), throwsA(isA<ErrorIA>()));
-      final vacio = ClienteOpenAI('k', modelo: 'm', cliente: MockClient((_) async => _json({'choices': []})));
-      expect(() => vacio.responder(sistema: 's', mensajes: const []), throwsA(isA<ErrorIA>()));
-      final vacioClaude = ClienteClaude('k', modelo: 'm', cliente: MockClient((_) async => _json({'content': []})));
-      expect(() => vacioClaude.responder(sistema: 's', mensajes: const []), throwsA(isA<ErrorIA>()));
       expect(() => clienteDeApi(ProveedorIA.apple, 'k'), throwsArgumentError);
     });
+  });
+
+  test('un ia.json de antes con ChatGPT o Claude se lee sin ellos (2026-11-15)', () {
+    final c = ConfiguracionIA.fromJson({
+      'activo': 'claude',
+      'claves': {'chatgpt': 'a', 'claude': 'b', 'gemini': 'g'},
+      'modelos': {'claude': 'm', 'gemini': 'gemini-2.5-flash'},
+    });
+    expect(c.activo, isNull);
+    expect(c.claves, {ProveedorIA.gemini: 'g'});
+    expect(c.conectados, [ProveedorIA.gemini]);
   });
 
   group('servicio', () {
@@ -189,7 +142,7 @@ void main() {
 
     test('sin modelos de texto no conecta', () async {
       final s = servicio(cliente: MockClient((_) async => _json({'data': []})));
-      await expectLater(s.conectarConClave(ProveedorIA.chatgpt, 'k'), throwsA(isA<ErrorIA>()));
+      await expectLater(s.conectarConClave(ProveedorIA.gemini, 'k'), throwsA(isA<ErrorIA>()));
     });
 
     test('Apple, cambiar de activa y desconectar', () async {
@@ -198,12 +151,12 @@ void main() {
       expect(await s.clienteActivo(), isNull);
       await s.conectarApple();
       expect(await s.clienteActivo(), same(apple));
-      await archivo.escribir(jsonEncode((await s.configuracion()).conectar(ProveedorIA.claude, clave: 'k', modelo: 'm').toJson()));
+      await archivo.escribir(jsonEncode((await s.configuracion()).conectar(ProveedorIA.gemini, clave: 'k', modelo: 'm').toJson()));
       await s.usar(ProveedorIA.apple);
       expect((await s.configuracion()).activo, ProveedorIA.apple);
       await s.desconectar(ProveedorIA.apple);
-      expect((await s.configuracion()).activo, ProveedorIA.claude);
-      await s.desconectar(ProveedorIA.claude);
+      expect((await s.configuracion()).activo, ProveedorIA.gemini);
+      await s.desconectar(ProveedorIA.gemini);
       expect((await s.configuracion()).activo, isNull);
     });
 

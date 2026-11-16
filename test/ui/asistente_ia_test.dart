@@ -54,8 +54,8 @@ void main() {
     await tester.pumpWidget(_app(PantallaComplementosIA(servicio: servicio)));
     await tester.pumpAndSettle();
     expect(find.text('Gemini'), findsOneWidget);
-    expect(find.text('ChatGPT'), findsOneWidget);
-    expect(find.text('Claude'), findsOneWidget);
+    expect(find.text('ChatGPT'), findsNothing);
+    expect(find.text('Claude'), findsNothing);
     expect(find.text('Conecta una IA para encenderlo.'), findsOneWidget);
 
     await tester.tap(find.text('Gemini'));

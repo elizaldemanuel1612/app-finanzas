@@ -21,6 +21,8 @@ import 'domain/sincronizacion/fusion.dart';
 import 'firebase_options.dart';
 import 'data/seguridad/candado.dart';
 import 'plataforma/derivar_clave.dart';
+import 'plataforma/sesion_siri.dart';
+import 'siri.dart';
 import 'domain/seguridad/politica_bloqueo.dart';
 import 'ui/seguridad/pantalla_crear_pin.dart';
 import 'ui/seguridad/pantalla_desbloqueo.dart';
@@ -65,6 +67,13 @@ Future<void> main() async {
   await AparienciaApp.cargar();
   runApp(const AppFinanzas());
 }
+
+/// Punto de entrada de Siri (spec-app-finanzas-v2.md §5.6.3): el lado
+/// nativo (`ios/Runner/AtajosSiri.swift`) arranca este Dart sin pantalla
+/// para registrar un gasto sin abrir la app. Vive en `main.dart` para que
+/// la compilación de release lo incluya.
+@pragma('vm:entry-point')
+Future<void> siriMain() => iniciarSiri();
 
 /// Para poner la pantalla de desbloqueo encima de lo que esté abierto al
 /// volver a la app (spec §7.3).
@@ -335,6 +344,8 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
     final directorio = Directory('${base.path}/usuarios/$uid');
     await _migrarDatosDeAntesDeSepararPorCuenta(base, directorio);
     _almacenLocal = AlmacenLocal(directorio);
+    // Siri registra en esta misma carpeta sin abrir la app (§5.6.3).
+    await SesionSiri.recordar(uid);
     await _prepararCandado();
     await _prepararNube();
   }

@@ -12,6 +12,7 @@ import '../../core/money.dart';
 import '../../core/result.dart';
 import '../../data/repositorios/ajuste_presupuesto_ciclo_repositorio.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
+import '../../domain/voz/interpretar_gasto.dart';
 import '../../domain/voz/monto_hablado.dart';
 import '../../data/almacenamiento/almacen_fotos.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
@@ -33,6 +34,7 @@ import '../../domain/reglas/fecha_movimiento.dart';
 import '../../domain/reglas/monto.dart';
 import '../../domain/rollups/orden_categorias.dart';
 import '../../plataforma/dictado_web.dart';
+import '../../plataforma/ia_dictado.dart';
 import '../comun/asegurar_ciclo_abierto.dart';
 import '../comun/formato_dinero.dart';
 import '../comun/tarjeta_app.dart';
@@ -544,9 +546,10 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
       dictadoWeb?.cancelar();
       return;
     }
-    final gastos = await mostrarHojaDictado(context, categorias: categorias, dictadoWeb: dictadoWeb);
-    if (gastos == null) return;
+    final dictado = await mostrarHojaDictado(context, categorias: categorias, dictadoWeb: dictadoWeb);
+    if (dictado == null) return;
     if (!mounted) return;
+    final gastos = dictado.gastos;
 
     if (gastos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -559,20 +562,47 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
 
     final unico = gastos.length == 1 ? gastos.single : null;
     if (unico != null && !unico.esAmbiguo) {
+      // El mismo intérprete que Siri (spec §5.6.3): además del monto,
+      // entiende la fecha ("ayer", "el lunes") y la cuenta ("con la BBVA").
+      final ctx = ContextoDictado(
+        categorias: categorias,
+        cuentas: _cuentas,
+        cuentaPorOmision: _cuentaId,
+        hoy: DateTime.now(),
+        reglas: _reglasCache,
+        historialComercios: _historialComercios,
+      );
+      final g = interpretarFraseGasto(dictado.texto, ctx);
+      final monto = g.monto ?? unico.monto!;
       setState(() {
-        _montoControlador.text = textoEditableDeDinero(unico.monto!);
-        _descripcionControlador.text = unico.descripcion;
-        _elegirMedio(unico.medio);
+        _montoControlador.text = textoEditableDeDinero(monto);
+        _descripcionControlador.text = g.descripcion.isEmpty ? unico.descripcion : g.descripcion;
+        if (g.cuentaDicha && g.cuentaId != null) {
+          _elegirCuenta(_cuentas.firstWhere((c) => c.id == g.cuentaId));
+        } else {
+          _elegirMedio(unico.medio);
+        }
+        if (g.fechaDicha) _fecha = g.fecha;
         _error = null;
-        if (unico.categoriaId != null) {
+        final categoriaId = g.categoriaId ?? unico.categoriaId;
+        if (categoriaId != null) {
           for (final c in categorias) {
-            if (c.id == unico.categoriaId) {
+            if (c.id == categoriaId) {
               _seleccionada = c;
               break;
             }
           }
         }
       });
+      // Sin categoría: la IA (Apple en el iPhone, o el complemento activo)
+      // solo la resalta, como en la nota (§6.5); nunca guarda sola.
+      if (g.categoriaId == null && unico.categoriaId == null && widget.servicioIA != null) {
+        final ia = await iaParaDictado(widget.servicioIA!);
+        if (ia == null) return;
+        final conIA = completarConIA(g.copyWith(monto: monto), await ia(dictado.texto, ctx), ctx);
+        if (!mounted || conIA.categoriaId == null || _categoriaTocadaManualmente) return;
+        _resaltar(conIA.categoriaId!, porIA: true);
+      }
       return;
     }
 

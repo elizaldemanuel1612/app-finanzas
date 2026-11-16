@@ -21,6 +21,7 @@ import '../../domain/modelos/cuenta.dart';
 import '../cuentas/frase_pago.dart';
 import '../cuentas/pantalla_detalle_cuenta.dart';
 import '../ia/servicio_ia_app.dart';
+import '../../domain/presupuesto/resumen_variables.dart';
 import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
 import '../../domain/presupuesto/apartado_estimado.dart';
 import '../../domain/presupuesto/cobertura_excesos.dart';
@@ -123,7 +124,12 @@ class _PantallaInicioState extends State<PantallaInicio> {
     super.initState();
     _recalcularCiclo();
     _cargar();
-    AccesosRapidos.escuchar(_abrirAccesoRapido);
+    AccesosRapidos.escuchar(_abrirAccesoRapido, alCambiarDatos: () {
+      // Siri registró un gasto (§5.6.3): se recarga lo que se ve.
+      if (!mounted) return;
+      setState(() => _version++);
+      _cargar();
+    });
     widget.recargar?.addListener(_alSincronizar);
     WidgetsBinding.instance.addPostFrameCallback((_) => _guiaDeRegistrar());
   }
@@ -268,15 +274,11 @@ class _PantallaInicioState extends State<PantallaInicio> {
     final variables = categorias.whereType<CategoriaVariable>().toList();
     // Solo lo de las categorías con presupuesto se compara contra él; lo de
     // las demás va aparte (spec §7.3.6).
-    bool conPresupuesto(CategoriaVariable c) =>
-        (rollupPorCategoria[c.id]?.presupuestoCentavos ?? c.presupuestoMensualCentavos).esPositivo;
-    Dinero gastadoDe(Iterable<CategoriaVariable> cs) =>
-        Dinero.suma(cs.map((c) => rollupPorCategoria[c.id]?.totalCentavos ?? const Dinero.cero()));
-    final gastadoVariables = gastadoDe(variables.where(conPresupuesto));
-    final gastadoSinPresupuesto = gastadoDe(variables.where((c) => !conPresupuesto(c)));
-    final presupuestoVariables = Dinero.suma(
-      variables.map((c) => rollupPorCategoria[c.id]?.presupuestoCentavos ?? c.presupuestoMensualCentavos),
-    );
+    // El mismo resumen que el widget y Siri (`resumirVariables`).
+    final resumen = resumirVariables(variables, rollupPorCategoria);
+    final gastadoVariables = resumen.gastadoConPresupuesto;
+    final gastadoSinPresupuesto = resumen.gastadoSinPresupuesto;
+    final presupuestoVariables = resumen.presupuesto;
     final gastadoFijas = Dinero.suma(fijas.map((c) => rollupPorCategoria[c.id]?.totalCentavos ?? const Dinero.cero()));
     final presupuestoFijas = Dinero.suma(
       fijas.map((c) => rollupPorCategoria[c.id]?.presupuestoCentavos ?? c.montoFijoCentavos),

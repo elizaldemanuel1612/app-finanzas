@@ -56,17 +56,7 @@ final class AccesosRapidos: NSObject, FlutterPlugin, FlutterSceneLifeCycleDelega
       flutterEscuchando = false
       result(nil)
     case "actualizarWidget":
-      // Sin App Group (firma con Apple ID gratuito) esto escribe en las
-      // preferencias propias de la app y el widget simplemente no lo ve:
-      // muestra solo los botones. Nada falla.
-      if let datos = call.arguments as? [String: Any],
-        let compartidas = UserDefaults(suiteName: Self.appGroup)
-      {
-        compartidas.set(datos["quedaHoyTexto"] as? String, forKey: "quedaHoyTexto")
-        compartidas.set(datos["deTexto"] as? String, forKey: "deTexto")
-        compartidas.set(datos["fecha"] as? String, forKey: "fecha")
-        WidgetCenter.shared.reloadAllTimelines()
-      }
+      if let datos = call.arguments as? [String: Any] { Self.guardarWidget(datos) }
       result(nil)
     case "limpiarWidget":
       if let compartidas = UserDefaults(suiteName: Self.appGroup) {
@@ -79,6 +69,23 @@ final class AccesosRapidos: NSObject, FlutterPlugin, FlutterSceneLifeCycleDelega
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+
+  /// Guarda lo que muestra el widget. Sin App Group (firma con Apple ID
+  /// gratuito) no hay dónde y el widget muestra solo los botones: nada falla.
+  /// También lo usa Siri al registrar sin abrir la app (§5.6.3).
+  static func guardarWidget(_ datos: [String: Any]) {
+    guard let compartidas = UserDefaults(suiteName: appGroup) else { return }
+    compartidas.set(datos["quedaHoyTexto"] as? String, forKey: "quedaHoyTexto")
+    compartidas.set(datos["deTexto"] as? String, forKey: "deTexto")
+    compartidas.set(datos["fecha"] as? String, forKey: "fecha")
+    WidgetCenter.shared.reloadAllTimelines()
+  }
+
+  /// Siri registró un gasto (§5.6.3): si la app está abierta, que recargue.
+  static func avisarDatosCambiaron() {
+    guard let instancia, instancia.flutterEscuchando else { return }
+    instancia.canal.invokeMethod("datosCambiaron", arguments: nil)
   }
 
   // MARK: - URLs del widget
@@ -133,6 +140,26 @@ final class IAApple: NSObject, FlutterPlugin {
         return
       }
       Self.responder(sistema: sistema, mensajes: mensajes, result: result)
+    case "categoriaDeGasto":
+      guard let args = call.arguments as? [String: Any],
+            let instrucciones = args["instrucciones"] as? String,
+            let mensaje = args["mensaje"] as? String,
+            let opciones = args["opciones"] as? [String], !opciones.isEmpty
+      else {
+        result(FlutterError(code: "argumentos", message: "Faltan datos", details: nil))
+        return
+      }
+      Task {
+        do {
+          let categoria = try await Self.categoriaDeGasto(
+            instrucciones: instrucciones, mensaje: mensaje, opciones: opciones)
+          await MainActor.run { result(categoria) }
+        } catch {
+          await MainActor.run {
+            result(FlutterError(code: "ia", message: error.localizedDescription, details: nil))
+          }
+        }
+      }
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -156,6 +183,30 @@ final class IAApple: NSObject, FlutterPlugin {
     }
     #endif
     return "noSoportado"
+  }
+
+  /// La categoría de un gasto dicho (spec §5.6.3), elegida por el modelo
+  /// solo entre [opciones] (generación guiada: no puede responder un nombre
+  /// que no esté). Las instrucciones y el mensaje los arma Dart
+  /// (`domain/voz/interpretar_gasto.dart`) y Dart valida la respuesta. Lo
+  /// mismo mide `tool/ia_gasto/probar_apple.swift` en la Mac.
+  static func categoriaDeGasto(instrucciones: String, mensaje: String, opciones: [String]) async throws -> String {
+    #if canImport(FoundationModels)
+    if #available(iOS 26.0, *) {
+      let esquema = try GenerationSchema(
+        root: DynamicGenerationSchema(
+          name: "Gasto",
+          properties: [
+            .init(name: "categoria", schema: DynamicGenerationSchema(name: "Categoria", anyOf: opciones))
+          ]),
+        dependencies: [])
+      let sesion = LanguageModelSession(instructions: instrucciones)
+      let respuesta = try await sesion.respond(
+        to: mensaje, schema: esquema, options: GenerationOptions(sampling: .greedy))
+      return try respuesta.content.value(String.self, forProperty: "categoria")
+    }
+    #endif
+    throw NSError(domain: "IAApple", code: 1, userInfo: [NSLocalizedDescriptionKey: "Apple Intelligence no está disponible"])
   }
 
   private static func responder(sistema: String, mensajes: [[String: Any]], result: @escaping FlutterResult) {

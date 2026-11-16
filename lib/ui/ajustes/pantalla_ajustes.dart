@@ -20,6 +20,7 @@ import '../../data/nube/errores_respaldo.dart';
 import '../../data/nube/respaldo_drive.dart';
 import '../../data/nube/servicio_nube.dart';
 import '../../plataforma/accesos_rapidos.dart';
+import '../../plataforma/sesion_siri.dart';
 import '../../plataforma/derivar_clave.dart';
 import '../ayuda/pantalla_guia.dart';
 import '../categorias/pantalla_categorias.dart';
@@ -266,6 +267,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     if (confirmar != true) return;
     // El widget no debe seguir mostrando cifras de esta cuenta.
     await AccesosRapidos.limpiarWidget();
+    await SesionSiri.olvidar();
     await widget.servicioAuth.cerrarSesion();
     // La compuerta de sesión (main.dart) reacciona sola y cambia la ruta
     // raíz a PantallaLogin, pero esta pantalla llegó apilada encima con
@@ -348,6 +350,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       await widget.almacenLocal.borrarTodo();
       await _borrarExportacionesTemporales();
       await AccesosRapidos.limpiarWidget();
+      await SesionSiri.olvidar();
       await widget.servicioAuth.cerrarSesion();
       // Mismo motivo que en _cerrarSesion: sin este pop, la pantalla se
       // queda tapando el login aunque la cuenta ya no exista.
@@ -491,7 +494,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                 fondoIcono: _TinteAjustes.morado,
                 colorIcono: Colors.white,
                 titulo: 'Complementos de IA',
-                subtitulo: 'Conecta tu Apple Intelligence, Gemini, ChatGPT o Claude',
+                subtitulo: 'Conecta Apple Intelligence o Gemini',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => PantallaComplementosIA(servicio: servicioIADe(widget.almacenLocal))),
                 ),
