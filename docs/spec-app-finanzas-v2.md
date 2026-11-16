@@ -209,9 +209,26 @@ Es el **único código que se escribe dos veces** (WidgetKit + App Intents en iO
 
 redondeado hacia abajo al centavo, para no prometer más de lo que hay. Las fijas no entran: ya tienen su monto apartado y no se "gastan por día". `presupuestoVariables` es el mismo que muestra Inicio en "Gastos Variables" (con los ajustes del ciclo aplicados). Las listas de variables y fijas de Inicio se ordenan de mayor a menor, a elección del usuario, por presupuesto consumido (por omisión) o por dinero gastado; la elección es del dispositivo y aplica a las dos listas (2026-10-31, `domain/rollups/orden_categorias.dart`). Al registrar un gasto, las categorías van de la más usada a la menos usada (gastos activos de todo el historial); sin historial o en empate, de mayor a menor presupuesto. Lo calcula `domain/presupuesto/disponible_por_dia.dart`; la app lo publica al widget cada vez que Inicio se recalcula, y el widget nunca calcula nada por su cuenta.
 
-**Los flujos.** El widget abre la captura (botón "Gasto") o la captura con el dictado ya escuchando (botón "Dictar"). El atajo de voz abre siempre el dictado. Siri no permite montos ni texto libre dentro de la frase que lo activa, así que es en dos pasos: "Oye Siri, registra un gasto en App Finanzas" → la app abre escuchando → "40 de cine en salidas con tarjeta" → el mismo `parsearDictado` de siempre llena la captura y el usuario confirma con "Listo".
+**Los flujos.** El widget abre la captura (botón "Gasto") o la captura con el dictado ya escuchando (botón "Dictar"). El atajo de voz registra el gasto sin abrir la app (§5.6.3); "Abre el dictado en MAVfin" y el control del Centro de Control abren el dictado. Antes, Siri no permitía montos ni texto libre dentro de la frase que lo activa, así que es en dos pasos: "Oye Siri, registra un gasto en App Finanzas" → la app abre escuchando → "40 de cine en salidas con tarjeta" → el mismo `parsearDictado` de siempre llena la captura y el usuario confirma con "Listo".
 
 **iOS.** El widget lee el dato de un App Group (`group.com.manuelelizalde.appfinanzas`). Si el App Group no está disponible (por ejemplo, con firma de Apple ID gratuito), el widget muestra solo los botones y la app no falla.
+
+### 5.6.3 [NUEVO] Siri registra el gasto sin abrir la app, con Apple Intelligence (2026-11-15)
+Lo que más se repite al día es registrar un gasto, así que con Siri ya no hace falta abrir la app:
+
+1. "Oye Siri, **registra un gasto en MAVfin**" (o "anota un gasto…") → Siri pregunta "¿Qué gastaste?".
+2. "230 en el súper con la BBVA ayer" → la app, **en segundo plano**, entiende monto, categoría, cuenta y fecha.
+3. Si falta algo, Siri lo pregunta: sin monto, "¿Cuánto fue?"; sin categoría, "¿En qué categoría?" (contesta con su nombre).
+4. Siri confirma: "¿Registro $230 en Súper con BBVA, ayer?" → "Sí" → "Listo. Te quedan $1,170 en Súper." (o "llevas $X" si no tiene presupuesto, §7.3.6, o "te pasaste por $X").
+
+También: "Oye Siri, **¿cuánto llevo gastado en MAVfin?**" → "Llevas $X de $Y este ciclo; te quedan $Z y faltan N días" (el mismo dato de Inicio y del widget).
+
+- **Una sola lógica.** Siri arranca la parte Dart de la app sin pantalla (`lib/siri.dart`, punto de entrada `siriMain`) y usa exactamente lo mismo que la captura: `crearMovimiento` (el ciclo se asigna al crear, regla #5), `clientId` nuevo (regla #2), la cuenta y lo aprendido de la cascada (§6.2). El lado nativo (`ios/Runner/AtajosSiri.swift`) solo hace la conversación; nunca calcula ni escribe datos.
+- **Pide el iPhone desbloqueado** (`authenticationPolicy = .requiresAuthentication`): con la pantalla bloqueada Siri pide desbloquearlo. El candado de la app (§7.3) protege lo que se ve en ella; registrar con Siri no muestra nada más que lo que se acaba de decir.
+- **Sesión:** la app guarda en el dispositivo qué cuenta tiene la sesión abierta; sin sesión, Siri dice "Abre MAVfin e inicia sesión primero". Un ciclo cerrado (regla #6) no se reabre desde Siri: lo dice y no guarda.
+- **El intérprete** (`domain/voz/interpretar_gasto.dart`, `interpretarFraseGasto`) es el mismo para Siri y para el dictado dentro de la app (§5.3): extiende `parsearDictado` con **fecha** ("hoy", "ayer", "antier", "el lunes", "el 12", "el 12 de noviembre"; nunca a futuro ni más de 62 días atrás), **cuenta** (su nombre, "en efectivo", "con tarjeta") y montos escritos con cifras ("$1,250.50"). La categoría sale de su nombre en la frase y, si no, de la cascada (reglas e historial de comercios, §6.1).
+- **Apple Intelligence** (y cualquier complemento de §6.5) **solo propone la categoría**, y solo cuando las reglas no la resolvieron; la app la acepta si es una categoría activa (`completarConIA`). Monto, fecha, cuenta y descripción son siempre de las reglas: medido con Apple Intelligence real (`tool/ia_gasto/`, 2026-11-15), el modelo inventaba cuenta y fecha cuando no se dijeron, elegía mal entre dos montos ("doce tacos de treinta" → $30) y adornaba la descripción; para la categoría acertó 21 de 24 en ≈0.4 s. Con Apple se usa **generación guiada** con las categorías como única opción (más "Ninguna"), así que no puede responder un nombre que no exista. Se usa el complemento activo; si no hay ninguno y el iPhone tiene Apple Intelligence, se usa ese, porque corre dentro del teléfono: la frase no sale de él. Sin IA, o si falla, Siri pregunta la categoría. Dos números sin saber cuál es el total ("doce tacos de treinta") se preguntan: "Dímelo otra vez con el total".
+- Lo dicho se registra con `origenCaptura: voz`.
 
 ### 5.6.1 [NUEVO] Meta del ciclo en curso: estimado, no lo que aún no se gasta
 La tarjeta "Meta de este ciclo" de Inicio y la recomendación de la meta en Análisis miden el ciclo **en curso** con un estimado, no con `ingreso − gastado` (que el día 1 marcaba 1000 % porque todo lo no gastado aún contaba como apartado):
@@ -309,6 +326,7 @@ Reemplaza la idea de una Cloud Function con la llave de la app: **la app no paga
 - **Usos:**
   1. **Asistente "Pregúntale a tu IA"** (Ajustes → Ayuda y la guía por temas): conversación que contesta **solo con base en la guía por temas** (`lib/ui/ayuda/instructivo_ia.dart` arma el instructivo con todo `contenido_guia.dart`): dónde está cada botón y cómo se hace cada cosa. No ve los datos del usuario, no da asesoría financiera ni de inversión y, si algo no está en la guía, lo dice.
   2. **Nivel 3 de la cascada** (§6.1, interruptor "Sugerir categorías con IA", apagado por omisión): al escribir la nota de un gasto que reglas e historial no resolvieron, la IA sugiere la categoría con su confianza; se aplican los umbrales de §6.3 y solo **resalta** la categoría ("Sugerida por tu IA"): nunca guarda sola. Se manda solo la nota y los nombres de las categorías.
+  3. **Entender lo que se dicta** (§5.6.3): con Siri o con el dictado de la captura, propone la categoría cuando las reglas no la resolvieron (en la captura solo la resalta). Se manda la frase dicha y los nombres de las categorías.
 - **Sin IA o sin red, nada cambia** (regla #17): la captura nunca espera a la IA.
 
 ---

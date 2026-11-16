@@ -69,6 +69,25 @@ el atajo aparece en la app Atajos y abre el dictado; el control abre el
 dictado; no se apilan capturas. **No probado:** los widgets de pantalla
 bloqueada (sí compilan) y Siri por voz real.
 
+**Siri sin abrir la app y Apple Intelligence (2026-11-15, spec §5.6.3) — hecho en iOS:**
+"Registra un gasto en MAVfin" (Siri pregunta, entiende, confirma y guarda
+sin abrir la app), "¿Cuánto llevo gastado en MAVfin?" y "Dicta un gasto
+en MAVfin" (abre el dictado). Verificado en el simulador con
+`ios/RunnerTests/RunnerTests.swift` (el motor sin pantalla arranca, entiende
+"ayer gasté 230 en el súper con la BBVA", guarda en los archivos de la app y
+contesta en ≈0.6 s; sin sesión lo dice). Apple Intelligence medida en la
+Mac (`tool/ia_gasto/`): 21 de 24 categorías bien, ≈0.4 s. Para correr las
+pruebas nativas:
+`cd ios && xcodebuild test -workspace Runner.xcworkspace -scheme Runner -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:RunnerTests -parallel-testing-enabled NO`.
+El simulador iOS 26.3 no trae el modelo de seguridad de Apple
+Intelligence: ahí Siri pregunta la categoría (lo previsto sin IA).
+
+- [ ] **Probar en el iPhone físico:** "Oye Siri, registra un gasto en
+      MAVfin" con el teléfono desbloqueado y bloqueado (debe pedir
+      desbloquear), con la app cerrada y abierta (Inicio se recarga), una
+      frase sin categoría (con Apple Intelligence la propone; sin ella,
+      pregunta) y "¿Cuánto llevo gastado en MAVfin?". La app de Atajos no
+      existe en el simulador.
 - [ ] **App Group con Apple ID gratuito.** El widget lee el dato de
       `group.com.manuelelizalde.appfinanzas` (`Runner.entitlements` y
       `WidgetsFinanzas.entitlements`). Si al firmar para el iPhone Xcode

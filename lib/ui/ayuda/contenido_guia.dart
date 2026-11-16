@@ -114,12 +114,31 @@ const _temaVozYTickets = TemaGuia(
   bloques: [
     Parrafo(
       'Con el micrófono puedes dictar el gasto completo, por ejemplo '
-      '"480 de súper con tarjeta", y la app entiende monto, categoría y '
-      'medio de pago de un jalón.',
+      '"480 de súper con la BBVA ayer", y la app entiende monto, categoría, '
+      'cuenta y fecha de un jalón. Si no dices la cuenta o el día, usa la '
+      'de siempre y hoy.',
     ),
     Parrafo(
       'Antes de guardar, la pantalla **Lo que entendí** te muestra cómo se '
       'interpretó lo que dijiste, para que confirmes o corrijas.',
+    ),
+    Subtitulo('Con Siri, sin abrir la app'),
+    Parrafo(
+      'En el iPhone di "Oye Siri, registra un gasto en MAVfin". Siri te '
+      'pregunta qué gastaste; contesta como lo dictarías, por ejemplo '
+      '"230 en el súper con la BBVA". Si falta el monto o la categoría, te '
+      'la pregunta; luego te dice lo que entendió y lo registra cuando le '
+      'dices que sí. Al final te dice cuánto te queda en esa categoría.',
+    ),
+    Parrafo(
+      'También puedes preguntarle "¿Cuánto llevo gastado en MAVfin?". Para '
+      'registrar, el iPhone tiene que estar desbloqueado.',
+    ),
+    Parrafo(
+      'Si tienes Apple Intelligence, la app la usa para elegir la categoría '
+      'cuando no la dices; corre dentro de tu iPhone, así que lo que dices '
+      'no sale de él. El monto, la cuenta y la fecha siempre los toma de lo '
+      'que dijiste.',
     ),
     Subtitulo('Fotografiar el ticket'),
     Parrafo(

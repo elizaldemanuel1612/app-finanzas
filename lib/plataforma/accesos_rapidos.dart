@@ -27,9 +27,16 @@ class AccesosRapidos {
   /// Empieza a recibir accesos rápidos. Si la app se abrió en frío desde el
   /// widget o desde Siri, la acción quedó guardada del lado nativo y se
   /// entrega aquí de inmediato.
-  static Future<void> escuchar(void Function(AccesoRapido) alAbrir) async {
+  ///
+  /// [alCambiarDatos]: Siri registró un gasto sin abrir la app (§5.6.3) y
+  /// lo que está en pantalla debe recargarse.
+  static Future<void> escuchar(void Function(AccesoRapido) alAbrir, {void Function()? alCambiarDatos}) async {
     if (!_disponible) return;
     _canal.setMethodCallHandler((llamada) async {
+      if (llamada.method == 'datosCambiaron') {
+        alCambiarDatos?.call();
+        return;
+      }
       if (llamada.method != 'abrir') return;
       final acceso = _desdeTexto(llamada.arguments as String?);
       if (acceso != null) alAbrir(acceso);
@@ -60,23 +67,25 @@ class AccesosRapidos {
   /// gastado en variables del ciclo y de cuánto.
   static Future<void> publicarGastado(Dinero gastado, Dinero presupuesto, DateTime hoy) async {
     if (!_disponible) return;
-    final fecha = '${hoy.year.toString().padLeft(4, '0')}-'
-        '${hoy.month.toString().padLeft(2, '0')}-'
-        '${hoy.day.toString().padLeft(2, '0')}';
     try {
-      await _canal.invokeMethod<void>('actualizarWidget', {
-        // La clave se llama así desde que mostraba "Hoy puedes gastar".
-        'quedaHoyTexto': gastado.formateado(),
-        // Sin presupuestos (spec §7.3.6) solo va lo gastado.
-        'deTexto': presupuesto.esPositivo ? 'de ${presupuesto.formateado()}' : '',
-        'fecha': fecha,
-      });
+      await _canal.invokeMethod<void>('actualizarWidget', datosDelWidget(gastado, presupuesto, hoy));
     } on PlatformException {
       // El widget se queda con lo último que tenía.
     } on MissingPluginException {
       // Ídem.
     }
   }
+
+  /// Lo que guarda el widget; también lo manda Siri al registrar (§5.6.3).
+  static Map<String, String> datosDelWidget(Dinero gastado, Dinero presupuesto, DateTime hoy) => {
+        // La clave se llama así desde que mostraba "Hoy puedes gastar".
+        'quedaHoyTexto': gastado.formateado(),
+        // Sin presupuestos (spec §7.3.6) solo va lo gastado.
+        'deTexto': presupuesto.esPositivo ? 'de ${presupuesto.formateado()}' : '',
+        'fecha': '${hoy.year.toString().padLeft(4, '0')}-'
+            '${hoy.month.toString().padLeft(2, '0')}-'
+            '${hoy.day.toString().padLeft(2, '0')}',
+      };
 
   /// Borra lo que el widget muestra (al cerrar sesión o eliminar la
   /// cuenta): el widget vuelve a "Abre la app".

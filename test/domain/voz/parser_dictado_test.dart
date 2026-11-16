@@ -129,4 +129,30 @@ void main() {
     expect(r, hasLength(1));
     expect(r.single.monto, const Dinero.pesos(32));
   });
+
+  test('sin descripción queda el nombre de la categoría; toString para depurar', () {
+    final cats = [
+      const CategoriaVariable(
+        id: 'pago',
+        nombre: 'Pago tarjeta',
+        emoji: '💳',
+        activa: true,
+        esNecesaria: true,
+        presupuestoMensualCentavos: Dinero.pesos(100),
+      ),
+    ];
+    final g = parsearDictado('500 con tarjeta', categorias: cats).single;
+    expect(g.descripcion, 'Pago tarjeta');
+    expect(g.toString(), contains('500'));
+    expect(parsearDictado('doce tacos de treinta', categorias: cats).single.toString(), contains('ambiguo'));
+  });
+
+  test('cifras con signo, comas y centavos dichos', () {
+    expect(parsearDictado(r'$1,250.50 de súper', categorias: const []).single.monto, const Dinero(125050));
+    expect(parsearDictado('1,500 de gasolina', categorias: const []), hasLength(1));
+    expect(parsearDictado('230 pesos con 50 centavos', categorias: const []).single.monto, const Dinero(23050));
+    expect(parsearDictado('230 pesos con 150', categorias: const []).single.montosAmbiguos, hasLength(2));
+    expect(parsearDictado('230 con algo', categorias: const []).single.monto, const Dinero.pesos(230));
+    expect(parsearDictado('veintidós de café', categorias: const []).single.monto, const Dinero.pesos(22));
+  });
 }

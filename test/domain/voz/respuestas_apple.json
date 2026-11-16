@@ -1,0 +1,122 @@
+[
+  {
+    "categoria" : "Super\/Comida",
+    "frase" : "230 en el súper",
+    "ms" : 1561
+  },
+  {
+    "categoria" : "Super\/Comida",
+    "frase" : "me gasté como doscientos en unos tacos",
+    "ms" : 443
+  },
+  {
+    "categoria" : "Gasolina",
+    "frase" : "cargué gasolina 800 pesos",
+    "ms" : 370
+  },
+  {
+    "categoria" : "Transporte",
+    "frase" : "el uber al aeropuerto 350",
+    "ms" : 400
+  },
+  {
+    "categoria" : "Suscripciones",
+    "frase" : "pagué netflix 299",
+    "ms" : 397
+  },
+  {
+    "categoria" : "Mascotas",
+    "frase" : "compré croquetas para el perro 640",
+    "ms" : 399
+  },
+  {
+    "categoria" : "Salud",
+    "frase" : "fui a la farmacia y gasté 180",
+    "ms" : 430
+  },
+  {
+    "categoria" : "Ropa",
+    "frase" : "unos tenis de 1,899 en liverpool",
+    "ms" : 366
+  },
+  {
+    "categoria" : "Regalos",
+    "frase" : "el regalo de mi mamá 1500 con la nu",
+    "ms" : 402
+  },
+  {
+    "categoria" : "Salidas",
+    "frase" : "ayer en el cine gastamos 420",
+    "ms" : 399
+  },
+  {
+    "categoria" : "Limpieza",
+    "frase" : "cloro y jabón 95 en efectivo",
+    "ms" : 430
+  },
+  {
+    "categoria" : "Salidas",
+    "frase" : "dos cafés de 65",
+    "ms" : 400
+  },
+  {
+    "categoria" : "Transporte",
+    "frase" : "el estacionamiento 40",
+    "ms" : 395
+  },
+  {
+    "categoria" : "Suscripciones",
+    "frase" : "spotify 129 con la banamex",
+    "ms" : 426
+  },
+  {
+    "categoria" : "Salud",
+    "frase" : "la consulta del dentista 900",
+    "ms" : 431
+  },
+  {
+    "categoria" : "Super\/Comida",
+    "frase" : "una pizza para la cena 289 el viernes",
+    "ms" : 430
+  },
+  {
+    "categoria" : "Transporte",
+    "frase" : "pagué 350 de didi",
+    "ms" : 392
+  },
+  {
+    "categoria" : "Super\/Comida",
+    "frase" : "compré fruta y verdura en el mercado 210",
+    "ms" : 432
+  },
+  {
+    "categoria" : "Salud",
+    "frase" : "la vacuna del gato 450 con la de crédito",
+    "ms" : 437
+  },
+  {
+    "categoria" : "Ropa",
+    "frase" : "la semana pasada unos jeans 799",
+    "ms" : 359
+  },
+  {
+    "categoria" : "Super\/Comida",
+    "frase" : "mil doscientos cincuenta en walmart",
+    "ms" : 436
+  },
+  {
+    "categoria" : "Salidas",
+    "frase" : "una cerveza en el bar 120",
+    "ms" : 393
+  },
+  {
+    "categoria" : "Transporte",
+    "frase" : "un taxi a la casa 180",
+    "ms" : 393
+  },
+  {
+    "categoria" : "Limpieza",
+    "frase" : "detergente para la ropa 160",
+    "ms" : 425
+  }
+]
