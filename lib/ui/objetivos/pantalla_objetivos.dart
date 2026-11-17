@@ -100,7 +100,7 @@ class _PantallaObjetivosState extends State<PantallaObjetivos> {
   List<ProgresoObjetivo>? _progreso;
   List<Objetivo> _archivados = const [];
   Map<String, Cuenta> _cuentas = const {};
-  bool _verArchivados = false;
+  _VistaObjetivos? _vista;
 
   @override
   void initState() {
@@ -150,6 +150,17 @@ class _PantallaObjetivosState extends State<PantallaObjetivos> {
     if (guardado == true) await _cargar();
   }
 
+  /// Un logrado que ya se usó: se archiva (no se borra) y deja de llenarse
+  /// con el saldo de su cuenta.
+  Future<void> _archivar(Objetivo objetivo) async {
+    await widget.objetivoRepositorio.guardar(objetivo.copyWith(activo: false));
+    await _cargar();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Archivaste ${objetivo.nombre}. Lo encuentras en Archivados.')),
+    );
+  }
+
   static const _sugerencias = [
     (emoji: '✈️', nombre: 'Viaje'),
     (emoji: '🛟', nombre: 'Emergencias'),
@@ -161,15 +172,37 @@ class _PantallaObjetivosState extends State<PantallaObjetivos> {
     final progreso = _progreso;
     final p = ColoresApp.actual;
     final textos = Theme.of(context).textTheme;
-    final llevas = progreso == null ? const Dinero.cero() : progreso.fold(const Dinero.cero(), (Dinero s, x) => s + x.llevas);
-    final meta = progreso == null ? const Dinero.cero() : progreso.fold(const Dinero.cero(), (Dinero s, x) => s + x.objetivo.monto);
-    final vencido = progreso?.where((x) => x.estado == EstadoObjetivo.vencido).firstOrNull;
+    final grupos = progreso == null ? null : agruparObjetivos(progreso);
+    final vencido = grupos?.porCumplir.where((x) => x.estado == EstadoObjetivo.vencido).firstOrNull;
+    // Sin elegir: lo que falta; si no falta nada, lo logrado.
+    // Una vista que se quedó vacía (se archivó el último logrado) regresa
+    // a la de omisión.
+    final elegida = switch (_vista) {
+      _VistaObjetivos.logrados when grupos?.logrados.isEmpty ?? true => null,
+      _VistaObjetivos.archivados when _archivados.isEmpty => null,
+      final v => v,
+    };
+    final vista = elegida ??
+        (grupos != null && grupos.porCumplir.isEmpty && grupos.logrados.isNotEmpty
+            ? _VistaObjetivos.logrados
+            : _VistaObjetivos.porCumplir);
+    Widget tarjeta(ProgresoObjetivo x, {VoidCallback? alArchivar}) {
+      final cuenta = _cuentas[x.objetivo.cuentaId];
+      return _TarjetaObjetivo(
+        progreso: x,
+        cuenta: cuenta,
+        nombreDeCuenta: cuenta == null ? null : nombreConCuenta(cuenta, _cuentas.values.toList()),
+        alTocar: () => _editar(x.objetivo),
+        alArchivar: alArchivar,
+      );
+    }
+
     final cuerpo = progreso == null
         ? const CargandoPantalla(formas: [Esqueleto.tarjeta(alto: 120), SizedBox(height: 12), Esqueleto.tarjeta(alto: 150)])
         : ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
             children: [
-              if (progreso.isEmpty) ...[
+              if (progreso.isEmpty && _archivados.isEmpty) ...[
                 const SizedBox(height: 32),
                 Center(
                   child: Container(
@@ -200,63 +233,74 @@ class _PantallaObjetivosState extends State<PantallaObjetivos> {
                 const SizedBox(height: 16),
                 Center(child: ElevatedButton(onPressed: _editar, child: const Text('Crear objetivo'))),
               ] else ...[
-                TarjetaApp(
-                  etiquetaSemantica: 'Llevas ahorrado ${montoEnPalabras(llevas)} de ${montoEnPalabras(meta)}',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (progreso.isNotEmpty) ...[
+                  _Resumen(porCumplir: grupos!.porCumplir, logrados: grupos.logrados),
+                  const SizedBox(height: 12),
+                ],
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
                     children: [
-                      Text('Llevas ahorrado', style: textos.etiqueta),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(enPesos(llevas), style: textos.titulo),
-                          const SizedBox(width: 6),
-                          Text('de ${enPesos(meta)}', style: textos.cuerpo.copyWith(color: p.texto2)),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      BarraProporcion(
-                        valor: meta.esPositivo ? (llevas.centavos / meta.centavos).clamp(0.0, 1.0) : 0,
-                        color: p.exito,
-                        alto: 8,
-                      ),
+                      for (final (v, texto, n) in [
+                        (_VistaObjetivos.porCumplir, 'Por cumplir', grupos!.porCumplir.length),
+                        (_VistaObjetivos.logrados, 'Logrados', grupos.logrados.length),
+                        (_VistaObjetivos.archivados, 'Archivados', _archivados.length),
+                      ])
+                        if (n > 0 || v == _VistaObjetivos.porCumplir)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text('$texto · $n'),
+                              selected: vista == v,
+                              onSelected: (_) => setState(() => _vista = v),
+                            ),
+                          ),
                     ],
                   ),
                 ),
-                if (vencido != null) ...[
-                  const SizedBox(height: 12),
-                  Aviso(
-                    tono: TonoEstado.atencion,
-                    titulo: 'Pasó la fecha de ${vencido.objetivo.nombre}',
-                    apoyo: 'Te faltan ${enPesos(vencido.falta)}. ¿Le das más tiempo?',
-                    accion: 'Cambiar fecha',
-                    onAccion: () => _editar(vencido.objetivo),
-                  ),
-                ],
                 const SizedBox(height: 12),
-                for (final x in progreso)
-                  _TarjetaObjetivo(
-                    progreso: x,
-                    cuenta: _cuentas[x.objetivo.cuentaId],
-                    nombreDeCuenta: _cuentas[x.objetivo.cuentaId] == null
-                        ? null
-                        : nombreConCuenta(_cuentas[x.objetivo.cuentaId]!, _cuentas.values.toList()),
-                    alTocar: () => _editar(x.objetivo),
-                  ),
-                OutlinedButton.icon(onPressed: _editar, icon: const Icon(Icons.add), label: const Text('Nuevo objetivo')),
-              ],
-              if (_archivados.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () => setState(() => _verArchivados = !_verArchivados),
-                  child: Text('${_verArchivados ? 'Ocultar' : 'Ver'} archivados (${_archivados.length})'),
-                ),
-                if (_verArchivados)
-                  TarjetaApp.lista(renglones: [
-                    for (final o in _archivados)
-                      RenglonApp(emoji: o.emoji, titulo: o.nombre, monto: o.monto.formateado(), onTap: () => _editar(o)),
-                  ]),
+                ...switch (vista) {
+                  _VistaObjetivos.porCumplir => [
+                      if (grupos.porCumplir.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            progreso.isEmpty
+                                ? 'No tienes objetivos activos. ¿Para qué quieres ahorrar ahora?'
+                                : 'Cumpliste todos tus objetivos. ¿Cuál sigue?',
+                            style: textos.cuerpo.copyWith(color: p.texto2),
+                          ),
+                        ),
+                      if (vencido != null) ...[
+                        Aviso(
+                          tono: TonoEstado.atencion,
+                          titulo: 'Pasó la fecha de ${vencido.objetivo.nombre}',
+                          apoyo: 'Te faltan ${enPesos(vencido.falta)}. ¿Le das más tiempo?',
+                          accion: 'Cambiar fecha',
+                          onAccion: () => _editar(vencido.objetivo),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      for (final x in grupos.porCumplir) tarjeta(x),
+                      OutlinedButton.icon(onPressed: _editar, icon: const Icon(Icons.add), label: const Text('Nuevo objetivo')),
+                    ],
+                  _VistaObjetivos.logrados => [
+                      for (final x in grupos.logrados) tarjeta(x, alArchivar: () => _archivar(x.objetivo)),
+                    ],
+                  _VistaObjetivos.archivados => [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'Los que ya usaste o dejaste. Tócalos para volver a activarlos.',
+                          style: textos.etiqueta,
+                        ),
+                      ),
+                      TarjetaApp.lista(renglones: [
+                        for (final o in _archivados)
+                          RenglonApp(emoji: o.emoji, titulo: o.nombre, monto: o.monto.formateado(), onTap: () => _editar(o)),
+                      ]),
+                    ],
+                },
               ],
             ],
           );
@@ -277,7 +321,16 @@ class _TarjetaObjetivo extends StatelessWidget {
   final String? nombreDeCuenta;
   final VoidCallback alTocar;
 
-  const _TarjetaObjetivo({required this.progreso, required this.cuenta, required this.alTocar, this.nombreDeCuenta});
+  /// Solo en los logrados: "Ya lo usé" lo archiva.
+  final VoidCallback? alArchivar;
+
+  const _TarjetaObjetivo({
+    required this.progreso,
+    required this.cuenta,
+    required this.alTocar,
+    this.nombreDeCuenta,
+    this.alArchivar,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -342,8 +395,80 @@ class _TarjetaObjetivo extends StatelessWidget {
             BarraProporcion(valor: x.avance, color: color, alto: 8),
             const SizedBox(height: 8),
             Text(fraseDeObjetivo(x), style: textos.etiqueta),
+            if (alArchivar != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: alArchivar,
+                  icon: const Icon(Icons.inventory_2_outlined, size: 18),
+                  label: const Text('Ya lo usé, archivar'),
+                ),
+              ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+enum _VistaObjetivos { porCumplir, logrados, archivados }
+
+/// Lo de arriba: cuánto falta en lo que no se ha cumplido y cuánto pide
+/// este ciclo para ir a tiempo; si ya no falta nada, lo logrado.
+class _Resumen extends StatelessWidget {
+  final List<ProgresoObjetivo> porCumplir;
+  final List<ProgresoObjetivo> logrados;
+
+  const _Resumen({required this.porCumplir, required this.logrados});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = ColoresApp.actual;
+    final textos = Theme.of(context).textTheme;
+    Dinero suma(Iterable<Dinero> xs) => Dinero.suma(xs.toList());
+    final sinPendientes = porCumplir.isEmpty;
+    final lista = sinPendientes ? logrados : porCumplir;
+    final llevas = suma(lista.map((x) => x.llevas));
+    final meta = suma(lista.map((x) => x.objetivo.monto));
+    final falta = suma(porCumplir.map((x) => x.falta));
+    final esteCiclo = aApartarEsteCiclo(porCumplir);
+    final n = porCumplir.length;
+    final titulo = sinPendientes ? 'Lograste' : 'Te faltan';
+    final cifra = sinPendientes ? llevas : falta;
+    final apoyo = sinPendientes
+        ? 'en ${logrados.length} ${logrados.length == 1 ? 'objetivo' : 'objetivos'}'
+        : 'en $n ${n == 1 ? 'objetivo' : 'objetivos'} · llevas ${enPesos(llevas)} de ${enPesos(meta)}';
+    return TarjetaApp(
+      etiquetaSemantica: '$titulo ${montoEnPalabras(cifra)} $apoyo'
+          '${esteCiclo.esPositivo ? '. Este ciclo aparta ${montoEnPalabras(esteCiclo)} para ir a tiempo' : ''}',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(titulo, style: textos.etiqueta),
+          Text(enPesos(cifra), style: textos.titulo),
+          Text(apoyo, style: textos.etiqueta),
+          const SizedBox(height: 10),
+          BarraProporcion(
+            valor: meta.esPositivo ? (llevas.centavos / meta.centavos).clamp(0.0, 1.0) : 0,
+            color: p.exito,
+            alto: 8,
+          ),
+          if (esteCiclo.esPositivo) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.savings_outlined, size: 18, color: p.texto2),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Este ciclo aparta ${enPesos(esteCiclo)} para ir a tiempo',
+                    style: textos.cuerpo,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }

@@ -137,6 +137,11 @@ enum GuiaRapida {
       'Lo que llevas es el saldo de esa cuenta: no hay que anotarlo aparte. Con fecha, la app te dice '
           'cuánto apartar en cada ciclo.',
     ),
+    PasoGuiaRapida(
+      Icons.inventory_2_outlined,
+      'Por cumplir y logrados',
+      'Arriba eliges qué ver. Cuando uses lo que juntaste, archiva el objetivo con "Ya lo usé".',
+    ),
   ]),
   complementosIA('Tu IA', [
     PasoGuiaRapida(

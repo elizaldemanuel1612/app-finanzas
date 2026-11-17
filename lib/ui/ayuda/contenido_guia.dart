@@ -451,7 +451,10 @@ const _temaPatrimonioYObjetivos = TemaGuia(
       'En Patrimonio → Objetivos creas un **Nuevo objetivo** ("Viaje", '
       '"Fondo de emergencias") con su monto, su fecha y la cuenta de ahorro '
       'o el apartado donde vive. Su avance es el saldo de esa cuenta: no hay que '
-      'registrarlo aparte. Arriba ves **Llevas ahorrado** de todos juntos.',
+      'registrarlo aparte. Arriba ves cuánto **Te faltan** en los que no has '
+      'cumplido y cuánto apartar en este ciclo para ir a tiempo. Los separas en '
+      '**Por cumplir**, **Logrados** y **Archivados**; cuando uses lo de un logrado, '
+      'toca **Ya lo usé, archivar**.',
     ),
     Parrafo(
       'Cada objetivo te dice si vas a tiempo o lento para llegar a su fecha y '

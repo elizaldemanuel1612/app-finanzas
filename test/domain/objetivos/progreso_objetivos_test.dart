@@ -163,4 +163,36 @@ void main() {
     expect(o.copyWith(fechaLimite: () => null).fechaLimite, isNull);
     expect(o.copyWith().nombre, 'viaje');
   });
+
+  group('agrupar (2026-11-17)', () {
+    test('por cumplir primero lo urgente; logrados aparte', () {
+      final p = _progreso(
+        [
+          _obj('listo', 1000, cuenta: 'llena'),
+          _obj('sin-fecha', 5000, cuenta: 'vacia'),
+          _obj('lejos', 9000, cuenta: 'vacia', fecha: DateTime(2027, 6, 1)),
+          _obj('cerca', 9000, cuenta: 'vacia', fecha: DateTime(2027, 1, 1)),
+          _obj('lento', 900000, cuenta: 'vacia', fecha: DateTime(2026, 12, 20)),
+          _obj('vencido', 5000, cuenta: 'vacia', fecha: DateTime(2026, 10, 1)),
+          _obj('sin-fecha-2', 5000, cuenta: 'vacia'),
+          _obj('cerca-2', 1000, cuenta: 'vacia', fecha: DateTime(2027, 1, 1)),
+        ],
+        {'llena': 1000},
+        apartado: 3000,
+      );
+      final g = agruparObjetivos(p);
+      expect([for (final x in g.porCumplir) x.objetivo.id],
+          ['vencido', 'lento', 'cerca', 'cerca-2', 'lejos', 'sin-fecha', 'sin-fecha-2']);
+      expect([for (final x in g.logrados) x.objetivo.id], ['listo']);
+    });
+
+    test('lo que piden este ciclo: el primer tramo de los que tienen fecha', () {
+      final p = _progreso(
+        [_obj('a', 3000, fecha: DateTime(2026, 11, 20)), _obj('b', 1000), _obj('c', 500, fecha: DateTime(2026, 11, 30))],
+        {},
+      );
+      expect(aApartarEsteCiclo(p), const Dinero.pesos(3500));
+      expect(aApartarEsteCiclo(const []), const Dinero.cero());
+    });
+  });
 }
