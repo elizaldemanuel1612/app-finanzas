@@ -204,7 +204,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
     if (!mounted) return;
     setState(() => _datos = datos);
     AccesosRapidos.publicarGastado(
-      datos.soloRegistro ? datos.gastadoSinPresupuesto : datos.gastadoVariables,
+      datos.soloRegistro ? datos.totalGastado : datos.gastadoVariables,
       datos.presupuestoVariables,
       DateTime.now(),
     );
@@ -276,7 +276,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
     // Solo lo de las categorías con presupuesto se compara contra él; lo de
     // las demás va aparte (spec §7.3.6).
     // El mismo resumen que el widget y Siri (`resumirVariables`).
-    final resumen = resumirVariables(variables, rollupPorCategoria);
+    final resumen = resumirVariables(variables, rollupPorCategoria, fijas: fijas);
     final gastadoVariables = resumen.gastadoConPresupuesto;
     final gastadoSinPresupuesto = resumen.gastadoSinPresupuesto;
     final presupuestoVariables = resumen.presupuesto;
@@ -967,7 +967,8 @@ class _Heroe extends StatelessWidget {
             icono: Icons.calendar_today_rounded,
             enHeroe: true,
           );
-    final gastado = solo ? datos.gastadoSinPresupuesto : datos.gastadoVariables;
+    // Sin presupuestos, todo lo gastado del ciclo, fijas incluidas.
+    final gastado = solo ? datos.totalGastado : datos.gastadoVariables;
     final (pesos, centavos) = partesDeMonto(gastado);
     final quedan = presupuesto - gastado;
     // Igual que el encabezado ("faltan N días"): sin contar hoy.
@@ -993,7 +994,7 @@ class _Heroe extends StatelessWidget {
 
     return TarjetaApp.heroe(
       etiquetaSemantica: solo
-          ? 'Llevas gastado ${montoEnPalabras(gastado)} en variables. $pie.'
+          ? 'Llevas gastado ${montoEnPalabras(gastado)} en este ciclo. $pie.'
           : 'Llevas gastado ${montoEnPalabras(gastado)} de ${montoEnPalabras(presupuesto)} en variables. $veredicto.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
