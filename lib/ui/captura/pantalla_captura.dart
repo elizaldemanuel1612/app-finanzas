@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -930,7 +931,10 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
               const SizedBox(width: 4),
             ],
           ),
+          // Sin margen seguro abajo: el panel del teclado llega al borde y
+          // aparta él mismo sus teclas de la barra de inicio del iPhone.
           body: SafeArea(
+            bottom: false,
             child: Column(
               children: [
                 Expanded(
@@ -1198,7 +1202,10 @@ class _Teclado extends StatelessWidget {
           border: Border(top: BorderSide(color: p.borde)),
           boxShadow: sombra1(p),
         ),
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+        // Las teclas quedan por encima de la barra de inicio del iPhone,
+        // con aire extra. En la web de la pantalla de inicio el margen
+        // seguro llega en 0, por eso el mínimo de 28.
+        padding: EdgeInsets.fromLTRB(12, 12, 12, math.max(MediaQuery.viewPaddingOf(context).bottom + 12, 28)),
         child: MediaQuery.withClampedTextScaling(
           maxScaleFactor: 1.3,
           child: GridView.count(
