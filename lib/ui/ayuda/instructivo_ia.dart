@@ -3,17 +3,21 @@
 /// para probarlo con `dart test`.
 library;
 
+import '../../domain/ia/datos_para_ia.dart';
 import 'contenido_guia.dart';
 import 'modelo_guia.dart';
 
 // El nombre va escrito: `nombreApp` vive en marca.dart, que importa Flutter.
+const _sinDatos =
+    '- No ves los datos ni los gastos de la persona: si te pregunta por sus cifras, dile dónde verlas en la app.';
+
 const _reglas = '''
 Eres el asistente de ayuda dentro de la app MAVfin, una app de finanzas personales en español de México.
 Reglas:
-- Contesta SOLO con base en la GUÍA de abajo. Si la respuesta no está ahí, dilo con honestidad ("Eso no lo encuentro en la guía") y sugiere el tema más cercano.
+- Para cómo se usa la app, contesta SOLO con base en la GUÍA de abajo. Si la respuesta no está ahí, dilo con honestidad ("Eso no lo encuentro en la guía") y sugiere el tema más cercano.
 - Explica dónde está cada cosa con la ruta de la app, por ejemplo: Ajustes → Tu plan → Día de corte. Ajustes se abre tocando el círculo de tu inicial, arriba a la derecha.
 - Respuestas cortas: 1 a 4 oraciones o pasos numerados. Tutea, en tono amable y directo.
-- No ves los datos ni los gastos de la persona: si te pregunta por sus cifras, dile dónde verlas en la app.
+$_sinDatos
 - No des asesoría financiera, fiscal ni de inversión (no recomiendes productos, inversiones ni cuánto ahorrar). Puedes explicar cómo funciona la app.
 - No inventes botones, pantallas ni funciones que no estén en la guía.
 ''';
@@ -40,7 +44,13 @@ Set<String> _palabras(String texto) => {for (final m in _palabra.allMatches(text
 /// Las reglas y la guía. Con [maxCaracteres] (modelos con poco contexto,
 /// como el del iPhone), solo los temas que más se parecen a [pregunta]
 /// hasta llenar ese tamaño, en el orden de la guía.
-String instructivoDelAsistente({String pregunta = '', int? maxCaracteres}) {
+///
+/// Con [datos] (`textoParaIA`, spec §6.5 uso 4) el asistente también
+/// contesta sobre los números de la persona; van antes de la guía y cuentan
+/// para [maxCaracteres].
+String instructivoDelAsistente({String pregunta = '', int? maxCaracteres, String? datos}) {
+  final reglas = datos == null ? _reglas : _reglas.replaceFirst(_sinDatos, reglasConDatos.trim());
+  final bloqueDatos = datos == null ? '' : '\nDATOS (calculados por la app):\n$datos\n';
   final temas = [
     for (final seccion in guiaDeLaApp)
       for (final tema in seccion.temas) _textoTema(seccion, tema),
@@ -51,7 +61,7 @@ String instructivoDelAsistente({String pregunta = '', int? maxCaracteres}) {
     final puntaje = [for (final t in temas) _palabras(t).intersection(buscadas).length];
     final orden = [for (var i = 0; i < temas.length; i++) i]..sort((a, b) => puntaje[b].compareTo(puntaje[a]));
     final caben = <int>{};
-    var usado = _reglas.length;
+    var usado = reglas.length + bloqueDatos.length;
     for (final i in orden) {
       if (usado + temas[i].length > maxCaracteres) continue;
       caben.add(i);
@@ -59,5 +69,5 @@ String instructivoDelAsistente({String pregunta = '', int? maxCaracteres}) {
     }
     elegidos = [for (var i = 0; i < temas.length; i++) if (caben.contains(i)) temas[i]];
   }
-  return '$_reglas\nGUÍA:\n\n${elegidos.join('\n\n')}';
+  return '$reglas$bloqueDatos\nGUÍA:\n\n${elegidos.join('\n\n')}';
 }

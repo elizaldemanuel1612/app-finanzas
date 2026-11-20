@@ -207,21 +207,38 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
   }
 
   Future<void> _exportarCsv() async {
+    final movimientos = await widget.almacenLocal.movimientos.listarTodos();
+    final categorias = await widget.almacenLocal.categorias.listarTodas();
+    final cuentas = await widget.almacenLocal.cuentas.listarTodas();
+    await _compartirCsv(
+      'gastos',
+      'Mis gastos',
+      exportarMovimientosCsv(movimientos: movimientos, categorias: categorias, cuentas: cuentas),
+    );
+  }
+
+  /// Ingresos, ajustes y transferencias (spec §7.4): su propio archivo,
+  /// porque sus columnas no son las de un gasto.
+  Future<void> _exportarMovimientosCuenta() async {
+    final movimientos = await widget.almacenLocal.movimientosCuenta.listarTodos();
+    final cuentas = await widget.almacenLocal.cuentas.listarTodas();
+    final categorias = await widget.almacenLocal.categoriasIngreso.listarTodas();
+    await _compartirCsv(
+      'ingresos_y_cuentas',
+      'Mis ingresos y movimientos de cuentas',
+      exportarMovimientosCuentaCsv(movimientos: movimientos, cuentas: cuentas, categoriasIngreso: categorias),
+    );
+  }
+
+  Future<void> _compartirCsv(String base, String asunto, String csv) async {
     setState(() => _procesando = true);
     try {
       // No dejar exportaciones de veces anteriores acumulándose en el
       // directorio temporal — cada exportación deja atrás el historial
       // financiero completo hasta que el SO decida limpiar esa carpeta.
       await _borrarExportacionesTemporales();
-      final movimientos = await widget.almacenLocal.movimientos.listarTodos();
-      final categorias = await widget.almacenLocal.categorias.listarTodas();
-      final csv = exportarMovimientosCsv(
-        movimientos: movimientos,
-        categorias: categorias,
-        cuentas: await widget.almacenLocal.cuentas.listarTodas(),
-      );
       final fecha = DateTime.now();
-      final nombre = 'gastos_${fecha.year}${fecha.month.toString().padLeft(2, '0')}'
+      final nombre = '${base}_${fecha.year}${fecha.month.toString().padLeft(2, '0')}'
           '${fecha.day.toString().padLeft(2, '0')}.csv';
       if (kIsWeb) {
         await _descargarEnWeb(nombre, csv);
@@ -235,7 +252,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(archivo.path)],
-          subject: 'Mis gastos — MAVfin',
+          subject: '$asunto — MAVfin',
           sharePositionOrigin: _origenCompartir(),
         ),
       );
@@ -382,7 +399,7 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     if (!await dir.exists()) return;
     await for (final entidad in dir.list()) {
       final nombre = entidad.path.replaceAll('\\', '/').split('/').last;
-      if (entidad is File && nombre.startsWith('gastos_') && nombre.endsWith('.csv')) {
+      if (entidad is File && (nombre.startsWith('gastos_') || nombre.startsWith('ingresos_y_cuentas_')) && nombre.endsWith('.csv')) {
         await entidad.delete();
       }
     }
@@ -543,6 +560,15 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
                 titulo: 'Exportar mis gastos',
                 subtitulo: 'Un archivo CSV con todo tu historial',
                 onTap: _exportarCsv,
+              ),
+              RenglonApp(
+                icono: Icons.ios_share_outlined,
+                iconoCuadrado: true,
+                fondoIcono: _TinteAjustes.verde,
+                colorIcono: Colors.white,
+                titulo: 'Exportar ingresos y cuentas',
+                subtitulo: 'Lo que te entró, ajustes y transferencias, en CSV',
+                onTap: _exportarMovimientosCuenta,
               ),
               RenglonApp(
                 icono: Icons.file_upload_outlined,

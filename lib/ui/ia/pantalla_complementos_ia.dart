@@ -8,6 +8,7 @@ import '../../data/ia/servicio_ia.dart';
 import '../../domain/ia/proveedor_ia.dart';
 import '../../plataforma/ia_apple.dart';
 import '../comun/chip_estado.dart';
+import '../comun/guia_rapida.dart';
 import '../comun/renglon_app.dart';
 import '../comun/tarjeta_app.dart';
 import '../comun/tema.dart';
@@ -37,6 +38,7 @@ class _PantallaComplementosIAState extends State<PantallaComplementosIA> {
   void initState() {
     super.initState();
     _cargar();
+    WidgetsBinding.instance.addPostFrameCallback((_) => mostrarGuiaRapidaPrimeraVez(context, GuiaRapida.complementosIA));
   }
 
   Future<void> _cargar() async {
@@ -186,10 +188,34 @@ class _PantallaComplementosIAState extends State<PantallaComplementosIA> {
                           }
                         : null,
                   ),
+                  if (widget.servicio.datosDelUsuario != null)
+                    SwitchListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      title: Text('Dejar que tu IA vea tus números', style: textos.cuerpoFuerte),
+                      subtitle: Text(
+                        !hayAlguna
+                            ? 'Conecta una IA para encenderlo.'
+                            : config.activo == ProveedorIA.apple
+                                ? 'Para preguntarle cuánto llevas o cuánto te queda. Con Apple Intelligence no sale de tu iPhone.'
+                                : 'Para preguntarle cuánto llevas o cuánto te queda. Se manda a Google un resumen: totales '
+                                    'por categoría, saldos y objetivos. Con la clave gratuita, Google puede usarlo para '
+                                    'mejorar sus productos.',
+                        style: textos.etiqueta,
+                      ),
+                      value: config.verMisNumeros,
+                      onChanged: hayAlguna
+                          ? (v) async {
+                              await widget.servicio.verMisNumeros(v);
+                              await _cargar();
+                            }
+                          : null,
+                    ),
                 ]),
                 const SizedBox(height: 16),
                 Text(
-                  'Tu IA no ve tus gastos ni tus saldos. La app no da asesoría financiera, y tu IA tampoco.',
+                  config.verMisNumeros
+                      ? 'Tu IA solo ve el resumen que calcula la app, nunca cada gasto. La app no da asesoría financiera, y tu IA tampoco.'
+                      : 'Tu IA no ve tus gastos ni tus saldos. La app no da asesoría financiera, y tu IA tampoco.',
                   style: textos.etiqueta,
                 ),
               ],

@@ -9,6 +9,7 @@ import 'package:app_finanzas/domain/clasificacion/regla_aprendida.dart';
 import 'package:app_finanzas/domain/modelos/categoria.dart';
 import 'package:app_finanzas/domain/modelos/ciclo_guardado.dart';
 import 'package:app_finanzas/domain/modelos/ingreso_extra.dart';
+import 'package:app_finanzas/domain/modelos/estado_movimiento.dart';
 import 'package:app_finanzas/domain/modelos/movimiento.dart';
 import 'package:app_finanzas/domain/modelos/perfil.dart';
 import 'package:app_finanzas/domain/presupuesto/ajuste_presupuesto_ciclo.dart';
@@ -76,9 +77,16 @@ final class MovimientoRepositorioMemoria implements MovimientoRepositorio {
   }
 
   @override
-  Future<void> actualizar(Movimiento movimiento) => throw UnimplementedError();
+  Future<void> actualizar(Movimiento movimiento) async {
+    final i = items.indexWhere((m) => m.clientId == movimiento.clientId);
+    if (i >= 0) items[i] = movimiento;
+  }
+
   @override
-  Future<void> anular(String id) => throw UnimplementedError();
+  Future<void> anular(String id) async {
+    final i = items.indexWhere((m) => m.id == id || m.clientId == id);
+    if (i >= 0) items[i] = items[i].copyWith(estado: EstadoMovimiento.anulado);
+  }
   @override
   Future<void> reemplazarTodos(List<Movimiento> movimientos) async {
     final copia = [...movimientos];

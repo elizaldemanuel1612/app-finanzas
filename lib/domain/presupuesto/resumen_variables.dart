@@ -10,28 +10,36 @@ final class ResumenVariables {
   final Dinero gastadoSinPresupuesto;
   final Dinero presupuesto;
 
+  /// Lo pagado en categorías fijas. Solo entra en [gastado] cuando no hay
+  /// presupuestos: entonces se muestra todo lo gastado del ciclo.
+  final Dinero gastadoFijas;
+
   const ResumenVariables({
     required this.gastadoConPresupuesto,
     required this.gastadoSinPresupuesto,
     required this.presupuesto,
+    this.gastadoFijas = const Dinero.cero(),
   });
 
   /// Ninguna variable tiene presupuesto: solo se registra.
   bool get soloRegistro => !presupuesto.esPositivo;
 
-  /// Lo que se muestra como "Llevas gastado".
-  Dinero get gastado => soloRegistro ? gastadoSinPresupuesto : gastadoConPresupuesto;
+  /// Lo que se muestra como "Llevas gastado": contra el presupuesto, lo de
+  /// las variables con él; sin ningún presupuesto (2026-11-16), todo lo
+  /// gastado del ciclo, fijas incluidas.
+  Dinero get gastado => soloRegistro ? gastadoSinPresupuesto + gastadoFijas : gastadoConPresupuesto;
 
   Dinero get quedan => presupuesto - gastadoConPresupuesto;
 }
 
 /// [variables] son las categorías base (activas); [rollupPorCategoria], los
 /// del ciclo con los ajustes aplicados (`calcularRollups` sobre
-/// `presupuestosEfectivosParaCiclo`).
+/// `presupuestosEfectivosParaCiclo`); [fijas], las fijas activas.
 ResumenVariables resumirVariables(
   Iterable<CategoriaVariable> variables,
-  Map<String, Rollup> rollupPorCategoria,
-) {
+  Map<String, Rollup> rollupPorCategoria, {
+  Iterable<CategoriaFija> fijas = const [],
+}) {
   var con = 0;
   var sin = 0;
   var presupuesto = 0;
@@ -50,5 +58,8 @@ ResumenVariables resumirVariables(
     gastadoConPresupuesto: Dinero(con),
     gastadoSinPresupuesto: Dinero(sin),
     presupuesto: Dinero(presupuesto),
+    gastadoFijas: Dinero.suma([
+      for (final c in fijas) rollupPorCategoria[c.id]?.totalCentavos ?? const Dinero.cero(),
+    ]),
   );
 }

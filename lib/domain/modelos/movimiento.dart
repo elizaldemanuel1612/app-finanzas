@@ -49,6 +49,16 @@ final class Movimiento {
   /// las cuentas: ver `cuentaDe` en `cuenta.dart`.
   final String? cuentaId;
 
+  /// Compra a meses sin intereses (spec §7.3.1, 2026-11-16): las
+  /// mensualidades de una compra comparten [compraId]; [mensualidad] va de
+  /// 1 a [meses]. Los tres son `null` en un gasto de contado.
+  final String? compraId;
+  final int? mensualidad;
+  final int? meses;
+
+  /// ¿Es una mensualidad de una compra a meses?
+  bool get esAMeses => compraId != null;
+
   const Movimiento({
     this.id,
     required this.clientId,
@@ -68,6 +78,9 @@ final class Movimiento {
     this.granularidad,
     this.idOrigen,
     this.cuentaId,
+    this.compraId,
+    this.mensualidad,
+    this.meses,
   });
 
   /// Copia con cambios — a propósito **no** acepta [cicloId] como
@@ -92,6 +105,9 @@ final class Movimiento {
     Granularidad? granularidad,
     String? idOrigen,
     String? cuentaId,
+    String? compraId,
+    int? mensualidad,
+    int? meses,
   }) =>
       Movimiento(
         id: id ?? this.id,
@@ -112,6 +128,9 @@ final class Movimiento {
         granularidad: granularidad ?? this.granularidad,
         idOrigen: idOrigen ?? this.idOrigen,
         cuentaId: cuentaId ?? this.cuentaId,
+        compraId: compraId ?? this.compraId,
+        mensualidad: mensualidad ?? this.mensualidad,
+        meses: meses ?? this.meses,
       );
 
   /// Nombres de campo iguales a los del documento `movimientos/{movId}`
@@ -136,6 +155,9 @@ final class Movimiento {
         if (granularidad != null) 'granularidad': granularidad!.name,
         if (idOrigen != null) 'idOrigen': idOrigen,
         if (cuentaId != null) 'cuentaId': cuentaId,
+        if (compraId != null) 'compraId': compraId,
+        if (mensualidad != null) 'mensualidad': mensualidad,
+        if (meses != null) 'meses': meses,
       };
 
   factory Movimiento.fromJson(Map<String, dynamic> json) => Movimiento(
@@ -160,6 +182,9 @@ final class Movimiento {
             : Granularidad.values.byName(json['granularidad'] as String),
         idOrigen: json['idOrigen'] as String?,
         cuentaId: json['cuentaId'] as String?,
+        compraId: json['compraId'] as String?,
+        mensualidad: json['mensualidad'] as int?,
+        meses: json['meses'] as int?,
       );
 
   @override
@@ -182,7 +207,10 @@ final class Movimiento {
       other.confianzaIA == confianzaIA &&
       other.granularidad == granularidad &&
       other.idOrigen == idOrigen &&
-      other.cuentaId == cuentaId;
+      other.cuentaId == cuentaId &&
+      other.compraId == compraId &&
+      other.mensualidad == mensualidad &&
+      other.meses == meses;
 
   @override
   int get hashCode => Object.hashAll([
@@ -204,6 +232,9 @@ final class Movimiento {
         granularidad,
         idOrigen,
         cuentaId,
+        compraId,
+        mensualidad,
+        meses,
       ]);
 
   @override

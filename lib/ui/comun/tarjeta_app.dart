@@ -70,11 +70,14 @@ class TarjetaApp extends StatelessWidget {
         border: esHeroe ? null : Border.all(color: p.borde),
         boxShadow: esHeroe ? null : sombra1(p),
       ),
+      // El recorte va en el Material: ahí se pinta la tinta (toque y cursor)
+      // de los renglones, y con un ClipRRect por dentro se salía de las
+      // esquinas redondeadas (se veía en la hoja de "Te sobró").
       child: Material(
         type: MaterialType.transparency,
-        child: onTap == null
-            ? ClipRRect(borderRadius: radio, child: contenido)
-            : InkWell(borderRadius: radio, onTap: onTap, child: contenido),
+        borderRadius: radio,
+        clipBehavior: Clip.antiAlias,
+        child: onTap == null ? contenido : InkWell(borderRadius: radio, onTap: onTap, child: contenido),
       ),
     );
     final etiqueta = etiquetaSemantica;

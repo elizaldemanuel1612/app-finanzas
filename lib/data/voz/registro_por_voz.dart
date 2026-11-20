@@ -232,7 +232,11 @@ final class RegistroPorVoz {
 
     final delGasto = await rollupsDe(cicloId);
     final actuales = cicloId == actualId ? delGasto : await rollupsDe(actualId);
-    final resumen = resumirVariables(categorias.whereType<CategoriaVariable>(), actuales);
+    final resumen = resumirVariables(
+      categorias.whereType<CategoriaVariable>(),
+      actuales,
+      fijas: categorias.whereType<CategoriaFija>(),
+    );
     return (delGasto, resumen);
   }
 

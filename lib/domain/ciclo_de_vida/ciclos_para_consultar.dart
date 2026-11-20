@@ -32,7 +32,9 @@ List<CicloConsultable> ciclosParaConsultar({
   final cuantos = <String, int>{};
   final totales = <String, int>{};
   for (final m in movimientos) {
-    if (m.estado != EstadoMovimiento.activo) continue;
+    // Mensualidades a meses de ciclos que no han llegado (spec §7.3.1): el
+    // id `AAAA-MM` ordena como texto.
+    if (m.estado != EstadoMovimiento.activo || m.cicloId.compareTo(enCurso.id) > 0) continue;
     cuantos[m.cicloId] = (cuantos[m.cicloId] ?? 0) + 1;
     totales[m.cicloId] = (totales[m.cicloId] ?? 0) + m.monto.centavos;
     ciclos.putIfAbsent(m.cicloId, () => guardadoPorId[m.cicloId] ?? calculadora.calcularPara(m.fecha));

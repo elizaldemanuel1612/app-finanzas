@@ -1,7 +1,9 @@
 import '../modelos/categoria.dart';
+import '../modelos/categoria_ingreso.dart';
 import '../modelos/cuenta.dart';
 import '../modelos/estado_movimiento.dart';
 import '../modelos/movimiento.dart';
+import '../modelos/movimiento_cuenta.dart';
 
 /// Pública para que `domain/importacion/plantilla_csv.dart` genere la
 /// plantilla de ejemplo con los mismos encabezados — lo que la app exporta
@@ -24,6 +26,8 @@ const encabezadosExportacion = [
   'Estado',
   'Cómo se registró',
   'ID',
+  // Al final, para no mover las columnas de antes (2026-11-16, §7.3.1).
+  'Meses',
 ];
 
 /// Cómo se escribe cada valor en el CSV, en palabras que entiende quien
@@ -85,6 +89,7 @@ String exportarMovimientosCsv({
       etiquetaEstado[m.estado]!,
       etiquetaOrigen[m.origenCaptura]!,
       _neutralizarFormula(m.clientId),
+      m.esAMeses ? textoDeMensualidad(m.mensualidad!, m.meses!) : '',
     ];
     buffer.writeln(fila.map(_celda).join(','));
   }
@@ -93,10 +98,62 @@ String exportarMovimientosCsv({
   // solo lo que viene en el archivo, sin este renglón se perdería.
   for (final c in categorias) {
     if (conGastos.contains(c.id)) continue;
-    final fila = ['', '', ..._columnasDeCategoria(c, c.id), '', '', '', '', '', ''];
+    final fila = ['', '', ..._columnasDeCategoria(c, c.id), '', '', '', '', '', '', ''];
     buffer.writeln(fila.map(_celda).join(','));
   }
 
+  return buffer.toString();
+}
+
+/// Encabezados del segundo archivo: lo que entra o se mueve entre cuentas
+/// sin ser gasto (spec-app-finanzas-v2.md §7.4, 2026-11-16): ingresos,
+/// ajustes de saldo y transferencias, con su categoría de ingreso.
+const encabezadosMovimientosCuenta = [
+  'Fecha',
+  'Tipo',
+  'Monto',
+  'Cuenta',
+  'Hacia la cuenta',
+  'Categoría de ingreso',
+  'Nota',
+  'Estado',
+  'ID',
+];
+
+const etiquetaTipoMovimientoCuenta = {
+  TipoMovimientoCuenta.abono: 'Ingreso',
+  TipoMovimientoCuenta.ajuste: 'Ajuste de saldo',
+  TipoMovimientoCuenta.transferencia: 'Transferencia',
+};
+
+/// Ingresos, ajustes y transferencias a CSV, con las mismas reglas que
+/// [exportarMovimientosCsv] (BOM, RFC 4180, fórmulas neutralizadas, todo
+/// incluido lo anulado). El monto lleva signo solo en un ajuste que baja
+/// el saldo; una transferencia sale de "Cuenta" hacia "Hacia la cuenta".
+String exportarMovimientosCuentaCsv({
+  required List<MovimientoCuenta> movimientos,
+  List<Cuenta> cuentas = const [],
+  List<CategoriaIngreso> categoriasIngreso = const [],
+}) {
+  final cuentaPorId = {for (final c in cuentas) c.id: c.nombre};
+  final categoriaPorId = {for (final c in categoriasIngreso) c.id: c.nombre};
+  final buffer = StringBuffer('\uFEFF');
+  buffer.writeln(encabezadosMovimientosCuenta.map(_celda).join(','));
+  final ordenados = [...movimientos]..sort((a, b) => a.fecha.compareTo(b.fecha));
+  for (final m in ordenados) {
+    final fila = [
+      fechaParaCsv(m.fecha),
+      etiquetaTipoMovimientoCuenta[m.tipo]!,
+      _montoPlano(m.tipo == TipoMovimientoCuenta.ajuste ? m.efecto.centavos : m.monto.centavos),
+      _neutralizarFormula(cuentaPorId[m.cuentaId] ?? m.cuentaId),
+      _neutralizarFormula(m.cuentaDestinoId == null ? '' : cuentaPorId[m.cuentaDestinoId] ?? m.cuentaDestinoId!),
+      _neutralizarFormula(m.categoriaIngresoId == null ? '' : categoriaPorId[m.categoriaIngresoId] ?? ''),
+      _neutralizarFormula(m.nota),
+      m.estado == EstadoMovimientoCuenta.anulado ? 'Anulado' : 'Activo',
+      _neutralizarFormula(m.clientId),
+    ];
+    buffer.writeln(fila.map(_celda).join(','));
+  }
   return buffer.toString();
 }
 
@@ -123,6 +180,21 @@ List<String> _columnasDeCategoria(Categoria? categoria, String idSiNoExiste) => 
     };
 
 String _siNo(bool valor) => valor ? 'Sí' : 'No';
+
+/// "2 de 12": la columna Meses (spec §7.3.1). La importación la lee con
+/// [leerMensualidad].
+String textoDeMensualidad(int mensualidad, int meses) => '$mensualidad de $meses';
+
+/// Lo inverso de [textoDeMensualidad]; `null` si no se entiende o no tiene
+/// sentido (la mensualidad pasa del plazo, o el plazo de 2 a 48).
+(int, int)? leerMensualidad(String texto) {
+  final m = RegExp(r'^\s*(\d+)\s*(?:de|/)\s*(\d+)\s*$').firstMatch(texto.toLowerCase());
+  if (m == null) return null;
+  final n = int.parse(m.group(1)!);
+  final de = int.parse(m.group(2)!);
+  if (n < 1 || n > de || de < 2 || de > 48) return null;
+  return (n, de);
+}
 
 /// `aaaa-mm-dd`, y la hora (`aaaa-mm-dd HH:mm`) solo si la tiene: así la
 /// hoja de cálculo la reconoce como fecha y el orden del día se conserva.

@@ -8,6 +8,8 @@ import 'package:app_finanzas/domain/modelos/estado_movimiento.dart';
 import 'package:app_finanzas/domain/modelos/movimiento.dart';
 import 'package:app_finanzas/domain/presupuesto/categorias.dart';
 import 'package:app_finanzas/domain/presupuesto/cobertura_excesos.dart';
+import 'package:app_finanzas/domain/presupuesto/resumen_variables.dart';
+import 'package:app_finanzas/domain/rollups/rollup.dart';
 import 'package:app_finanzas/domain/reglas/monto.dart';
 import 'package:test/test.dart';
 
@@ -84,6 +86,9 @@ void main() {
       expect(r.soloRegistro, isFalse);
       final v = calcularVeredicto(reporte: r, hoy: hoy);
       expect(v.tono, isNot(TonoVeredicto.pasado), reason: r'$900 sin presupuesto no hacen "te pasaste"');
+      // La línea de la gráfica se compara contra el presupuesto: solo lo
+      // de las categorías que lo tienen.
+      expect(r.acumuladoVariablesPorDia.last, const Dinero.pesos(300));
     });
 
     test('solo registro: sin presupuestos no se pide ponerlos', () {
@@ -93,6 +98,41 @@ void main() {
       expect(v.tono, TonoVeredicto.neutro);
       expect(v.titulo, r'Llevas $1,200.00 este ciclo');
       expect(v.detalle, isNot(contains('Ponles presupuesto')));
+      expect(r.acumuladoVariablesPorDia.last, const Dinero.pesos(1200), reason: 'sin presupuestos, la línea es todo lo gastado');
+    });
+  });
+
+  group('"Llevas gastado" de Inicio, widget y Siri', () {
+    const renta = CategoriaFija(
+      id: 'renta',
+      nombre: 'Renta',
+      emoji: '🏠',
+      activa: true,
+      esNecesaria: true,
+      montoFijoCentavos: Dinero.pesos(13000),
+      diaDelCiclo: 1,
+    );
+    Rollup r(String id, int pesos) => Rollup(
+          categoriaId: id,
+          cicloId: '2026-11',
+          totalCentavos: Dinero.pesos(pesos),
+          conteoMovimientos: 1,
+          presupuestoCentavos: null,
+          ultimaActualizacion: DateTime(2026, 11, 16),
+        );
+    final rollups = {'cafe': r('cafe', 900), 'super': r('super', 300), 'renta': r('renta', 13000)};
+
+    test('sin ningún presupuesto: todo lo del ciclo, fijas incluidas', () {
+      final res = resumirVariables([_var('cafe', 0), _var('super', 0)], rollups, fijas: const [renta]);
+      expect(res.soloRegistro, isTrue);
+      expect(res.gastadoFijas, const Dinero.pesos(13000));
+      expect(res.gastado, const Dinero.pesos(14200));
+    });
+
+    test('con presupuesto: solo las variables que lo tienen', () {
+      final res = resumirVariables([_var('cafe', 0), _var('super', 1000)], rollups, fijas: const [renta]);
+      expect(res.soloRegistro, isFalse);
+      expect(res.gastado, const Dinero.pesos(300));
     });
   });
 }

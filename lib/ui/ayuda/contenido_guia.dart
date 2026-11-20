@@ -324,7 +324,9 @@ const _temaTusDatos = TemaGuia(
     Parrafo(
       '**Exportar mis gastos** genera un CSV con todo tu historial —incluido '
       'lo anulado, y el emoji y presupuesto de cada categoría—, listo para compartir, '
-      'guardar aparte o volver a importar sin perder nada.',
+      'guardar aparte o volver a importar sin perder nada. '
+      '**Exportar ingresos y cuentas** da otro CSV con lo que te entró, los ajustes de saldo '
+      'y las transferencias entre tus cuentas (ese es solo para consultar: no se importa).',
     ),
     Subtitulo('Importar desde CSV'),
     Pasos([
@@ -359,6 +361,11 @@ const _temaTusDatos = TemaGuia(
           'contesta cómo hacer algo o dónde está un botón, con base en esta guía.',
       '**Sugerir categorías**: al escribir la nota de un gasto que la app no '
           'reconoce, tu IA resalta la categoría que cree; tú decides al tocarla.',
+      '**Dejar que tu IA vea tus números** (apagado de fábrica): con él '
+          'encendido puedes preguntarle cuánto llevas, cuánto te queda en una '
+          'categoría o cómo van tus objetivos. La app le pasa un resumen ya '
+          'calculado, nunca cada gasto. Con Apple Intelligence no sale de tu '
+          'iPhone; con Gemini ese resumen se manda a Google.',
     ]),
   ],
 );
@@ -392,6 +399,15 @@ const _temaCuentasYTarjetas = TemaGuia(
       'te avisamos unos días antes cuánto pagar para no generar intereses y '
       'antes de qué fecha; el aviso te lleva a la tarjeta, donde **Pagar '
       'esta tarjeta** registra el pago desde tu débito.',
+    ),
+    Subtitulo('Meses sin intereses'),
+    Parrafo(
+      'Al registrar un gasto con una tarjeta de crédito, toca el chip **Meses** y '
+      'elige el plazo (3, 6, 9, 12, 18 o 24). La app lo divide en mensualidades: '
+      'a tu presupuesto de cada ciclo solo va la suya, y el pago de cada corte de '
+      'la tarjeta incluye solo la que le toca. En la tarjeta ves **A meses sin '
+      'intereses**, con lo que falta de cada compra. Si eliminas una mensualidad, '
+      'se elimina toda la compra.',
     ),
     Nota(
       tono: TonoNota.tip,
@@ -435,7 +451,10 @@ const _temaPatrimonioYObjetivos = TemaGuia(
       'En Patrimonio → Objetivos creas un **Nuevo objetivo** ("Viaje", '
       '"Fondo de emergencias") con su monto, su fecha y la cuenta de ahorro '
       'o el apartado donde vive. Su avance es el saldo de esa cuenta: no hay que '
-      'registrarlo aparte. Arriba ves **Llevas ahorrado** de todos juntos.',
+      'registrarlo aparte. Arriba ves cuánto **Te faltan** en los que no has '
+      'cumplido y cuánto apartar en este ciclo para ir a tiempo. Los separas en '
+      '**Por cumplir**, **Logrados** y **Archivados**; cuando uses lo de un logrado, '
+      'toca **Ya lo usé, archivar**.',
     ),
     Parrafo(
       'Cada objetivo te dice si vas a tiempo o lento para llegar a su fecha y '

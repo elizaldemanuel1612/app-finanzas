@@ -9,7 +9,7 @@ enum ProveedorIA {
   ),
   gemini(
     nombre: 'Gemini',
-    descripcion: 'De Google, gratis sin tarjeta. Solo recibe la nota del gasto y tus categorías.',
+    descripcion: 'De Google. Gratis con tu clave, sin tarjeta.',
     urlClave: 'https://aistudio.google.com/apikey',
     sitioClave: 'Google AI Studio',
   );
@@ -86,4 +86,37 @@ String? elegirModelo(ProveedorIA proveedor, List<String> ids) {
           _mejor(estables) ??
           _mejor(gemini);
   }
+}
+
+/// Cuántos modelos de respaldo se prueban como mucho.
+const maxRespaldos = 2;
+
+/// Con qué otros modelos de Gemini seguir si [actual] está saturado (503 o
+/// límite por modelo, 429; pasa seguido con la clave gratis en el modelo
+/// más nuevo): primero otros flash estables (del más nuevo al más viejo),
+/// luego los flash lite estables. Sin vistas previas: son las que más se
+/// saturan. A lo más [maxRespaldos].
+List<String> modelosDeRespaldo(ProveedorIA proveedor, List<String> ids, String actual) {
+  if (proveedor != ProveedorIA.gemini) return const [];
+  final quitado = actual.replaceFirst('models/', '').toLowerCase();
+  final estables = {
+    for (final id in ids)
+      if (id.replaceFirst('models/', '').toLowerCase() case final l
+          when l.startsWith('gemini') &&
+              l.contains('flash') &&
+              l != quitado &&
+              !_contieneAlguna(l, _noTexto) &&
+              !_contieneAlguna(l, ['preview', 'exp']))
+        l,
+  };
+  List<String> ordenados(Iterable<String> lista) => lista.toList()
+    ..sort((a, b) {
+      final porVersion = _compararVersion(b, a);
+      if (porVersion != 0) return porVersion;
+      return (_tieneFecha(a) ? 1 : 0).compareTo(_tieneFecha(b) ? 1 : 0);
+    });
+  return [
+    ...ordenados(estables.where((id) => !id.contains('lite'))),
+    ...ordenados(estables.where((id) => id.contains('lite'))),
+  ].take(maxRespaldos).toList();
 }

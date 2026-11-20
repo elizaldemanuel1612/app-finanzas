@@ -43,7 +43,7 @@ Future<Map<String, Object?>> atenderSiri(MethodCall llamada, {RegistroPorVoz? re
     // Lo que muestra el widget, ya con el gasto nuevo (§5.6).
     if (resumen != null)
       'widget': AccesosRapidos.datosDelWidget(
-        resumen.soloRegistro ? resumen.gastadoSinPresupuesto : resumen.gastadoConPresupuesto,
+        resumen.gastado,
         resumen.presupuesto,
         voz.reloj(),
       ),

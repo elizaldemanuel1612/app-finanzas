@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/ciclo.dart';
 import '../../core/money.dart';
 import '../../data/firebase/servicio_auth.dart';
+import '../../data/repositorios/anular_gasto.dart';
 import '../../data/repositorios/ajuste_presupuesto_ciclo_repositorio.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
@@ -203,7 +204,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
     if (!mounted) return;
     setState(() => _datos = datos);
     AccesosRapidos.publicarGastado(
-      datos.soloRegistro ? datos.gastadoSinPresupuesto : datos.gastadoVariables,
+      datos.soloRegistro ? datos.totalGastado : datos.gastadoVariables,
       datos.presupuestoVariables,
       DateTime.now(),
     );
@@ -275,7 +276,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
     // Solo lo de las categorías con presupuesto se compara contra él; lo de
     // las demás va aparte (spec §7.3.6).
     // El mismo resumen que el widget y Siri (`resumirVariables`).
-    final resumen = resumirVariables(variables, rollupPorCategoria);
+    final resumen = resumirVariables(variables, rollupPorCategoria, fijas: fijas);
     final gastadoVariables = resumen.gastadoConPresupuesto;
     final gastadoSinPresupuesto = resumen.gastadoSinPresupuesto;
     final presupuestoVariables = resumen.presupuesto;
@@ -372,16 +373,22 @@ class _PantallaInicioState extends State<PantallaInicio> {
     } else {
       texto = categoria == null ? 'Listo, quedó registrado' : 'Listo, quedó en ${categoria.nombre}';
     }
+    final meses = m.meses;
+    final aviso = m.esAMeses && meses != null
+        ? '$texto · $meses meses de ${enPesos(m.monto)}'
+        : texto;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
-        content: Text(texto),
-        duration: const Duration(seconds: 4),
+        content: Text(aviso),
+        duration: const Duration(seconds: 7),
+        // Con botón, Flutter la deja fija hasta tocarla; se va sola.
+        persist: false,
         action: SnackBarAction(
           label: 'Deshacer',
           // Nada se borra: se anula (regla #3).
           onPressed: () async {
-            await widget.movimientoRepositorio.anular(m.id ?? m.clientId);
+            await anularGasto(widget.movimientoRepositorio, m);
             if (!mounted) return;
             setState(() => _version++);
             await _cargar();
@@ -960,7 +967,8 @@ class _Heroe extends StatelessWidget {
             icono: Icons.calendar_today_rounded,
             enHeroe: true,
           );
-    final gastado = solo ? datos.gastadoSinPresupuesto : datos.gastadoVariables;
+    // Sin presupuestos, todo lo gastado del ciclo, fijas incluidas.
+    final gastado = solo ? datos.totalGastado : datos.gastadoVariables;
     final (pesos, centavos) = partesDeMonto(gastado);
     final quedan = presupuesto - gastado;
     // Igual que el encabezado ("faltan N días"): sin contar hoy.
@@ -986,7 +994,7 @@ class _Heroe extends StatelessWidget {
 
     return TarjetaApp.heroe(
       etiquetaSemantica: solo
-          ? 'Llevas gastado ${montoEnPalabras(gastado)} en variables. $pie.'
+          ? 'Llevas gastado ${montoEnPalabras(gastado)} en este ciclo. $pie.'
           : 'Llevas gastado ${montoEnPalabras(gastado)} de ${montoEnPalabras(presupuesto)} en variables. $veredicto.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

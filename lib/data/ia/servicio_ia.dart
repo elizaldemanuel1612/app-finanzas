@@ -17,7 +17,11 @@ final class ServicioIA {
   final ClienteIA? apple;
   final http.Client? _http;
 
-  ServicioIA(this.almacen, {this.apple, http.Client? cliente}) : _http = cliente;
+  /// El resumen de los números del usuario (`textoParaIA`) para el
+  /// asistente (spec §6.5, uso 4); `null` donde no hay datos (pruebas).
+  final Future<String?> Function()? datosDelUsuario;
+
+  ServicioIA(this.almacen, {this.apple, this.datosDelUsuario, http.Client? cliente}) : _http = cliente;
 
   Future<ConfiguracionIA> configuracion() => almacen.leer();
 
@@ -42,6 +46,18 @@ final class ServicioIA {
 
   Future<void> sugerirCategorias(bool activo) async =>
       almacen.guardar((await almacen.leer()).conSugerirCategorias(activo));
+
+  Future<void> verMisNumeros(bool activo) async => almacen.guardar((await almacen.leer()).conVerMisNumeros(activo));
+
+  /// Los números del usuario para el asistente, solo si lo permitió.
+  Future<String?> datosParaAsistente() async {
+    if (datosDelUsuario == null || !(await almacen.leer()).verMisNumeros) return null;
+    try {
+      return await datosDelUsuario!();
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// La IA activa, lista para preguntarle; `null` si no hay ninguna.
   Future<ClienteIA?> clienteActivo() async {

@@ -187,3 +187,42 @@ List<ProgresoObjetivo> calcularProgresoObjetivos({
   }
   return resultado;
 }
+
+/// Los objetivos activos separados en los que faltan y los logrados
+/// (spec-app-finanzas-v2.md §7.3.3, 2026-11-17).
+///
+/// Los que faltan van primero lo que pide atención: los que ya pasaron su
+/// fecha, luego los que van lentos, los demás con fecha (la más cercana
+/// primero) y al final los que no tienen fecha. Los logrados conservan el
+/// orden en que llegan.
+({List<ProgresoObjetivo> porCumplir, List<ProgresoObjetivo> logrados}) agruparObjetivos(
+  List<ProgresoObjetivo> progreso,
+) {
+  int prioridad(ProgresoObjetivo p) => switch (p.estado) {
+        EstadoObjetivo.vencido => 0,
+        EstadoObjetivo.enCamino => p.alcanzaATiempo == false ? 1 : 2,
+        EstadoObjetivo.sinFecha => 3,
+        EstadoObjetivo.logrado => 4,
+      };
+  final porCumplir = [for (final p in progreso) if (p.estado != EstadoObjetivo.logrado) p];
+  final orden = {for (final (i, p) in porCumplir.indexed) p: i};
+  porCumplir.sort((a, b) {
+    final porEstado = prioridad(a).compareTo(prioridad(b));
+    if (porEstado != 0) return porEstado;
+    final fa = a.objetivo.fechaLimite;
+    final fb = b.objetivo.fechaLimite;
+    if (fa != null && fb != null && fa != fb) return fa.compareTo(fb);
+    return orden[a]!.compareTo(orden[b]!);
+  });
+  return (
+    porCumplir: porCumplir,
+    logrados: [for (final p in progreso) if (p.estado == EstadoObjetivo.logrado) p],
+  );
+}
+
+/// Lo que piden en el ciclo que corre los objetivos con fecha que aún no
+/// se cumplen: la suma del primer tramo de cada reparto.
+Dinero aApartarEsteCiclo(Iterable<ProgresoObjetivo> progreso) => Dinero.suma([
+      for (final p in progreso)
+        if (p.reparto.isNotEmpty) p.reparto.first.monto,
+    ]);

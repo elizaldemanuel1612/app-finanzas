@@ -9,6 +9,7 @@ import '../../data/repositorios/ingreso_extra_repositorio.dart';
 import '../../data/repositorios/movimiento_cuenta_repositorio.dart';
 import '../../data/repositorios/movimiento_repositorio.dart';
 import '../../domain/cuentas/apartados.dart';
+import '../../domain/cuentas/compra_a_meses.dart';
 import '../../domain/cuentas/eliminar_cuenta.dart';
 import '../../domain/cuentas/fechas_tarjeta.dart';
 import '../../domain/cuentas/saldos.dart';
@@ -71,6 +72,9 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
   List<Cuenta> _cuentas = const [];
   Dinero? _saldo;
   PagoTarjeta? _pago;
+
+  /// Compras a meses con mensualidades por venir (spec §7.3.1).
+  List<CompraAMeses> _compras = const [];
   Dinero _gastadoCiclo = const Dinero.cero();
   List<_Renglon>? _renglones;
 
@@ -123,8 +127,18 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
     }
 
     _cuentas = cuentas;
+    final ahora = DateTime.now();
+    final finDeHoy = DateTime(ahora.year, ahora.month, ahora.day + 1);
     final renglones = <_Renglon>[
-      for (final g in suyos) (fecha: g.fecha, texto: g.descripcion, efecto: Dinero(-g.monto.centavos), deCuenta: null),
+      // Las mensualidades por venir van en "A meses", no en lo que pasó.
+      for (final g in suyos)
+        if (g.fecha.isBefore(finDeHoy))
+          (
+            fecha: g.fecha,
+            texto: g.esAMeses ? '${g.descripcion} · ${g.mensualidad} de ${g.meses} meses' : g.descripcion,
+            efecto: Dinero(-g.monto.centavos),
+            deCuenta: null,
+          ),
       for (final a in abonos)
         if (a.toca(cuenta.id) && a.estado == EstadoMovimientoCuenta.activo)
           (fecha: a.fecha, texto: textoDe(a), efecto: a.efectoEn(cuenta.id), deCuenta: a),
@@ -133,7 +147,8 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
     setState(() {
       _cuenta = cuenta;
       _saldo = saldoDe(cuenta, gastos, abonos);
-      _pago = pagoDeTarjeta(cuenta, gastos, abonos, hoy: DateTime.now());
+      _pago = pagoDeTarjeta(cuenta, gastos, abonos, hoy: ahora);
+      _compras = comprasAMesesDe(cuenta, gastos, hoy: ahora);
       _gastadoCiclo = Dinero(suyos.where((g) => g.cicloId == ciclo.id).fold(0, (s, g) => s + g.monto.centavos));
       _renglones = renglones.take(60).toList();
       _apartados = [for (final a in apartadosDe(cuenta, cuentas)) (a, saldoDe(a, gastos, abonos))];
@@ -536,6 +551,28 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                     apoyo: 'Agrega los días y te avisamos cuánto pagar.',
                     accion: 'Agregar',
                     onAccion: _editar,
+                  ),
+                ],
+                if (_compras.isNotEmpty) ...[
+                  EncabezadoSeccion(
+                    titulo: 'A meses sin intereses',
+                    dato: 'Faltan ${enPesos(Dinero.suma(_compras.map((c) => c.falta)))}',
+                  ),
+                  TarjetaApp.lista(renglones: [
+                    for (final c in _compras)
+                      RenglonApp(
+                        icono: Icons.calendar_view_month_outlined,
+                        titulo: c.descripcion,
+                        subtitulo: '${enPesos(c.mensualidad)} al mes · van ${c.pagadas} de ${c.meses}',
+                        monto: c.falta.formateado(),
+                      ),
+                  ]),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+                    child: Text(
+                      'Ya cuentan en lo que debes, pero cada corte solo te pide su mensualidad.',
+                      style: textos.etiqueta,
+                    ),
                   ),
                 ],
                 if (conApartados) ...[

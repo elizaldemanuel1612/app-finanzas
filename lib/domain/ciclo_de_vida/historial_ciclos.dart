@@ -75,6 +75,9 @@ List<CicloResumen> calcularHistorialCiclos({
 
   final movimientosPorCiclo = <String, List<Movimiento>>{};
   for (final m in todosLosMovimientos) {
+    // Un ciclo que no ha llegado (mensualidades a meses, spec §7.3.1) no es
+    // un ciclo anterior; el id `AAAA-MM` ordena como texto.
+    if (m.cicloId.compareTo(cicloActualId) > 0) continue;
     movimientosPorCiclo.putIfAbsent(m.cicloId, () => []).add(m);
   }
 

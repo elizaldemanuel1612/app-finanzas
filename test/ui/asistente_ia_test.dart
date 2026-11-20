@@ -63,4 +63,49 @@ void main() {
     expect(find.text('Conectar Gemini'), findsOneWidget);
     expect(find.text('Abrir Google AI Studio'), findsOneWidget);
   });
+
+  testWidgets('con "ver mis números" encendido, la IA recibe el resumen y cambian las sugerencias', (tester) async {
+    final ia = _IAFalsa();
+    final servicio = ServicioIA(
+      AlmacenConfiguracionIA(ArchivoTextoMemoria()),
+      apple: ia,
+      datosDelUsuario: () async => r'Total gastado en el ciclo (todo): $4,860.',
+    );
+    await servicio.conectarApple();
+
+    // Apagado: no ve nada.
+    await tester.pumpWidget(_app(PantallaAsistente(servicio: servicio)));
+    await tester.pumpAndSettle();
+    expect(find.text('¿Cómo voy este ciclo?'), findsNothing);
+    await tester.tap(find.text('¿Cómo registro un gasto?'));
+    await tester.pumpAndSettle();
+    expect(ia.sistema, isNot(contains(r'$4,860')));
+    expect(ia.sistema, contains('No ves los datos'));
+
+    // Encendido desde Complementos.
+    await tester.pumpWidget(_app(PantallaComplementosIA(servicio: servicio)));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Dejar que tu IA vea tus números'), 200);
+    await tester.ensureVisible(find.text('Dejar que tu IA vea tus números'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('no sale de tu iPhone'), findsOneWidget);
+    await tester.tap(find.text('Dejar que tu IA vea tus números'));
+    await tester.pumpAndSettle();
+    expect((await servicio.configuracion()).verMisNumeros, isTrue);
+    expect(find.textContaining('solo ve el resumen que calcula la app'), findsOneWidget);
+
+    await tester.pumpWidget(_app(PantallaAsistente(key: UniqueKey(), servicio: servicio)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('¿Cómo voy este ciclo?'));
+    await tester.pumpAndSettle();
+    expect(ia.sistema, contains(r'Total gastado en el ciclo (todo): $4,860.'));
+    expect(ia.sistema, isNot(contains('No ves los datos')));
+  });
+
+  testWidgets('sin datos del usuario (demo o pruebas) no se ofrece el interruptor', (tester) async {
+    final servicio = ServicioIA(AlmacenConfiguracionIA(ArchivoTextoMemoria()));
+    await tester.pumpWidget(_app(PantallaComplementosIA(servicio: servicio)));
+    await tester.pumpAndSettle();
+    expect(find.text('Dejar que tu IA vea tus números'), findsNothing);
+  });
 }

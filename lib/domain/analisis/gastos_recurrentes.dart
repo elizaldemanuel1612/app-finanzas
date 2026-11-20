@@ -90,7 +90,9 @@ String _clave(String descripcion) =>
 List<GastoRecurrente> detectarRecurrentes(List<Movimiento> movimientos, {required DateTime hoy}) {
   final grupos = <String, List<Movimiento>>{};
   for (final m in movimientos) {
-    if (m.estado != EstadoMovimiento.activo) continue;
+    // Las mensualidades de una compra a meses no son un gasto que se repite
+    // (spec §7.3.1): ya se sabe cuándo terminan.
+    if (m.estado != EstadoMovimiento.activo || m.esAMeses) continue;
     final clave = _clave(m.descripcion);
     if (clave.isEmpty) continue;
     (grupos[clave] ??= []).add(m);

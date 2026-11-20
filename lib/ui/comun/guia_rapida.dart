@@ -35,12 +35,13 @@ enum GuiaRapida {
       Icons.credit_card,
       'Antes, si hace falta, cambia la cuenta',
       'El chip de cuenta dice con qué pagaste: efectivo, débito o crédito. Así el saldo de tus cuentas se '
-          'actualiza solo.',
+          'actualiza solo. Con crédito aparece Meses, para compras a meses sin intereses.',
     ),
     PasoGuiaRapida(
       Icons.mic_none,
       'O díctalo',
-      'Con el micrófono puedes decir "doscientos de gasolina" y la app llena el gasto. Revisa y guarda.',
+      'Con el micrófono puedes decir "doscientos de gasolina ayer con la BBVA" y la app llena el gasto. '
+          'En el iPhone también puedes decirle a Siri "Registra un gasto en MAVfin" sin abrir la app.',
     ),
     PasoGuiaRapida(
       Icons.check_circle_outline,
@@ -85,6 +86,11 @@ enum GuiaRapida {
       'Periodo',
       'Cuánto gastaste en el año, en los últimos 12 meses o entre las fechas que elijas, mes por mes.',
     ),
+    PasoGuiaRapida(
+      Icons.savings_outlined,
+      'Ingresos',
+      'Lo que te entró, de dónde viene y contra lo que gastaste. Puedes verlo de una o varias cuentas.',
+    ),
   ]),
   cuentas('Tus cuentas y tarjetas', [
     PasoGuiaRapida(
@@ -105,6 +111,51 @@ enum GuiaRapida {
       'Registra lo que te depositan, pasa dinero entre cuentas o paga tu tarjeta. Nada de eso cuenta '
           'como gasto.',
     ),
+    PasoGuiaRapida(
+      Icons.event_outlined,
+      'Fechas de tu tarjeta',
+      'En una de crédito pon su día de corte y de pago: la app te dice cuánto pagar para no generar '
+          'intereses y te avisa en Inicio cuando se acerca la fecha.',
+    ),
+    PasoGuiaRapida(
+      Icons.folder_outlined,
+      'Apartados',
+      'Dentro de tu débito o tu ahorro puedes separar dinero para algo, como un viaje. Entra a la cuenta '
+          'y toca «Nuevo apartado»; con Guardar y Sacar lo mueves.',
+    ),
+  ]),
+  objetivos('Tus objetivos', [
+    PasoGuiaRapida(
+      Icons.flag_outlined,
+      'Ponte una meta',
+      'Di para qué ahorras, cuánto y, si quieres, para cuándo. Elige la cuenta de ahorro o el apartado '
+          'donde guardas ese dinero.',
+    ),
+    PasoGuiaRapida(
+      Icons.trending_up,
+      'Avanza con tu saldo',
+      'Lo que llevas es el saldo de esa cuenta: no hay que anotarlo aparte. Con fecha, la app te dice '
+          'cuánto apartar en cada ciclo.',
+    ),
+    PasoGuiaRapida(
+      Icons.inventory_2_outlined,
+      'Por cumplir y logrados',
+      'Arriba eliges qué ver. Cuando uses lo que juntaste, archiva el objetivo con "Ya lo usé".',
+    ),
+  ]),
+  complementosIA('Tu IA', [
+    PasoGuiaRapida(
+      Icons.auto_awesome_outlined,
+      'Conecta la tuya',
+      'Apple Intelligence en el iPhone, o Gemini con una clave gratis de Google. La app no paga ni guarda '
+          'ninguna: tu clave se queda en este teléfono.',
+    ),
+    PasoGuiaRapida(
+      Icons.forum_outlined,
+      'Pregúntale',
+      'Cómo se hace algo en la app y, si lo permites, cómo vas con tus números. También puede sugerir '
+          'la categoría de un gasto que la app no reconoce.',
+    ),
   ]),
   categorias('Tus categorías', [
     PasoGuiaRapida(
@@ -115,7 +166,14 @@ enum GuiaRapida {
     PasoGuiaRapida(
       Icons.shopping_basket_outlined,
       'Variables',
-      'Lo que cambia, como el súper o las salidas. Llevan un presupuesto y la app te dice si vas rápido.',
+      'Lo que cambia, como el súper o las salidas. Llevan un presupuesto y la app te dice si vas rápido. '
+          'Con presupuesto en \$0 solo registras, sin juzgar.',
+    ),
+    PasoGuiaRapida(
+      Icons.savings_outlined,
+      'Ingresos',
+      'Arriba cambia a Ingresos para nombrar de dónde te entra el dinero, como Sueldo o Ventas. '
+          'Las eliges al registrar un abono.',
     ),
     PasoGuiaRapida(
       Icons.edit_outlined,
