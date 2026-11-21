@@ -148,4 +148,44 @@ void main() {
     };
     expect(_ids(ordenarPorAtencion(cats, r, avanceCiclo: 0.5)), ['bien', 'nada', 'super', 'cafe']);
   });
+
+  group('ordenarPresupuesto (spec §5.6.4)', () {
+    CategoriaVariable con(String id, String nombre) => CategoriaVariable(
+          id: id,
+          nombre: nombre,
+          emoji: '🛒',
+          activa: true,
+          esNecesaria: false,
+          presupuestoMensualCentavos: const Dinero.pesos(100),
+        );
+    final cats = [con('s', 'Súper'), con('a', 'auto'), con('e', 'Éxito'), con('b', 'Auto')];
+    final r = {'s': _rollup('s', 50, 100), 'a': _rollup('a', 120, 100), 'e': _rollup('e', 50, 100)};
+    List<String> orden(OrdenPresupuesto o, [List<String> propio = const []]) =>
+        _ids(ordenarPresupuesto(cats, r, orden: o, avanceCiclo: 0.5, ordenPropio: propio));
+
+    test('atención es el de siempre', () {
+      expect(orden(OrdenPresupuesto.atencion), _ids(ordenarPorAtencion(cats, r, avanceCiclo: 0.5)));
+      expect(orden(OrdenPresupuesto.atencion).first, 'a');
+    });
+
+    test('por nombre, sin acentos ni mayúsculas; empate por id', () {
+      expect(orden(OrdenPresupuesto.nombre), ['a', 'b', 'e', 's']);
+    });
+
+    test('lo más gastado primero; empate por nombre', () {
+      expect(orden(OrdenPresupuesto.masGastado), ['a', 'e', 's', 'b']);
+    });
+
+    test('mi orden: lo nuevo al final por nombre, lo que ya no existe se ignora', () {
+      expect(orden(OrdenPresupuesto.propio, ['s', 'borrada', 'e']), ['s', 'e', 'a', 'b']);
+      expect(orden(OrdenPresupuesto.propio, ['b', 'a', 'e', 's']), ['b', 'a', 'e', 's']);
+      expect(orden(OrdenPresupuesto.propio), ['a', 'b', 'e', 's']);
+    });
+
+    test('el nombre guardado se lee; uno desconocido o ausente es atención', () {
+      expect(OrdenPresupuesto.deNombre('propio'), OrdenPresupuesto.propio);
+      expect(OrdenPresupuesto.deNombre('otro'), OrdenPresupuesto.atencion);
+      expect(OrdenPresupuesto.deNombre(null), OrdenPresupuesto.atencion);
+    });
+  });
 }

@@ -45,6 +45,10 @@ Movimiento _gasto(String categoria, int pesos) {
 
 void main() {
   testWidgets('pestañas raíz, banner de exceso y Patrimonio en la barra', (tester) async {
+    // Pantalla de iPhone: el presupuesto entra sin desplazar.
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
     final almacen = AlmacenLocal.sobre({for (final n in AlmacenLocal.nombresDeArchivo) n: ArchivoTextoMemoria()});
     await tester.pumpWidget(MaterialApp(
       home: PantallaInicio(
