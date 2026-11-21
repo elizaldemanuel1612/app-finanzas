@@ -16,25 +16,47 @@ import 'punto_monto.dart';
 /// cualquier `cicloId` distinto a [cicloActualId] se trata como histórico
 /// cerrado (ver nota de clase de `PantallaDetalleCategoria` sobre "ciclo
 /// cerrado" mientras esa noción no exista como estado gestionado).
+///
+/// Solo los **anteriores**: un ciclo posterior al actual (las mensualidades
+/// que aún no llegan de una compra a meses, spec §7.3.1) no es historia.
 List<CicloCerradoHistorico> ciclosCerradosDeCategoria({
   required List<Movimiento> todos,
   required String categoriaId,
   required String cicloActualId,
-}) {
+}) =>
+    [
+      for (final (_, movimientos) in _cerrados(todos, categoriaId, cicloActualId))
+        [for (final m in movimientos) PuntoMonto(m.fecha, m.monto.centavos.toDouble())],
+    ];
+
+/// Los ciclos anteriores a [cicloActualId] con gasto activo en la categoría,
+/// del más reciente al más antiguo. El id `AAAA-MM` ordena como texto.
+List<(String cicloId, List<Movimiento>)> _cerrados(List<Movimiento> todos, String categoriaId, String cicloActualId) {
   final porCiclo = <String, List<Movimiento>>{};
   for (final m in todos) {
     if (m.categoriaId != categoriaId) continue;
     if (m.estado != EstadoMovimiento.activo) continue;
-    if (m.cicloId == cicloActualId) continue;
+    if (m.cicloId.compareTo(cicloActualId) >= 0) continue;
     porCiclo.putIfAbsent(m.cicloId, () => []).add(m);
   }
-  final cicloIdsOrdenados = porCiclo.keys.toList()..sort((a, b) => b.compareTo(a));
-  return [
-    for (final id in cicloIdsOrdenados)
-      [
-        for (final m in porCiclo[id]!) PuntoMonto(m.fecha, m.monto.centavos.toDouble()),
-      ],
-  ];
+  final ids = porCiclo.keys.toList()..sort((a, b) => b.compareTo(a));
+  return [for (final id in ids) (id, porCiclo[id]!)];
+}
+
+/// Dónde empezó el ciclo [cicloId] (`AAAA-MM`: el año y mes de su inicio),
+/// suponiendo el mismo día de inicio que [actual] — acotado al último día
+/// en meses cortos (modelo-pronostico-ciclo.md §3.2). Tras un cambio de día
+/// de corte los ciclos viejos quedan desfasados unos días; se acepta. Un id
+/// que no tenga esa forma regresa `null`.
+DateTime? inicioEstimadoDeCiclo(String cicloId, Ciclo actual) {
+  final partes = cicloId.split('-');
+  if (partes.length != 2) return null;
+  final anio = int.tryParse(partes[0]);
+  final mes = int.tryParse(partes[1]);
+  if (anio == null || mes == null || mes < 1 || mes > 12) return null;
+  final ultimoDia = DateTime(anio, mes + 1, 0).day;
+  final dia = actual.fechaInicio.day;
+  return DateTime(anio, mes, dia > ultimoDia ? ultimoDia : dia);
 }
 
 /// Pronóstico MPC de [categoria] para [ciclo] a partir de todos los
@@ -56,6 +78,8 @@ PronosticoCategoria pronosticoDeCategoria({
             m.cicloId == ciclo.id,
       )
       .toList();
+  final cerrados = _cerrados(todos, categoria.id, ciclo.id);
+  final inicios = [for (final (id, _) in cerrados) inicioEstimadoDeCiclo(id, ciclo)];
   return calcularPronosticoCategoria(
     categoria: categoria,
     cicloId: ciclo.id,
@@ -65,10 +89,11 @@ PronosticoCategoria pronosticoDeCategoria({
     movimientosCicloActual: [
       for (final m in movimientosCiclo) PuntoMonto(m.fecha, m.monto.centavos.toDouble()),
     ],
-    ciclosCerradosRecienteAAntiguo: ciclosCerradosDeCategoria(
-      todos: todos,
-      categoriaId: categoria.id,
-      cicloActualId: ciclo.id,
-    ),
+    ciclosCerradosRecienteAAntiguo: [
+      for (final (_, movimientos) in cerrados)
+        [for (final m in movimientos) PuntoMonto(m.fecha, m.monto.centavos.toDouble())],
+    ],
+    // Con un id que no se sabe leer no hay posición: avance de calendario.
+    iniciosCiclosCerradosRecienteAAntiguo: inicios.contains(null) ? null : inicios.cast<DateTime>(),
   );
 }

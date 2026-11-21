@@ -7,6 +7,7 @@ import 'clasificador_atipicos.dart';
 import 'estadistica_robusta.dart';
 import 'historico_ciclos.dart';
 import 'nivel_madurez.dart';
+import 'perfil_posicion.dart';
 import 'perfil_dia_semana.dart';
 import 'punto_monto.dart';
 import 'subcaptura.dart';
@@ -72,8 +73,9 @@ typedef CicloCerradoHistorico = List<PuntoMonto>;
 ///
 /// **Simplificaciones conscientes de v1** (documentadas también en los
 /// módulos donde aplican):
-/// - No implementa `v_c(t)` (§3.2); el peso combinado usa solo día de
-///   semana.
+/// - La posición dentro del ciclo (§3.2) solo entra si se pasan
+///   [iniciosCiclosCerradosRecienteAAntiguo] (uno por ciclo cerrado, en el
+///   mismo orden); sin ellos el avance es el de día de semana, como antes.
 /// - `Comprometido_c` de categorías Tipo B/C es siempre 0 — no hay
 ///   modelo de recurrencias dentro de una categoría variable todavía
 ///   (solo las categorías Tipo A tienen fecha de cobro conocida).
@@ -88,6 +90,7 @@ PronosticoCategoria calcularPronosticoCategoria({
   required DateTime hoy,
   required List<PuntoMonto> movimientosCicloActual,
   required List<CicloCerradoHistorico> ciclosCerradosRecienteAAntiguo,
+  List<DateTime>? iniciosCiclosCerradosRecienteAAntiguo,
 }) {
   if (categoria is CategoriaFija) {
     return _pronosticoTipoA(
@@ -105,12 +108,26 @@ PronosticoCategoria calcularPronosticoCategoria({
 
   final perfilDiaSemana = perfilEfectivoParaNivel(nivel, ciclosCerradosRecienteAAntiguo);
 
-  final pC = avanceEfectivoCiclo(
+  final pCalendario = avanceEfectivoCiclo(
     perfilDiaSemana: perfilDiaSemana,
     fechaInicio: fechaInicioCiclo,
     fechaFin: fechaFinCiclo,
     hoy: hoy,
   );
+  // Posición dentro del ciclo (§3.2): en qué día cayó cada gasto pasado.
+  final inicios = iniciosCiclosCerradosRecienteAAntiguo;
+  final conPosicion = inicios != null &&
+      ciclosCerradosRecienteAAntiguo.isNotEmpty &&
+      inicios.length == ciclosCerradosRecienteAAntiguo.length;
+  final diaDeHoy = diaEnCiclo(hoy, fechaInicioCiclo);
+  final pC = conPosicion
+      ? avanceConPosicion(
+          ciclosCerrados: ciclosCerradosRecienteAAntiguo,
+          iniciosCiclosCerrados: inicios,
+          diaDeHoy: diaDeHoy,
+          avanceCalendario: pCalendario,
+        )
+      : pCalendario;
 
   final movimientosObservadosCount = movimientosCicloActual.length;
   final densidadEsperadaBase = ciclosCerradosRecienteAAntiguo.isEmpty
@@ -139,11 +156,19 @@ PronosticoCategoria calcularPronosticoCategoria({
     );
   } else {
     tipo = TipoMpc.esporadica;
-    proyeccionCruda = _proyeccionTipoC(
-      observado: observadoTotal,
-      ciclosCerrados: ciclosCerradosRecienteAAntiguo,
-      pC: pC,
-    );
+    proyeccionCruda = conPosicion
+        ? observadoTotal +
+            faltaPorPosicion(
+              ciclosCerrados: ciclosCerradosRecienteAAntiguo,
+              iniciosCiclosCerrados: inicios,
+              diaDeHoy: diaDeHoy,
+              movimientosDeEsteCiclo: movimientosObservadosCount,
+            )
+        : _proyeccionTipoC(
+            observado: observadoTotal,
+            ciclosCerrados: ciclosCerradosRecienteAAntiguo,
+            pC: pC,
+          );
   }
 
   // §7, nivel "sinHistorial": "Presupuesto como pronóstico" — sin ningún
