@@ -101,7 +101,7 @@ final class RegistroPorVoz {
     final ordenadas = [...categorias]..sort((a, b) => (usos[b.id] ?? 0).compareTo(usos[a.id] ?? 0));
     return ContextoDictado(
       categorias: ordenadas,
-      cuentas: cuentasParaRegistrar(ordenarCuentasPorUso(cuentas, movimientos)),
+      cuentas: ordenarCuentasPorUso(cuentas, movimientos),
       cuentaPorOmision: ultimaCuentaUsada(movimientos),
       hoy: reloj(),
       reglas: reglas,

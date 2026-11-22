@@ -214,8 +214,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     if (repo == null) return;
     final cuentas = await repo.listarTodas();
     final gastos = await widget.movimientoRepositorio.listarTodos();
-    final editarId = widget.paraEditar == null ? null : cuentaDe(widget.paraEditar!);
-    final ordenadas = cuentasParaRegistrar(ordenarCuentasPorUso(cuentas, gastos), conservar: editarId);
+    final ordenadas = ordenarCuentasPorUso(cuentas, gastos);
     if (!mounted || ordenadas.isEmpty) return;
     final editar = widget.paraEditar;
     final propuesta = editar != null ? cuentaDe(editar) : ultimaCuentaUsada(gastos);

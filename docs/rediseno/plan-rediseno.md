@@ -57,7 +57,7 @@ Lo que cuenta es la estructura, la jerarquía, los textos exactos y los estados.
 - Teclado numérico propio. Chips compactos de fecha (Hoy), cuenta (la última usada) y nota.
 - Rejilla de categorías: tocar una guarda y cierra. Se resalta la sugerida.
 - Sin monto, las categorías van deshabilitadas.
-- Quitar los medios genéricos "Tarjeta" y "Efectivo": solo cuentas reales (`cuentaDe`).
+- Quitar los medios genéricos "Tarjeta" y "Efectivo": solo cuentas reales (`cuentaDe`). **Corrección 2026-11-22:** se ofrecen todas las cuentas activas (sin ahorro), incluidas las base; esconder "Efectivo" al haber otra de efectivo dejaba fuera la cartera del usuario. La que no se use se archiva en Tus cuentas.
 - Voz y foto en el encabezado.
 
 **Etapa 4, Gastos** (`pantallas/Gastos.dc.html`): selector de ciclo, búsqueda con filtros, renglones agrupados por día en un grupo (no tarjetas sueltas), ciclo cerrado con aviso info y "Reabrir", estado vacío y de carga.
