@@ -244,6 +244,17 @@ Siempre con su frase (regla #23): "Si sigues así, apartas $X de $Y". El cierre 
 
 La pestaña Gastos abre en el ciclo en curso y, arriba, deja cambiar de ciclo: flechas ‹ › al anterior y al siguiente, y tocar el nombre abre la lista de todos ("¿Qué ciclo quieres ver?") con fechas, estado (En curso / Cerrado / Sin cerrar) y total. Aparecen el ciclo en curso y todos los que tienen al menos un gasto (`domain/ciclo_de_vida/ciclos_para_consultar.dart`). Búsqueda y filtros aplican al ciclo elegido. Un ciclo **cerrado** se consulta pero no se cambia (regla #6): lleva un candado y el aviso "Ciclo cerrado: solo para consultar"; al tocar o deslizar un gasto sale el mismo diálogo de siempre que ofrece reabrir el ciclo (`asegurarCicloAbierto`). Duplicar un gasto viejo sigue permitido: la copia cae hoy, en el ciclo en curso.
 
+### 5.6.4 [NUEVO] Ordenar el presupuesto de Inicio (2026-11-21)
+
+Junto al encabezado "Presupuesto" de Inicio, un botón **Ordenar** abre una hoja con cuatro formas de acomodar las categorías variables (`domain/rollups/orden_categorias.dart`, `ordenarPresupuesto`):
+
+- **Lo que necesita atención** (por omisión, la de siempre: `ordenarPorAtencion`): primero las que te pasaste, luego las que van rápido, luego las que van bien.
+- **Mi orden**: el usuario arrastra las categorías en la misma hoja. Las que no están en su lista (una categoría nueva) van al final, por nombre; un id que ya no existe se ignora.
+- **Lo que más llevas gastado**: de mayor a menor gasto del ciclo.
+- **Por nombre**: A–Z, sin acentos ni mayúsculas de por medio.
+
+Las categorías sin presupuesto (§7.3.6) van al final solo en "Lo que necesita atención"; en los otros criterios se acomodan como cualquiera. La elección vive en el perfil (`Perfil.ordenPresupuesto` y `Perfil.ordenPropio`), así que viaja con el respaldo en Drive a los demás dispositivos. Esto revive, simplificado, el "Ordenar por" que el rediseño quitó de Inicio (`docs/rediseno/plan-rediseno.md`, Etapa 2): el orden por atención sigue siendo el de fábrica.
+
 ### 5.7 [NUEVO] Pestaña Análisis
 Una pestaña propia (barra inferior: Inicio · Gastos · ＋ · Análisis · Ajustes) que convierte lo registrado en respuestas: ¿en qué se va?, ¿voy bien?, ¿qué cambió?, ¿qué hago? Por qué: en las apps mejor calificadas (Copilot, Monarch, YNAB, Spendee) lo que más elogian los usuarios, después de la captura rápida, son los reportes claros, la comparación contra el mes anterior y los avisos accionables (ver `docs/investigacion-apps-finanzas.md`).
 

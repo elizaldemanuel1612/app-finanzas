@@ -55,6 +55,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Nuevo apartado en BBVA'), findsOneWidget);
     await tester.enterText(find.widgetWithText(TextField, 'Nombre'), 'Viaje');
+    await tester.enterText(find.widgetWithText(TextField, 'Ícono'), '🏝️');
     await tester.enterText(find.widgetWithText(TextField, '¿Cuánto guardas ahora? (opcional)'), '3000');
     await tester.tap(find.text('Crear apartado'));
     await tester.pumpAndSettle();
@@ -62,6 +63,7 @@ void main() {
     final todas = await cuentas.listarTodas();
     final viaje = todas.singleWhere((c) => c.nombre == 'Viaje');
     expect(viaje.cuentaPadreId, 'bbva');
+    expect(viaje.emoji, '🏝️', reason: 'cualquier emoji, no solo los de la lista');
     expect(viaje.tipo, TipoCuenta.ahorro);
     final lista = await movs.listarTodos();
     expect(saldoDe(bbva, const [], lista), const Dinero.pesos(7000));

@@ -76,7 +76,20 @@ Ejemplo real esperado en Súper/Comida: sábado ≈ 2.4, domingo ≈ 1.3, martes
 
 **3.2 Perfil de posición dentro del ciclo**
 
-Algunas categorías se concentran al inicio del ciclo (justo después del corte) o cerca de quincena. Se calcula un multiplicador `v_c(t)` por decil de avance del ciclo, con el mismo método.
+Algunas categorías se concentran al inicio del ciclo (justo después del corte) o cerca de quincena: la colegiatura que se paga el primer día, la despensa grande del mes. Con avance de calendario, el día 10 de 30 el modelo creía que faltaban dos tercios del gasto y proyectaba casi el triple.
+
+**Implementado el 2026-11-21 como curva acumulada**, no como multiplicador por decil (la simulación de §9.1 midió que la curva directa acierta más con pocos ciclos):
+
+```
+F_c(d) = promedio, entre los ciclos cerrados con gasto, de
+         (lo gastado hasta el día d del ciclo ÷ total de ese ciclo)
+
+p_c = λ × F_c(día de hoy) + (1 − λ) × p_calendario        λ = n ÷ (n + 0.5)
+```
+
+`p_calendario` es el avance por día de semana de §3.3 y `n` los ciclos cerrados con gasto. Con un ciclo, λ = 0.67; con cuatro, 0.89. Si la categoría ya había gastado 95 % a esta altura en los ciclos pasados, `p_c` ≈ 0.95 y casi no se proyecta nada más; si este ciclo ya no se gasta, el estimado se queda en lo observado y `p_c` sigue subiendo con los días.
+
+El día de cada gasto pasado se cuenta desde el inicio de su ciclo, que se toma del `cicloId` (`AAAA-MM`) con el mismo día de inicio del ciclo en curso: tras un cambio de día de corte, los ciclos anteriores quedan desfasados unos días, y eso se acepta.
 
 **3.3 Peso combinado y avance real**
 
@@ -145,6 +158,25 @@ Proyección_C = Observado + [ λ_c × (1 − p_c) × m_c ]
 ```
 
 Se usa **mediana**, no promedio, para que una consulta médica cara de una vez no infle todas las proyecciones futuras.
+
+**Con posición dentro del ciclo (2026-11-21).** La fórmula de arriba reparte parejo lo que falta, y eso falla justo en lo que se paga una vez: el día 10, con la colegiatura ya pagada, seguía esperando 0.67 pagos más. Cuando se conoce en qué día del ciclo cayó cada gasto pasado, lo que falta sale de la historia a esta misma altura:
+
+```
+Falta_j(d)  = lo gastado después del día d en el ciclo cerrado j
+Falta_c     = [ promedio(Falta_j) + mediana(Falta_j) ] ÷ 2
+
+Proyección_C = Observado + Falta_c
+```
+
+El promedio solo se dejaría inflar por un ciclo con un gasto enorme; la mediana sola diría cero demasiado seguido en categorías de pocos gastos. Mitad y mitad fue lo que mejor midió.
+
+**Tope por conteo (con 3 ciclos cerrados o más, y solo en categorías que nunca han pasado de 2 gastos en un ciclo):** nunca se esperan más gastos que los más que ha habido en un ciclo, menos los ya hechos:
+
+```
+Falta_c ≤ max(0, máximo de movimientos en un ciclo − movimientos de este ciclo) × m_c
+```
+
+Así, si el corte de cabello ya se pagó y nunca ha habido dos en un ciclo, no se espera otro. Con menos de 3 ciclos el máximo todavía no dice nada y el tope no se aplica. Tampoco en categorías de 3 gastos o más por ciclo: ahí, llegar pronto al máximo dice que este ciclo viene distinto, no que ya se acabó.
 
 ---
 
@@ -228,6 +260,20 @@ Al cerrar cada ciclo, automáticamente:
 3. **Se reajustan parámetros** (α del EWMA, el 0.35 del factor Z, umbral de atípicos) contra todo el historial disponible.
 4. **Campeón vs. retador:** los parámetros nuevos solo reemplazan a los vigentes si reducen el WAPE en el histórico completo. Nunca se adopta un cambio porque "se ve mejor" en el último ciclo.
 5. **Bitácora de versiones:** cada ciclo queda archivado con la versión del modelo que lo pronosticó. Siempre se puede auditar por qué el modelo dijo lo que dijo.
+
+### 9.1 Simulación del 2026-11-21
+
+`tool/simular_pronostico/simular.dart` (`dart run tool/simular_pronostico/simular.dart`) genera 40 historiales de 9 ciclos con once tipos de categoría (pago al inicio, una vez al ciclo, quincenal, súper, salidas, gasolina, salud, gasto hormiga…) y, para cada ciclo y cada día, compara lo que cada variante habría estimado ese día contra el cierre real. Son datos generados, no de un usuario.
+
+| Error promedio del total, días 6–10 | 1 ciclo | 2–3 ciclos | 4–8 ciclos |
+|---|---|---|---|
+| Modelo anterior (avance de calendario) | 13.9 % (sesgo +10.1 %) | 13.7 % (+11.6 %) | 14.4 % (+13.0 %) |
+| Con posición dentro del ciclo (§3.2 y Tipo C) | 12.4 % (+0.2 %) | 9.9 % (−0.5 %) | 8.5 % (−1.1 %) |
+| Regla de tres | 41.1 % (+40.7 %) | 42.6 % (+42.6 %) | 41.3 % (+41.2 %) |
+
+Por categoría, días 6 a 20: un pago al inicio del ciclo pasó de 66 % de error (siempre de más) a 1.4 %; muchas compras concentradas en la primera semana, de 73 % a 15 %; un gasto quincenal, de 23 % a 4 %. Las categorías de gasto repartido (súper, gasto hormiga) quedan prácticamente igual (23 % → 25 %, 11 % → 11 %). Lo que no mejora es lo impredecible por naturaleza (salud, imprevistos: ~50–60 % con cualquier variante).
+
+También se probaron y se descartaron: el multiplicador por decil suavizado con λ = n ÷ (n + 8) (se queda corto con pocos ciclos), escalar lo que falta por cómo va el ciclo en categorías esporádicas (más ruido), y el tope por conteo desde el primer ciclo o en cualquier categoría esporádica (se queda corto: sesgo de −2 a −5 %).
 
 ---
 

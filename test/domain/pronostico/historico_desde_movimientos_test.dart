@@ -117,4 +117,49 @@ void main() {
       expect(pronostico.cicloId, '2026-07');
     });
   });
+
+  group('posición dentro del ciclo (modelo-pronostico-ciclo.md §3.2)', () {
+    Ciclo ciclo(String id, DateTime inicio, DateTime fin) =>
+        Ciclo(id: id, fechaInicio: inicio, fechaFin: fin, etiqueta: id, estado: EstadoCiclo.abierto);
+    final actual = ciclo('2026-11', DateTime(2026, 11, 12), DateTime(2026, 12, 11));
+
+    test('el inicio de un ciclo pasado sale de su id y del día de inicio del actual', () {
+      expect(inicioEstimadoDeCiclo('2026-10', actual), DateTime(2026, 10, 12));
+      // En meses cortos, el último día.
+      final fin = ciclo('2026-03', DateTime(2026, 3, 31), DateTime(2026, 4, 29));
+      expect(inicioEstimadoDeCiclo('2026-02', fin), DateTime(2026, 2, 28));
+      for (final malo in ['2026', 'x-y', '2026-13', '2026-00', '2026-1-1', 'aaaa-11']) {
+        expect(inicioEstimadoDeCiclo(malo, actual), isNull, reason: malo);
+      }
+    });
+
+    test('las mensualidades que aún no llegan no son historia (spec §7.3.1)', () {
+      final todos = [
+        _mov(fecha: DateTime(2026, 10, 15), cicloId: '2026-10'),
+        _mov(fecha: DateTime(2026, 12, 15), cicloId: '2026-12'),
+        _mov(fecha: DateTime(2027, 1, 15), cicloId: '2027-01'),
+      ];
+      expect(ciclosCerradosDeCategoria(todos: todos, categoriaId: 'super', cicloActualId: '2026-11'), hasLength(1));
+    });
+
+    test('un pago al inicio ya hecho no se vuelve a esperar', () {
+      final todos = [
+        for (final mes in [8, 9, 10])
+          _mov(fecha: DateTime(2026, mes, 13), cicloId: '2026-${mes.toString().padLeft(2, '0')}', monto: const Dinero.pesos(2980)),
+        _mov(fecha: DateTime(2026, 11, 13), cicloId: '2026-11', monto: const Dinero.pesos(2980)),
+      ];
+      final p = pronosticoDeCategoria(categoria: _variable(), todos: todos, ciclo: actual, hoy: DateTime(2026, 11, 21, 17));
+      expect(p.pronosticoP50, const Dinero.pesos(2980));
+    });
+
+    test('con un id de ciclo que no se sabe leer se usa el avance de calendario', () {
+      final todos = [
+        _mov(fecha: DateTime(2026, 10, 13), cicloId: '0-raro', monto: const Dinero.pesos(2980)),
+        _mov(fecha: DateTime(2026, 11, 13), cicloId: '2026-11', monto: const Dinero.pesos(2980)),
+      ];
+      final p = pronosticoDeCategoria(categoria: _variable(), todos: todos, ciclo: actual, hoy: DateTime(2026, 11, 21, 17));
+      // 2,980 + 1 × (1 − 10/30) × 2,980.
+      expect(p.pronosticoP50, const Dinero(496667));
+    });
+  });
 }

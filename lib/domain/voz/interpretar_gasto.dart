@@ -18,7 +18,7 @@ final class ContextoDictado {
   final List<Categoria> categorias;
 
   /// Las cuentas con que se registra (activas, sin ahorro), la más usada
-  /// primero (`cuentasParaRegistrar(ordenarCuentasPorUso(...))`).
+  /// primero (`ordenarCuentasPorUso`).
   final List<Cuenta> cuentas;
 
   /// La que se usa si la frase no dice otra (la del último gasto).

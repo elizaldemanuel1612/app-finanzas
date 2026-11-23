@@ -1,5 +1,5 @@
 {
-  "_comentario": "Generado por test/paridad/herramientas/regenerar_esperado.dart contra semilla_paridad_v1.json. Verificado a mano al congelar (Fase 6, Bloque 1.5): totalGastadoCentavos (795649 = 500000+0+270649+15500+9500), listaDeGastos.conteo (7, excluye el anulado y el propuesto), y planDeAjuste.super.sugeridoPromedioPorDiaCentavos (79351 ÷ 26 = 3052). No editar a mano: regenerar y revisar el diff.",
+  "_comentario": "Generado por test/paridad/herramientas/regenerar_esperado.dart contra semilla_paridad_v1.json. Verificado a mano al congelar (Fase 6, Bloque 1.5): totalGastadoCentavos (795649 = 500000+0+270649+15500+9500), listaDeGastos.conteo (7, excluye el anulado y el propuesto), y planDeAjuste.super.sugeridoPromedioPorDiaCentavos (79351 ÷ 26 = 3052). No editar a mano: regenerar y revisar el diff. Regenerado el 2026-11-21 al entrar la posición dentro del ciclo (modelo-pronostico-ciclo.md §3.2), verificado a mano: super p50 350563 = 270649 + (79542.5 promedio + 80285 mediana) ÷ 2 de lo gastado después del día 6 en los 4 ciclos; transporte 15500 (su gasto histórico cae antes de esta altura); entretenimiento 9500 (un gasto por ciclo, ya hecho).",
   "cicloEvaluado": "2026-07",
   "cierreDelCiclo": {
     "ingresoTotalCentavos": 2385000,
@@ -41,25 +41,25 @@
   "cierreEstimadoMpc": {
     "porCategoria": {
       "super": {
-        "p50": 385279,
-        "p10": 331340,
-        "p90": 439218,
+        "p50": 350563,
+        "p10": 301484,
+        "p90": 399642,
         "tipo": "esporadica",
         "confianza": "alta",
         "nivelMadurez": "conEstacionalidad"
       },
       "transporte": {
-        "p50": 27796,
-        "p10": 23904,
-        "p90": 31687,
+        "p50": 15500,
+        "p10": 15500,
+        "p90": 17670,
         "tipo": "esporadica",
         "confianza": "alta",
         "nivelMadurez": "conEstacionalidad"
       },
       "entretenimiento": {
-        "p50": 25427,
-        "p10": 21867,
-        "p90": 28987,
+        "p50": 9500,
+        "p10": 9500,
+        "p90": 10830,
         "tipo": "esporadica",
         "confianza": "alta",
         "nivelMadurez": "conEstacionalidad"

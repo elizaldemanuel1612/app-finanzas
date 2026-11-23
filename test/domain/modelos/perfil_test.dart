@@ -109,4 +109,13 @@ void main() {
       expect(p.metaApartado, isNull);
     });
   });
+
+  test('el orden del presupuesto (spec §5.6.4) va y vuelve, y entra a la igualdad', () {
+    final p = _base().copyWith(ordenPresupuesto: 'propio', ordenPropio: ['b', 'a']);
+    expect(Perfil.fromJson(p.toJson()), p);
+    expect(p, isNot(_base()));
+    expect(p.copyWith(ordenPresupuesto: 'nombre').ordenPropio, ['b', 'a']);
+    expect(_base().toJson().containsKey('ordenPropio'), isFalse);
+    expect(p.hashCode, isNot(_base().hashCode));
+  });
 }

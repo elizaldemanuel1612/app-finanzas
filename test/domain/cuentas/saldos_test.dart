@@ -435,7 +435,7 @@ void main() {
     });
   });
 
-  group('cuentas para registrar: solo las reales (rediseño, Etapa 3)', () {
+  group('cuentas para registrar: todas las activas (2026-11-22)', () {
     Cuenta cuenta(String id, TipoCuenta tipo) => Cuenta(
           id: id,
           nombre: id,
@@ -447,25 +447,19 @@ void main() {
         );
     final base = cuentasBase(_desde);
 
-    test('sin cuentas propias, las base se quedan', () {
-      expect(cuentasParaRegistrar(base).map((c) => c.id), [idCuentaTarjeta, idCuentaEfectivo]);
+    test('el efectivo base se ofrece aunque haya otra cuenta de efectivo', () {
+      final cuentas = [...base, cuenta('cartera', TipoCuenta.efectivo), cuenta('bbva', TipoCuenta.debito)];
+      expect(ordenarCuentasPorUso(cuentas, const []).map((c) => c.id),
+          [idCuentaTarjeta, idCuentaEfectivo, 'cartera', 'bbva']);
     });
 
-    test('con una tarjeta real se va la genérica; el efectivo base se queda', () {
-      final r = cuentasParaRegistrar([...base, cuenta('bbva', TipoCuenta.debito)]);
-      expect(r.map((c) => c.id), [idCuentaEfectivo, 'bbva']);
-    });
-
-    test('con otro efectivo se va el base; la del gasto que se edita se conserva', () {
-      final cuentas = [...base, cuenta('cartera', TipoCuenta.efectivo), cuenta('amex', TipoCuenta.credito)];
-      expect(cuentasParaRegistrar(cuentas).map((c) => c.id), ['cartera', 'amex']);
-      expect(cuentasParaRegistrar(cuentas, conservar: idCuentaTarjeta).map((c) => c.id), [idCuentaTarjeta, 'cartera', 'amex']);
-    });
-
-    test('una base renombrada es una cuenta real y no se esconde', () {
-      final platino = base.first.copyWith(nombre: 'Banamex platino');
-      final r = cuentasParaRegistrar([platino, base.last, cuenta('bbva', TipoCuenta.debito)]);
-      expect(r.map((c) => c.id), [idCuentaTarjeta, idCuentaEfectivo, 'bbva']);
+    test('las de ahorro y las archivadas no se ofrecen', () {
+      final cuentas = [
+        base.last,
+        cuenta('ahorro', TipoCuenta.ahorro),
+        cuenta('vieja', TipoCuenta.debito).copyWith(activa: false),
+      ];
+      expect(ordenarCuentasPorUso(cuentas, const []).map((c) => c.id), [idCuentaEfectivo]);
     });
   });
 }

@@ -29,6 +29,7 @@ import '../../domain/presupuesto/cobertura_excesos.dart';
 import '../../domain/presupuesto/meta_base.dart';
 import '../../domain/presupuesto/traslado_sobrante.dart';
 import '../ciclo/hoja_traslado_sobrante.dart';
+import 'hoja_orden_presupuesto.dart';
 import '../../domain/pronostico/pronostico_del_ciclo.dart';
 import '../../domain/rollups/calcular_rollups.dart';
 import '../../domain/rollups/estado_ritmo.dart';
@@ -306,7 +307,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
       hayCategorias: categorias.isNotEmpty,
       rollupPorCategoria: rollupPorCategoria,
       fijas: fijas,
-      variables: ordenarPorAtencion(variables, rollupPorCategoria, avanceCiclo: _avanceCiclo),
+      variables: variables,
       gastadoVariables: gastadoVariables,
       gastadoSinPresupuesto: gastadoSinPresupuesto,
       presupuestoVariables: presupuestoVariables,
@@ -747,13 +748,22 @@ class _PantallaInicioState extends State<PantallaInicio> {
                 : quedanVariables.esNegativo
                     ? 'Te pasaste ${enPesos(quedanVariables.absoluto)}'
                     : 'Quedan ${enPesos(quedanVariables)}',
+            accion: Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: IconButton(
+                icon: const Icon(Icons.swap_vert),
+                tooltip: 'Ordenar',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _ordenar(datos),
+              ),
+            ),
           ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: TarjetaApp.lista(
             renglones: [
-              for (final c in datos.variables) _renglonVariable(c, datos.rollupPorCategoria[c.id]),
+              for (final c in _variablesOrdenadas(datos)) _renglonVariable(c, datos.rollupPorCategoria[c.id]),
             ],
           ),
         ),
@@ -764,6 +774,29 @@ class _PantallaInicioState extends State<PantallaInicio> {
           child: TarjetaApp.lista(renglones: [_renglonFijos(datos)]),
         ),
     ];
+  }
+
+  /// El presupuesto en el orden que eligió el usuario (spec §5.6.4); por
+  /// omisión, lo que necesita atención primero.
+  List<CategoriaVariable> _variablesOrdenadas(_DatosInicio datos) => ordenarPresupuesto(
+        datos.variables,
+        datos.rollupPorCategoria,
+        orden: OrdenPresupuesto.deNombre(_perfil.ordenPresupuesto),
+        avanceCiclo: _avanceCiclo,
+        ordenPropio: _perfil.ordenPropio,
+      );
+
+  Future<void> _ordenar(_DatosInicio datos) async {
+    final eleccion = await mostrarHojaOrdenPresupuesto(
+      context,
+      orden: OrdenPresupuesto.deNombre(_perfil.ordenPresupuesto),
+      actuales: _variablesOrdenadas(datos),
+      ordenPropio: _perfil.ordenPropio,
+    );
+    if (eleccion == null || !mounted) return;
+    final perfil = _perfil.copyWith(ordenPresupuesto: eleccion.orden.name, ordenPropio: eleccion.propio);
+    setState(() => _perfil = perfil);
+    await widget.perfilRepositorio.guardar(perfil);
   }
 
   Widget _renglonVariable(CategoriaVariable c, Rollup? rollup) {

@@ -98,3 +98,78 @@ List<Categoria> ordenarPorUso(List<Categoria> categorias, List<Movimiento> movim
       return porPresupuesto != 0 ? porPresupuesto : a.nombre.compareTo(b.nombre);
     });
 }
+
+/// Cómo acomoda el usuario el presupuesto de Inicio (spec-app-finanzas-v2.md
+/// §5.6.4). Se guarda por nombre en el perfil.
+enum OrdenPresupuesto {
+  /// Lo que necesita atención primero ([ordenarPorAtencion]); el de fábrica.
+  atencion,
+
+  /// El que el usuario acomodó arrastrando (`Perfil.ordenPropio`).
+  propio,
+
+  /// De mayor a menor gasto del ciclo.
+  masGastado,
+
+  /// A–Z, sin que estorben acentos ni mayúsculas.
+  nombre;
+
+  /// El guardado en el perfil; uno desconocido (de una versión futura) o
+  /// ausente cae en [atencion].
+  static OrdenPresupuesto deNombre(String? nombre) =>
+      values.where((o) => o.name == nombre).firstOrNull ?? atencion;
+}
+
+/// El presupuesto de Inicio según [orden] (spec §5.6.4). En
+/// [OrdenPresupuesto.propio], [ordenPropio] son los ids en el orden que el
+/// usuario eligió: lo que no está ahí (una categoría nueva) va al final por
+/// nombre, y un id que ya no existe se ignora.
+List<T> ordenarPresupuesto<T extends Categoria>(
+  List<T> categorias,
+  Map<String, Rollup> rollups, {
+  required OrdenPresupuesto orden,
+  required double avanceCiclo,
+  List<String> ordenPropio = const [],
+}) {
+  int porNombre(T a, T b) {
+    final n = _paraOrdenar(a.nombre).compareTo(_paraOrdenar(b.nombre));
+    return n != 0 ? n : a.id.compareTo(b.id);
+  }
+
+  int gastado(T c) => rollups[c.id]?.totalCentavos.centavos ?? 0;
+  switch (orden) {
+    case OrdenPresupuesto.atencion:
+      return ordenarPorAtencion(categorias, rollups, avanceCiclo: avanceCiclo);
+    case OrdenPresupuesto.nombre:
+      return [...categorias]..sort(porNombre);
+    case OrdenPresupuesto.masGastado:
+      return [...categorias]
+        ..sort((a, b) {
+          final g = gastado(b).compareTo(gastado(a));
+          return g != 0 ? g : porNombre(a, b);
+        });
+    case OrdenPresupuesto.propio:
+      final lugar = {for (final (i, id) in ordenPropio.indexed) id: i};
+      return [...categorias]
+        ..sort((a, b) {
+          final la = lugar[a.id];
+          final lb = lugar[b.id];
+          if (la != null && lb != null) return la.compareTo(lb);
+          if (la != null) return -1;
+          if (lb != null) return 1;
+          return porNombre(a, b);
+        });
+  }
+}
+
+String _paraOrdenar(String texto) {
+  const con = 'áéíóúüñ';
+  const sin = 'aeiouun';
+  final bajo = texto.toLowerCase();
+  final salida = StringBuffer();
+  for (final r in bajo.split('')) {
+    final i = con.indexOf(r);
+    salida.write(i >= 0 ? sin[i] : r);
+  }
+  return salida.toString();
+}

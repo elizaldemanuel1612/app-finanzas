@@ -31,6 +31,15 @@ final class Perfil {
   /// elección").
   final List<String> trasladarSiempre;
 
+  /// Cómo acomodar el presupuesto de Inicio (spec §5.6.4): el nombre de un
+  /// `OrdenPresupuesto`; `null` = el de fábrica (lo que necesita atención).
+  /// Se guarda como texto para que el modelo no dependa de `rollups/`.
+  final String? ordenPresupuesto;
+
+  /// Los ids de las categorías en el orden que eligió el usuario ("Mi
+  /// orden"). Se conserva aunque cambie a otro criterio, para no perderlo.
+  final List<String> ordenPropio;
+
   const Perfil({
     required this.diaCorte,
     required this.ingresoBaseMensual,
@@ -40,6 +49,8 @@ final class Perfil {
     this.cambiosDeCorte = const [],
     this.cicloTrasladoDecidido,
     this.trasladarSiempre = const [],
+    this.ordenPresupuesto,
+    this.ordenPropio = const [],
   });
 
   /// La única forma correcta de calcular ciclos para esta cuenta: toma en
@@ -59,6 +70,8 @@ final class Perfil {
     List<CambioDeCorte>? cambiosDeCorte,
     String? cicloTrasladoDecidido,
     List<String>? trasladarSiempre,
+    String? ordenPresupuesto,
+    List<String>? ordenPropio,
   }) =>
       Perfil(
         diaCorte: diaCorte ?? this.diaCorte,
@@ -69,6 +82,8 @@ final class Perfil {
         cambiosDeCorte: cambiosDeCorte ?? this.cambiosDeCorte,
         cicloTrasladoDecidido: cicloTrasladoDecidido ?? this.cicloTrasladoDecidido,
         trasladarSiempre: trasladarSiempre ?? this.trasladarSiempre,
+        ordenPresupuesto: ordenPresupuesto ?? this.ordenPresupuesto,
+        ordenPropio: ordenPropio ?? this.ordenPropio,
       );
 
   Map<String, dynamic> toJson() => {
@@ -81,6 +96,8 @@ final class Perfil {
           'cambiosDeCorte': [for (final c in cambiosDeCorte) c.toJson()],
         if (cicloTrasladoDecidido != null) 'cicloTrasladoDecidido': cicloTrasladoDecidido,
         if (trasladarSiempre.isNotEmpty) 'trasladarSiempre': trasladarSiempre,
+        if (ordenPresupuesto != null) 'ordenPresupuesto': ordenPresupuesto,
+        if (ordenPropio.isNotEmpty) 'ordenPropio': ordenPropio,
       };
 
   factory Perfil.fromJson(Map<String, dynamic> json) => Perfil(
@@ -97,6 +114,8 @@ final class Perfil {
         ],
         cicloTrasladoDecidido: json['cicloTrasladoDecidido'] as String?,
         trasladarSiempre: [for (final id in (json['trasladarSiempre'] as List<dynamic>? ?? const [])) id as String],
+        ordenPresupuesto: json['ordenPresupuesto'] as String?,
+        ordenPropio: [for (final id in (json['ordenPropio'] as List<dynamic>? ?? const [])) id as String],
       );
 
   @override
@@ -109,7 +128,9 @@ final class Perfil {
       other.metaApartado == metaApartado &&
       _mismasListas(other.cambiosDeCorte, cambiosDeCorte) &&
       other.cicloTrasladoDecidido == cicloTrasladoDecidido &&
-      other.trasladarSiempre.join(',') == trasladarSiempre.join(',');
+      other.trasladarSiempre.join(',') == trasladarSiempre.join(',') &&
+      other.ordenPresupuesto == ordenPresupuesto &&
+      other.ordenPropio.join(',') == ordenPropio.join(',');
 
   @override
   int get hashCode => Object.hash(
@@ -121,6 +142,8 @@ final class Perfil {
         Object.hashAll(cambiosDeCorte),
         cicloTrasladoDecidido,
         Object.hashAll(trasladarSiempre),
+        ordenPresupuesto,
+        Object.hashAll(ordenPropio),
       );
 }
 
