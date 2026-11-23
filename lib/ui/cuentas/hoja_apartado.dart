@@ -13,7 +13,8 @@ import '../comun/tema.dart';
 
 const _uuid = Uuid();
 
-/// Emojis para elegir rápido; el primero va por omisión.
+/// Emojis para elegir rápido; el primero va por omisión. El campo "Ícono"
+/// acepta cualquier otro desde el teclado de emojis del teléfono.
 const _emojis = ['🎯', '✈️', '🛟', '🏠', '🚗', '🎓', '🎁', '💍', '🩺', '🐶'];
 
 /// Crea un apartado dentro de [padre] (spec-app-finanzas-v2.md §7.3.5):
@@ -56,7 +57,7 @@ class _HojaNuevoApartado extends StatefulWidget {
 class _HojaNuevoApartadoState extends State<_HojaNuevoApartado> {
   final _nombre = TextEditingController();
   final _monto = TextEditingController();
-  String _emoji = _emojis.first;
+  final _emoji = TextEditingController(text: _emojis.first);
   String? _error;
   bool _guardando = false;
 
@@ -64,6 +65,7 @@ class _HojaNuevoApartadoState extends State<_HojaNuevoApartado> {
   void dispose() {
     _nombre.dispose();
     _monto.dispose();
+    _emoji.dispose();
     super.dispose();
   }
 
@@ -83,7 +85,7 @@ class _HojaNuevoApartadoState extends State<_HojaNuevoApartado> {
       padre: widget.padre,
       id: _uuid.v4(),
       nombre: nombre,
-      emoji: _emoji,
+      emoji: _emoji.text.trim().isEmpty ? _emojis.first : _emoji.text.trim(),
       ahora: DateTime.now(),
     )!;
     setState(() => _guardando = true);
@@ -122,13 +124,31 @@ class _HojaNuevoApartadoState extends State<_HojaNuevoApartado> {
               style: textos.etiqueta,
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _nombre,
-              autofocus: true,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Viaje, fondo de emergencia…'),
-              onChanged: (_) => setState(() => _error = null),
+            Row(
+              children: [
+                SizedBox(
+                  width: 72,
+                  child: TextField(
+                    controller: _emoji,
+                    textAlign: TextAlign.center,
+                    decoration: const InputDecoration(labelText: 'Ícono'),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _nombre,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Viaje, fondo de emergencia…'),
+                    onChanged: (_) => setState(() => _error = null),
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 4),
+            Text('Toca uno o escribe el que quieras en Ícono', style: textos.etiqueta),
             const SizedBox(height: 12),
             Wrap(
               spacing: 6,
@@ -137,8 +157,8 @@ class _HojaNuevoApartadoState extends State<_HojaNuevoApartado> {
                 for (final e in _emojis)
                   ChoiceChip(
                     label: Text(e),
-                    selected: _emoji == e,
-                    onSelected: (_) => setState(() => _emoji = e),
+                    selected: _emoji.text.trim() == e,
+                    onSelected: (_) => setState(() => _emoji.text = e),
                   ),
               ],
             ),
