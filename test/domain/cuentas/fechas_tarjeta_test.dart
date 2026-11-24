@@ -45,6 +45,17 @@ MovimientoCuenta _pago(int pesos, DateTime fecha) => MovimientoCuenta(
       entra: true,
     );
 
+MovimientoCuenta _transferencia(int pesos, DateTime fecha, {String de = 'nomina', String a = 'platino'}) =>
+    MovimientoCuenta(
+      clientId: 't${_n++}',
+      cuentaId: de,
+      cuentaDestinoId: a,
+      fecha: fecha,
+      monto: Dinero.pesos(pesos),
+      tipo: TipoMovimientoCuenta.transferencia,
+      entra: false,
+    );
+
 void main() {
   group('fechas', () {
     test('el último corte incluye hoy y si no, es el del mes pasado', () {
@@ -120,6 +131,46 @@ void main() {
       expect(despues.estado, EstadoPagoTarjeta.sinPendiente);
       final vacio = pagoDeTarjeta(_tarjeta(conSaldo: false), [], [], hoy: DateTime(2026, 11, 20))!;
       expect(vacio.estado, EstadoPagoTarjeta.sinPendiente);
+    });
+  });
+
+  group('abonos y transferencias a la tarjeta (2026-11-24)', () {
+    final gastos = [_gasto(600, DateTime(2026, 10, 10)), _gasto(400, DateTime(2026, 11, 3))];
+
+    test('con saldo: una transferencia desde débito baja el pago igual que un abono', () {
+      final p = pagoDeTarjeta(_tarjeta(), gastos, [_transferencia(300, DateTime(2026, 11, 1))], hoy: DateTime(2026, 11, 10))!;
+      expect(p.monto, Dinero.pesos(700));
+      expect(p.abonado, const Dinero.cero());
+    });
+
+    test('sin saldo: se descuenta lo abonado después de la fecha de pago anterior', () {
+      final movimientos = [
+        _pago(250, DateTime(2026, 10, 25)), // pagó el corte anterior (vencía ese día)
+        _pago(300, DateTime(2026, 10, 30)), // durante el periodo
+        _transferencia(200, DateTime(2026, 11, 8)), // ya cortado
+        _transferencia(90, DateTime(2026, 11, 9), de: 'platino', a: 'nomina'), // sale: no es pago
+        _pago(999, DateTime(2026, 11, 9)).anulado(),
+        MovimientoCuenta(
+          clientId: 'aj',
+          cuentaId: 'platino',
+          fecha: DateTime(2026, 11, 9),
+          monto: Dinero.pesos(50),
+          tipo: TipoMovimientoCuenta.ajuste,
+          entra: true,
+        ),
+        _transferencia(80, DateTime(2026, 11, 9), a: 'otra'), // a otra cuenta
+      ];
+      final p = pagoDeTarjeta(_tarjeta(conSaldo: false), gastos, movimientos, hoy: DateTime(2026, 11, 10))!;
+      expect(p.gastadoPeriodo, Dinero.pesos(1000));
+      expect(p.abonado, Dinero.pesos(500));
+      expect(p.monto, Dinero.pesos(500));
+      expect(p.estado, EstadoPagoTarjeta.porPagar);
+    });
+
+    test('sin saldo: pagado por completo (o de más) ya no queda pendiente', () {
+      final p = pagoDeTarjeta(_tarjeta(conSaldo: false), gastos, [_pago(1200, DateTime(2026, 11, 6))], hoy: DateTime(2026, 11, 10))!;
+      expect(p.monto, const Dinero.cero());
+      expect(p.estado, EstadoPagoTarjeta.sinPendiente);
     });
   });
 

@@ -30,8 +30,15 @@ final class PagoTarjeta {
   final DateTime proximoCorte;
 
   /// Lo que hay que pagar para no generar intereses. Si la tarjeta no lleva
-  /// saldo, es lo gastado en el periodo: una referencia ([esReferencia]).
+  /// saldo, es lo gastado en el periodo menos lo abonado: una referencia
+  /// ([esReferencia]).
   final Dinero monto;
+
+  /// Solo sin saldo: lo gastado en el periodo y lo que ya se abonó a este
+  /// corte (abonos y transferencias que entraron después de la fecha de pago
+  /// del corte anterior). Con saldo, los dos son cero: ya están en la deuda.
+  final Dinero gastadoPeriodo;
+  final Dinero abonado;
   final bool esReferencia;
   final EstadoPagoTarjeta estado;
 
@@ -44,6 +51,8 @@ final class PagoTarjeta {
     required this.fechaPago,
     required this.proximoCorte,
     required this.monto,
+    this.gastadoPeriodo = const Dinero.cero(),
+    this.abonado = const Dinero.cero(),
     required this.esReferencia,
     required this.estado,
     required this.diasParaPagar,
@@ -102,6 +111,8 @@ PagoTarjeta? pagoDeTarjeta(
   final deuda = deudaDe(cuenta, gastos, movimientosCuenta);
   final Dinero monto;
   final EstadoPagoTarjeta estado;
+  var gastadoPeriodo = const Dinero.cero();
+  var abonado = const Dinero.cero();
   if (deuda != null) {
     // Lo de después del corte va al siguiente; los pagos de después ya
     // bajaron la deuda.
@@ -113,7 +124,21 @@ PagoTarjeta? pagoDeTarjeta(
         : (dias < 0 ? EstadoPagoTarjeta.vencido : EstadoPagoTarjeta.porPagar);
   } else {
     final inicioPeriodo = corteAnterior.add(const Duration(days: 1));
-    monto = suma((f) => !f.isBefore(inicioPeriodo) && f.isBefore(finDelCorte));
+    gastadoPeriodo = suma((f) => !f.isBefore(inicioPeriodo) && f.isBefore(finDelCorte));
+    // Lo que entró a la tarjeta (abonos y transferencias) después de la fecha
+    // de pago del corte anterior es para este corte; lo de antes pagó aquel.
+    final desde = fechaDePago(corteAnterior, diaPago).add(const Duration(days: 1));
+    abonado = Dinero(movimientosCuenta
+        .where((m) =>
+            m.tipo != TipoMovimientoCuenta.ajuste &&
+            m.estado == EstadoMovimientoCuenta.activo &&
+            m.toca(cuenta.id) &&
+            !m.fecha.isBefore(desde))
+        .map((m) => m.efectoEn(cuenta.id).centavos)
+        .where((c) => c > 0)
+        .fold<int>(0, (total, c) => total + c));
+    final pendiente = gastadoPeriodo - abonado;
+    monto = pendiente.esPositivo ? pendiente : const Dinero.cero();
     // Sin saldo no se sabe si ya se pagó: pasada la fecha, ya no se avisa.
     estado = monto.esPositivo && dias >= 0 ? EstadoPagoTarjeta.porPagar : EstadoPagoTarjeta.sinPendiente;
   }
@@ -123,6 +148,8 @@ PagoTarjeta? pagoDeTarjeta(
     fechaPago: pago,
     proximoCorte: corteSiguiente(diaCorte, corte),
     monto: monto,
+    gastadoPeriodo: gastadoPeriodo,
+    abonado: abonado,
     esReferencia: deuda == null,
     estado: estado,
     diasParaPagar: dias,

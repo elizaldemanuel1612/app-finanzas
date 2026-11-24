@@ -23,7 +23,10 @@ import '../comun/formato_fecha.dart';
     _ => 'Paga $nombre antes del ${fechaCorta(p.fechaPago)}',
   };
   final apoyo = p.esReferencia
-      ? 'Gastaste $monto con ella en el periodo que cortó el $corte.'
+      ? (p.abonado.esPositivo
+          ? 'Te faltan $monto: gastaste ${enPesos(p.gastadoPeriodo)} en el periodo que cortó el $corte '
+              'y ya abonaste ${enPesos(p.abonado)}.'
+          : 'Gastaste $monto con ella en el periodo que cortó el $corte.')
       : 'Para no pagar intereses: $monto (corte del $corte).';
   final tono = p.diasParaPagar < 0
       ? TonoEstado.peligro
