@@ -82,6 +82,10 @@ final class EvolucionCiclos {
 final class InsumosCicloEnCurso {
   final Ciclo ciclo;
   final Dinero ingresoTotal;
+
+  /// Lo que se habrá gastado **al cierre**, estimado (2026-11-25):
+  /// `ingresoTotal − estimarApartadoAlCierre`. No lo gastado a hoy: la
+  /// barra del ciclo en curso es lo que apartarías si sigues así.
   final Dinero totalGastado;
   final Dinero meta;
   final Dinero extraAApartado;
@@ -133,8 +137,10 @@ class _PuntoBase {
 /// al "Acumulado en 3 ciclos" y al "Promedio 93%". Aquí no: al día 3 de un
 /// ciclo el ingreso ya entró y casi no se ha gastado, así que el alcance en
 /// curso ronda el 250% y arrastraría el promedio a un número sin sentido.
-/// El ciclo en curso se dibuja pero no se agrega — la barra sigue siendo
-/// verdad (ese dinero hoy está sin gastar) y la nota al pie lo explica.
+/// El ciclo en curso se dibuja pero no se agrega, y su barra es lo que
+/// apartarías al cierre si sigues así (el mismo estimado de Inicio y
+/// Análisis), no lo que hoy está sin gastar: nadie deja de gastar de golpe
+/// (2026-11-25). La nota al pie lo explica.
 EvolucionCiclos calcularEvolucionCiclos({
   required List<CicloResumen> historial,
   required InsumosCicloEnCurso? enCurso,

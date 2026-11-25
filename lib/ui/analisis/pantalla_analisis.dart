@@ -356,6 +356,7 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
         movimientoRepositorio: widget.movimientoRepositorio,
         cicloRepositorio: widget.cicloRepositorio!,
         ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+        ajustePresupuestoCicloRepositorio: widget.ajustePresupuestoCicloRepositorio,
         cuentaRepositorio: widget.cuentaRepositorio,
         movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio,
         alVerMovimientos: widget.alVerMovimientos,

@@ -108,13 +108,6 @@ class GraficaEvolucion extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            if (evolucion.metaReferencia != null)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: _alturaEtiquetas + _alturaCarril * evolucion.alturaMeta,
-                child: _LineaMeta(meta: evolucion.metaReferencia!),
-              ),
             Positioned(
               left: 0,
               right: 0,
@@ -130,6 +123,15 @@ class GraficaEvolucion extends StatelessWidget {
                 ],
               ),
             ),
+            // Encima de las barras: la etiqueta de la meta no se encima con
+            // el relleno translúcido de la barra en curso.
+            if (evolucion.metaReferencia != null)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: _alturaEtiquetas + _alturaCarril * evolucion.alturaMeta,
+                child: _LineaMeta(meta: evolucion.metaReferencia!),
+              ),
             Positioned(
               left: 0,
               right: 0,
