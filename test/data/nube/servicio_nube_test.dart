@@ -102,7 +102,8 @@ void main() {
     // En A: se anula m1 y se borra la categoría c2.
     await _escribir(a, 'movimientos.json', [_mov('m1', 'anulado'), _mov('m2')]);
     await _escribir(a, 'categorias.json', [_cat('c1')]);
-    expect(await nubeA.sincronizarSiActiva(), isTrue);
+    // A solo sube: en A no cambia nada, no hay que volver a pintar.
+    expect(await nubeA.sincronizarSiActiva(), isFalse);
 
     await nubeB.sincronizarAhora();
     final movsB = await _leer(b, 'movimientos.json');
@@ -122,6 +123,23 @@ void main() {
     final subidas = drive.subidas;
     await nube.sincronizarAhora();
     expect(drive.subidas, subidas);
+  });
+
+  test('avisa que hay que volver a pintar solo si llegó algo de la copia', () async {
+    final a = _dispositivo();
+    await _escribir(a, 'movimientos.json', [_mov('m1')]);
+    final nubeA = ServicioNube(almacen: a, remoto: drive);
+    await nubeA.activar(ModoFusion.usarDispositivo);
+    final b = _dispositivo();
+    final nubeB = ServicioNube(almacen: b, remoto: drive);
+    await nubeB.activar(ModoFusion.usarNube);
+
+    expect(await nubeB.sincronizarSiActiva(), isFalse);
+    await _escribir(a, 'movimientos.json', [_mov('m1'), _mov('m2')]);
+    expect(await nubeA.sincronizarSiActiva(), isFalse);
+    expect(await nubeB.sincronizarSiActiva(), isTrue);
+    expect((await _leer(b, 'movimientos.json')).map((m) => m['clientId']), unorderedEquals(['m1', 'm2']));
+    expect(await nubeB.sincronizarSiActiva(), isFalse);
   });
 
   test('la sincronización de rutina no hace nada si está inactiva o sin permiso, y nunca lanza', () async {
@@ -165,7 +183,7 @@ void main() {
     await nube.marcarReemplazo();
     await _escribir(a, 'movimientos.json', [_mov('m2')]);
     await _escribir(a, 'categorias.json', [_cat('c2')]);
-    expect(await nube.sincronizarSiActiva(), isTrue);
+    expect(await nube.sincronizarSiActiva(), isFalse);
 
     expect(drive.copia!['movimientos.json'], [_mov('m2')]);
     expect(drive.copia!['categorias.json'], [_cat('c2')]);
@@ -189,7 +207,7 @@ void main() {
     expect(await nube.sincronizarSiActiva(), isFalse);
 
     drive.acceso = true;
-    expect(await nube.sincronizarSiActiva(), isTrue);
+    expect(await nube.sincronizarSiActiva(), isFalse);
     expect(await _leer(a, 'movimientos.json'), [_mov('m2')]);
     expect(drive.copia!['movimientos.json'], [_mov('m2')]);
   });
