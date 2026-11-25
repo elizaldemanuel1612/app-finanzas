@@ -19,6 +19,7 @@ import 'punto_monto.dart';
 ///
 /// Solo los **anteriores**: un ciclo posterior al actual (las mensualidades
 /// que aún no llegan de una compra a meses, spec §7.3.1) no es historia.
+/// Los ciclos sin gasto en la categoría entran vacíos (ver [_cerrados]).
 List<CicloCerradoHistorico> ciclosCerradosDeCategoria({
   required List<Movimiento> todos,
   required String categoriaId,
@@ -29,18 +30,28 @@ List<CicloCerradoHistorico> ciclosCerradosDeCategoria({
         [for (final m in movimientos) PuntoMonto(m.fecha, m.monto.centavos.toDouble())],
     ];
 
-/// Los ciclos anteriores a [cicloActualId] con gasto activo en la categoría,
-/// del más reciente al más antiguo. El id `AAAA-MM` ordena como texto.
+/// Los ciclos anteriores a [cicloActualId] desde el primero con gasto
+/// activo en la categoría, del más reciente al más antiguo. El id `AAAA-MM`
+/// ordena como texto.
+///
+/// Un ciclo en el que se registró algo pero nada de esta categoría entra
+/// **vacío** (2026-11-24, modelo-pronostico-ciclo.md §5): saltarlo hacía
+/// creer que la categoría gasta en todos los ciclos lo que gastó en los
+/// pocos en que sí gastó, e inflaba el cierre de las esporádicas. Los
+/// ciclos sin ningún registro (antes de usar la app, o un hueco) no cuentan.
 List<(String cicloId, List<Movimiento>)> _cerrados(List<Movimiento> todos, String categoriaId, String cicloActualId) {
   final porCiclo = <String, List<Movimiento>>{};
+  final conRegistros = <String>{};
   for (final m in todos) {
-    if (m.categoriaId != categoriaId) continue;
     if (m.estado != EstadoMovimiento.activo) continue;
     if (m.cicloId.compareTo(cicloActualId) >= 0) continue;
-    porCiclo.putIfAbsent(m.cicloId, () => []).add(m);
+    conRegistros.add(m.cicloId);
+    if (m.categoriaId == categoriaId) porCiclo.putIfAbsent(m.cicloId, () => []).add(m);
   }
-  final ids = porCiclo.keys.toList()..sort((a, b) => b.compareTo(a));
-  return [for (final id in ids) (id, porCiclo[id]!)];
+  if (porCiclo.isEmpty) return const [];
+  final primero = porCiclo.keys.reduce((a, b) => a.compareTo(b) <= 0 ? a : b);
+  final ids = [for (final id in conRegistros) if (id.compareTo(primero) >= 0) id]..sort((a, b) => b.compareTo(a));
+  return [for (final id in ids) (id, porCiclo[id] ?? const <Movimiento>[])];
 }
 
 /// Dónde empezó el ciclo [cicloId] (`AAAA-MM`: el año y mes de su inicio),

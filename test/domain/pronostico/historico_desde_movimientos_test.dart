@@ -75,6 +75,37 @@ void main() {
       expect(resultado.map((c) => c.single.monto), [500.0, 400.0, 300.0]);
     });
 
+    test('un ciclo con registros pero sin gasto en la categoría entra vacío (2026-11-24)', () {
+      final todos = [
+        _mov(fecha: DateTime(2026, 2, 5), cicloId: '2026-02', categoriaId: 'otra'), // antes del primero: no
+        _mov(fecha: DateTime(2026, 3, 5), cicloId: '2026-03', monto: const Dinero.pesos(900)),
+        _mov(fecha: DateTime(2026, 4, 5), cicloId: '2026-04', categoriaId: 'otra'),
+        // 2026-05 sin ningún registro: no cuenta.
+        _mov(fecha: DateTime(2026, 6, 5), cicloId: '2026-06', categoriaId: 'otra'),
+        _mov(fecha: DateTime(2026, 6, 6), cicloId: '2026-06', estado: EstadoMovimiento.anulado),
+      ];
+
+      final resultado = ciclosCerradosDeCategoria(todos: todos, categoriaId: 'super', cicloActualId: '2026-07');
+
+      expect(resultado.map((c) => c.length), [0, 0, 1]);
+    });
+
+    test('con un ciclo de cada tres, el cierre esperado ya no es el de los ciclos con gasto', () {
+      final todos = [
+        for (final mes in [1, 2, 3, 4, 5, 6])
+          _mov(fecha: DateTime(2026, mes, 3), cicloId: '2026-0$mes', categoriaId: 'otra'),
+        for (final mes in [1, 4])
+          _mov(fecha: DateTime(2026, mes, 20), cicloId: '2026-0$mes', monto: const Dinero.pesos(3000)),
+      ];
+      final p = pronosticoDeCategoria(
+        categoria: _variable(),
+        todos: todos,
+        ciclo: CalculadoraCiclo(1).calcularPara(DateTime(2026, 7, 10)),
+        hoy: DateTime(2026, 7, 10),
+      );
+      expect(p.pronosticoP50 < const Dinero.pesos(3000), isTrue, reason: '${p.pronosticoP50}');
+    });
+
     test('sin movimientos de la categoría: lista vacía', () {
       final resultado = ciclosCerradosDeCategoria(
         todos: const [],

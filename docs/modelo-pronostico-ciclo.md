@@ -182,6 +182,8 @@ Así, si el corte de cabello ya se pagó y nunca ha habido dos en un ciclo, no s
 
 ## 5. Suavizado entre ciclos
 
+**Qué ciclos cuentan (2026-11-24).** Desde el primer ciclo cerrado con gasto en la categoría, **todos** los ciclos en los que se registró algo, aunque en esa categoría no se haya gastado nada: esos entran con total cero (y sin gastos para `λ_c`, `Falta_j` y la densidad). Antes solo entraban los ciclos con gasto, así que una categoría que gasta uno de cada tres ciclos se proyectaba como si gastara en todos. Los ciclos sin ningún registro (antes de usar la app) no cuentan. La curva de posición de §3.2 sigue usando solo los ciclos con gasto.
+
 El `Histórico_c` de la sección 4 no es un promedio simple. Se construye así:
 
 **Con 2–4 ciclos cerrados:** mediana de los totales winsorizados por categoría. La mediana resiste que un ciclo haya sido raro.
