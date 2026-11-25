@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:app_finanzas/data/almacenamiento/archivo_texto.dart';
 import 'package:app_finanzas/data/repositorios/local/almacen_json.dart';
 import 'package:test/test.dart';
 
@@ -66,5 +67,38 @@ void main() {
       {'a': 1},
     ]);
     expect(await File('${temp.path}/datos.json.tmp').exists(), isFalse);
+  });
+
+  group('lo ya decodificado (2026-11-25)', () {
+    test('cada lectura da una lista nueva: modificarla no cambia la siguiente', () async {
+      final almacen = AlmacenJsonLista.sobre(ArchivoTextoMemoria('[{"a":1}]'));
+      final primera = await almacen.leer();
+      primera.add({'a': 2});
+      expect(await almacen.leer(), [
+        {'a': 1},
+      ]);
+    });
+
+    test('si el archivo cambió por fuera (Siri, otra pestaña), se vuelve a leer', () async {
+      final archivo = ArchivoTextoMemoria('[{"a":1}]');
+      final almacen = AlmacenJsonLista.sobre(archivo);
+      await almacen.leer();
+      await archivo.escribir('[{"a":3}]');
+      expect(await almacen.leer(), [
+        {'a': 3},
+      ]);
+    });
+
+    test('lo recién escrito se lee igual', () async {
+      final almacen = AlmacenJsonLista.sobre(ArchivoTextoMemoria());
+      final items = [
+        {'a': 1},
+      ];
+      await almacen.escribir(items);
+      items.add({'a': 2});
+      expect(await almacen.leer(), [
+        {'a': 1},
+      ]);
+    });
   });
 }

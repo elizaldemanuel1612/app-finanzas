@@ -21,6 +21,7 @@ import 'domain/sincronizacion/fusion.dart';
 import 'firebase_options.dart';
 import 'data/seguridad/candado.dart';
 import 'plataforma/derivar_clave.dart';
+import 'plataforma/otra_pestana.dart';
 import 'plataforma/sesion_siri.dart';
 import 'siri.dart';
 import 'domain/seguridad/politica_bloqueo.dart';
@@ -326,6 +327,8 @@ class _ContenidoAppState extends State<_ContenidoApp> with WidgetsBindingObserve
       // En la web no hay archivos: almacenamiento del navegador, separado
       // por cuenta igual que en el teléfono (spec §4.2.2).
       _almacenLocal = almacenEnNavegador(uid);
+      // Lo leído se guarda en memoria; si otra pestaña escribe, se olvida.
+      alCambiarEnOtraPestana(ArchivoTextoNavegador.olvidarLoLeido);
       await _prepararCandado();
       await _prepararNube();
       return;

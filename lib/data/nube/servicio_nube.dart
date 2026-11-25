@@ -90,12 +90,15 @@ final class ServicioNube {
   /// Sincronización de rutina (al abrir, volver o salir de la app). No hace
   /// nada si el respaldo no está activo o si haría falta pedir permiso.
   /// Nunca lanza: sin red, espera a la siguiente.
+  ///
+  /// `true` solo si llegó algo de la copia que cambió los datos de este
+  /// dispositivo: si no, no hay nada que volver a pintar (2026-11-25; antes
+  /// cada apertura recargaba Inicio aunque nada hubiera cambiado).
   Future<bool> sincronizarSiActiva() async {
     try {
       if (!await estaActiva()) return false;
       if (!await remoto.tieneAcceso(interactivo: false)) return false;
-      await _sincronizar(ModoFusion.combinar, activar: false);
-      return true;
+      return await _sincronizar(ModoFusion.combinar, activar: false);
     } catch (_) {
       return false;
     }
@@ -142,7 +145,8 @@ final class ServicioNube {
     }
   }
 
-  Future<void> _sincronizar(ModoFusion modo, {required bool activar}) async {
+  /// Regresa si cambió algo de lo guardado en este dispositivo.
+  Future<bool> _sincronizar(ModoFusion modo, {required bool activar}) async {
     while (_enCurso != null) {
       await _enCurso;
     }
@@ -152,13 +156,14 @@ final class ServicioNube {
       final estado = await _leerEstado();
       if (estado['reemplazar'] == true) {
         await _reemplazarCopia();
-        return;
+        return false;
       }
       final bases = (estado['base'] as Map<String, dynamic>?) ?? {};
       final nuevasBases = <String, List<String>>{};
       final copia = await remoto.descargar();
       final nuevaCopia = <String, List<Map<String, dynamic>>>{};
       var hayCambiosEnNube = copia == null;
+      var cambioLocal = false;
 
       for (final archivo in AlmacenLocal.nombresDeArchivo) {
         final clave = claveDeArchivo(archivo)!;
@@ -177,7 +182,7 @@ final class ServicioNube {
           anularEnVezDeBorrar: archivo == 'movimientos.json' || archivo == 'movimientos_cuenta.json',
         );
 
-        await _escribirLocal(archivo, r.local);
+        if (await _escribirLocal(archivo, r.local)) cambioLocal = true;
         final enNube = {...nube, ...r.subir}..removeWhere((k, _) => r.borrarEnNube.contains(k));
         nuevaCopia[archivo] = enNube.values.toList();
         hayCambiosEnNube = hayCambiosEnNube || r.hayCambiosEnNube;
@@ -190,6 +195,7 @@ final class ServicioNube {
         'ultima': DateTime.now().toIso8601String(),
         'base': nuevasBases,
       });
+      return cambioLocal;
     } finally {
       _enCurso = null;
       completador.complete();
@@ -221,16 +227,19 @@ final class ServicioNube {
     return (valor as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
-  Future<void> _escribirLocal(String archivo, List<Map<String, dynamic>> items) async {
+  /// Regresa si el archivo cambió.
+  Future<bool> _escribirLocal(String archivo, List<Map<String, dynamic>> items) async {
     final destino = almacen.archivos[archivo]!;
     final antes = await destino.leer();
     final String despues;
     if (archivo == 'perfil.json') {
-      if (items.isEmpty) return;
+      if (items.isEmpty) return false;
       despues = jsonEncode(items.first);
     } else {
       despues = jsonEncode(items);
     }
-    if (antes != despues) await destino.escribir(despues);
+    if (antes == despues) return false;
+    await destino.escribir(despues);
+    return true;
   }
 }
