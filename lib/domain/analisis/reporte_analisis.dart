@@ -174,6 +174,18 @@ final class ReporteAnalisis {
   /// Ninguna variable con presupuesto: solo se registra (spec §7.3.6).
   bool get soloRegistro => !presupuestoVariables.esPositivo;
 
+  /// El cierre estimado de lo que se compara contra [presupuestoVariables]:
+  /// solo las categorías con presupuesto, igual que [gastadoConPresupuesto]
+  /// y la línea de ritmo (2026-11-24: antes la gráfica sumaba al pronóstico
+  /// las categorías sin presupuesto y la línea roja brincaba). Sin ninguna
+  /// con presupuesto, todas.
+  Dinero get proyeccionConPresupuesto => soloRegistro || variables.isEmpty
+      ? proyeccionVariables
+      : Dinero.suma([
+          for (final e in variables)
+            if (!e.categoria.sinPresupuesto) e.proyeccion,
+        ]);
+
   int get diasRestantes => diasDelCiclo - diaDelCiclo;
   bool get sinMovimientos => !gastado.esPositivo;
 }

@@ -73,19 +73,20 @@ VeredictoCiclo calcularVeredicto({required ReporteAnalisis reporte, required Dat
       disponibleHoy: disponibleHoy,
     );
   }
-  if (r.proyeccionVariables > presupuesto) {
+  final proyeccion = r.proyeccionConPresupuesto;
+  if (proyeccion > presupuesto) {
     return VeredictoCiclo(
       tono: TonoVeredicto.atencion,
       titulo: 'Vas un poco rápido',
       detalle: 'A este ritmo te pasarías por '
-          '${(r.proyeccionVariables - presupuesto).formateado()}.',
+          '${(proyeccion - presupuesto).formateado()}.',
       disponibleHoy: disponibleHoy,
     );
   }
   return VeredictoCiclo(
     tono: TonoVeredicto.bien,
     titulo: 'Vas bien',
-    detalle: 'A este ritmo te sobrarían ${(presupuesto - r.proyeccionVariables).formateado()}.',
+    detalle: 'A este ritmo te sobrarían ${(presupuesto - proyeccion).formateado()}.',
     disponibleHoy: disponibleHoy,
   );
 }

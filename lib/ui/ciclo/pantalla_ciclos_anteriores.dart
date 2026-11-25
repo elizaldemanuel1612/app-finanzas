@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/ciclo.dart';
-import '../../core/money.dart';
+import '../../data/repositorios/ajuste_presupuesto_ciclo_repositorio.dart';
 import '../../data/repositorios/categoria_repositorio.dart';
 import '../../data/repositorios/ciclo_repositorio.dart';
 import '../../data/repositorios/cuenta_repositorio.dart';
@@ -12,8 +12,9 @@ import '../../domain/ciclo_de_vida/evolucion_ciclos.dart';
 import '../../domain/ciclo_de_vida/historial_ciclos.dart';
 import '../../domain/ciclo_de_vida/ingresos_ciclo.dart';
 import '../../domain/ciclo_de_vida/periodo_historial.dart';
-import '../../domain/modelos/estado_movimiento.dart';
 import '../../domain/modelos/perfil.dart';
+import '../../domain/presupuesto/ajuste_presupuesto_ciclo.dart';
+import '../../domain/presupuesto/apartado_estimado.dart';
 import '../../domain/presupuesto/meta_base.dart';
 import '../comun/formato_fecha.dart';
 import '../comun/grafica_evolucion.dart';
@@ -34,6 +35,10 @@ class PantallaCiclosAnteriores extends StatefulWidget {
   final CicloRepositorio cicloRepositorio;
   final IngresoExtraRepositorio ingresoExtraRepositorio;
 
+  /// Los presupuestos del ciclo en curso con sus ajustes, para estimar lo
+  /// que apartarías al cierre; sin él, los de siempre.
+  final AjustePresupuestoCicloRepositorio? ajustePresupuestoCicloRepositorio;
+
   /// Para ofrecer, al cerrar, pasar lo apartado a una cuenta de ahorro.
   final CuentaRepositorio? cuentaRepositorio;
   final MovimientoCuentaRepositorio? movimientoCuentaRepositorio;
@@ -53,6 +58,7 @@ class PantallaCiclosAnteriores extends StatefulWidget {
     required this.movimientoRepositorio,
     required this.cicloRepositorio,
     required this.ingresoExtraRepositorio,
+    this.ajustePresupuestoCicloRepositorio,
     this.cuentaRepositorio,
     this.movimientoCuentaRepositorio,
     this.alVerMovimientos,
@@ -99,11 +105,18 @@ class _PantallaCiclosAnterioresState extends State<PantallaCiclosAnteriores> {
       cicloId: widget.cicloActual.id,
       extras: ingresosExtra,
     );
-    final totalGastadoActual = Dinero.suma(
-      movimientos
-          .where((m) => m.cicloId == widget.cicloActual.id && m.estado == EstadoMovimiento.activo)
-          .map((m) => m.monto),
+    // La barra del ciclo en curso: lo que apartarías al cierre si sigues
+    // así (el mismo estimado de Inicio y Análisis), no lo que hoy está sin
+    // gastar (2026-11-25).
+    final ajustes = await widget.ajustePresupuestoCicloRepositorio?.listarPorCiclo(widget.cicloActual.id) ?? const [];
+    final apartadoAlCierre = estimarApartadoAlCierre(
+      categorias: presupuestosEfectivosParaCiclo(base: categorias, ajustesDelCiclo: ajustes),
+      movimientos: movimientos,
+      ciclo: widget.cicloActual,
+      ingreso: ingresos.total,
+      hoy: DateTime.now(),
     );
+    final totalGastadoActual = ingresos.total - apartadoAlCierre;
 
     final evolucion = calcularEvolucionCiclos(
       historial: historial,
@@ -293,8 +306,8 @@ class _EncabezadoEvolucion extends StatelessWidget {
             if (tieneEnCurso) ...[
               const SizedBox(height: 10),
               Text(
-                '*${cicloActual.etiqueta} es proyección; se congela al cerrar '
-                'el ciclo el ${fechaCorta(cicloActual.fechaFin)}.',
+                '*${cicloActual.etiqueta} es lo que apartarías al cierre si sigues así; '
+                'el real se congela al cerrar el ciclo el ${fechaCorta(cicloActual.fechaFin)}.',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 11),
               ),
             ],

@@ -241,4 +241,34 @@ void main() {
     expect(r.gastosPequenos, 1);
     expect(r.totalGastosPequenos, const Dinero.pesos(150));
   });
+
+  test('el cierre contra el presupuesto no suma las categorías sin presupuesto (2026-11-24)', () {
+    final regalos = _var('regalos', 0);
+    final ms = [
+      _mov(DateTime(2026, 10, 2), 1000, 'super'),
+      _mov(DateTime(2026, 10, 3), 8000, 'regalos'),
+    ];
+    final r = calcularReporteAnalisis(
+      ciclo: _oct,
+      cicloAnterior: null,
+      movimientos: ms,
+      categorias: [..._categorias, regalos],
+      hoy: DateTime(2026, 10, 20, 18),
+    );
+    final deRegalos = r.variables.firstWhere((e) => e.categoria.id == 'regalos').proyeccion;
+    expect(r.proyeccionConPresupuesto, r.proyeccionVariables - deRegalos);
+    expect(r.proyeccionConPresupuesto < r.proyeccionVariables, isTrue);
+    expect(r.acumuladoVariablesPorDia.last, const Dinero.pesos(1000));
+  });
+
+  test('solo registro: el cierre contra el presupuesto es el de todas', () {
+    final r = calcularReporteAnalisis(
+      ciclo: _oct,
+      cicloAnterior: null,
+      movimientos: [_mov(DateTime(2026, 10, 2), 1000, 'regalos')],
+      categorias: [_var('regalos', 0)],
+      hoy: DateTime(2026, 10, 20, 18),
+    );
+    expect(r.proyeccionConPresupuesto, r.proyeccionVariables);
+  });
 }

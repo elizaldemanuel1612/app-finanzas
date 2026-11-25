@@ -356,6 +356,7 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
         movimientoRepositorio: widget.movimientoRepositorio,
         cicloRepositorio: widget.cicloRepositorio!,
         ingresoExtraRepositorio: widget.ingresoExtraRepositorio,
+        ajustePresupuestoCicloRepositorio: widget.ajustePresupuestoCicloRepositorio,
         cuentaRepositorio: widget.cuentaRepositorio,
         movimientoCuentaRepositorio: widget.movimientoCuentaRepositorio,
         alVerMovimientos: widget.alVerMovimientos,
@@ -1149,7 +1150,9 @@ class _Ritmo extends StatelessWidget {
     final textos = Theme.of(context).textTheme;
     final parejo = Dinero(r.presupuestoVariables.centavos * r.diaDelCiclo ~/ r.diasDelCiclo);
     final quedanDias = r.diaDelCiclo < r.diasDelCiclo;
-    final cierreSeRebasa = r.proyeccionVariables > r.presupuestoVariables;
+    // Contra el presupuesto, solo lo de las categorías que lo tienen.
+    final cierre = r.proyeccionConPresupuesto;
+    final cierreSeRebasa = cierre > r.presupuestoVariables;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1160,15 +1163,15 @@ class _Ritmo extends StatelessWidget {
               acumulado: r.acumuladoVariablesPorDia,
               diasDelCiclo: r.diasDelCiclo,
               presupuesto: r.presupuestoVariables,
-              proyeccion: quedanDias ? r.proyeccionVariables : null,
+              proyeccion: quedanDias ? cierre : null,
               descripcion: r.soloRegistro
                   ? '${r.terminado ? 'Gastaste' : 'Llevas'} ${r.gastadoVariables.formateado()} en variables.'
-                      '${quedanDias ? ' Si sigues así, cerrarías en ${r.proyeccionVariables.formateado()}.' : ''}'
+                      '${quedanDias ? ' Si sigues así, cerrarías en ${cierre.formateado()}.' : ''}'
                   : r.terminado
                   ? 'Gastaste ${r.gastadoVariables.formateado()} en variables de ${r.presupuestoVariables.formateado()}.'
                   : 'Llevas ${r.gastadoVariables.formateado()} en variables; '
                       'a ritmo parejo llevarías ${parejo.formateado()}.'
-                  '${quedanDias ? ' Si sigues así, cerrarías en ${r.proyeccionVariables.formateado()}.' : ''}',
+                  '${quedanDias ? ' Si sigues así, cerrarías en ${cierre.formateado()}.' : ''}',
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -1179,7 +1182,7 @@ class _Ritmo extends StatelessWidget {
                 if (!r.soloRegistro) _Leyenda(color: ColoresApp.oro, texto: 'Ritmo parejo'),
                 if (quedanDias)
                   _Leyenda(
-                    color: colorPronostico(r.proyeccionVariables, r.presupuestoVariables),
+                    color: colorPronostico(cierre, r.presupuestoVariables),
                     texto: 'Pronóstico',
                   ),
               ],
@@ -1190,8 +1193,8 @@ class _Ritmo extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 r.soloRegistro
-                    ? 'Estimado al cierre: ${enPesos(r.proyeccionVariables)}.'
-                    : 'Estimado al cierre: ${enPesos(r.proyeccionVariables)} de ${enPesos(r.presupuestoVariables)}.',
+                    ? 'Estimado al cierre: ${enPesos(cierre)}.'
+                    : 'Estimado al cierre: ${enPesos(cierre)} de ${enPesos(r.presupuestoVariables)}.',
                 style: textos.bodySmall?.copyWith(
                   color: r.soloRegistro
                       ? null
