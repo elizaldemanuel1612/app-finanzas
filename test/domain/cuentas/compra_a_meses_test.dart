@@ -38,6 +38,7 @@ List<Movimiento> _compra({
   int meses = 12,
   DateTime? fecha,
   String? cuentaId = 'platino',
+  int diferido = 0,
 }) =>
     switch (crearCompraAMeses(
       compraId: id,
@@ -49,6 +50,7 @@ List<Movimiento> _compra({
       descripcion: 'Pantalla',
       origenCaptura: OrigenCaptura.manual,
       cuentaId: cuentaId,
+      diferido: diferido,
     )) {
       Exito(:final valor) => valor,
       Falla(:final mensaje) => throw StateError(mensaje),
@@ -214,9 +216,9 @@ void main() {
     });
 
     test('lee "2 de 12" y "2/12"; sin ID de mensualidad entra de contado con aviso', () {
-      expect(leerMensualidad('2 de 12'), (2, 12));
-      expect(leerMensualidad(' 3/6 '), (3, 6));
-      for (final malo in ['13 de 12', '0 de 3', '1 de 1', '1 de 60', 'dos de doce']) {
+      expect(leerMensualidad('2 de 12'), (2, 12, 0));
+      expect(leerMensualidad(' 3/6 '), (3, 6, 0));
+      for (final malo in ['13 de 12', '0 de 3', '1 de 1', '1 de 60', 'dos de doce', '1 de 1, diferido 13']) {
         expect(leerMensualidad(malo), isNull, reason: malo);
       }
       const csv = 'Fecha,Monto,Categoría,ID,Meses\n'
@@ -227,6 +229,63 @@ void main() {
       final valor = (r as Exito<ResultadoImportacion>).valor;
       expect(valor.movimientos.every((m) => !m.esAMeses), isTrue);
       expect(valor.avisos.where((a) => a.motivo.contains('de contado')), hasLength(3));
+    });
+  });
+
+  group('empieza a pagar en N meses (2026-11-27)', () {
+    test('la primera mensualidad llega N meses después y cada una en su ciclo', () {
+      final lista = _compra(meses: 3, pesos: 3000, diferido: 3);
+      expect([for (final m in lista) m.fecha], [
+        DateTime(2027, 2, 10, 18, 30),
+        DateTime(2027, 3, 10, 18, 30),
+        DateTime(2027, 4, 10, 18, 30),
+      ]);
+      expect([for (final m in lista) m.cicloId], ['2027-02', '2027-03', '2027-04']);
+      expect(lista.every((m) => m.diferido == 3), isTrue);
+      expect(_compra(meses: 3).every((m) => m.diferido == null), isTrue);
+    });
+
+    test('diferida puede ser de un solo pago; sin diferir, no', () {
+      final unPago = _compra(meses: 1, pesos: 5000, diferido: 2);
+      expect(unPago.single.fecha, DateTime(2027, 1, 10, 18, 30));
+      expect(unPago.single.monto, const Dinero.pesos(5000));
+      final vista = comprasAMesesDe(_tarjeta(), unPago, hoy: DateTime(2026, 11, 27)).single;
+      expect((vista.unSoloPago, vista.porEmpezar), (true, true));
+      expect(comprasAMesesDe(_tarjeta(), _compra(), hoy: DateTime(2026, 11, 27)).single.unSoloPago, isFalse);
+      expect(() => _compra(meses: 1), throwsStateError);
+      expect(() => _compra(diferido: maxDiferido + 1), throwsStateError);
+      expect(() => _compra(diferido: -1), throwsStateError);
+    });
+
+    test('ya se debe todo, pero ningún corte la pide hasta que empieza', () {
+      final gastos = _compra(meses: 3, pesos: 3000, diferido: 3);
+      final tarjeta = _tarjeta();
+      expect(deudaDe(tarjeta, gastos, const []), const Dinero.pesos(3000));
+      expect(pagoDeTarjeta(tarjeta, gastos, const [], hoy: DateTime(2026, 12, 6))!.monto, const Dinero.cero());
+      final compra = comprasAMesesDe(tarjeta, gastos, hoy: DateTime(2026, 12, 6)).single;
+      expect((compra.pagadas, compra.porEmpezar, compra.diferido, compra.proximoPago, compra.pagado),
+          (0, true, 3, DateTime(2027, 2, 10, 18, 30), const Dinero.cero()));
+    });
+
+    test('la columna Meses lo lleva y la importación lo recupera', () {
+      expect(textoDeMensualidad(1, 3, diferido: 3), '1 de 3, diferido 3');
+      expect(textoDeMensualidad(1, 3), '1 de 3');
+      expect(leerMensualidad('1 de 1, diferido 2'), (1, 1, 2));
+      expect(leerMensualidad('2 de 3, Diferido 4 meses'), (2, 3, 4));
+      final lista = _compra(meses: 3, pesos: 3000, diferido: 3);
+      final csv = exportarMovimientosCsv(
+        movimientos: lista,
+        categorias: [CategoriaVariable(id: 'casa', nombre: 'Casa', emoji: '🏠', activa: true, esNecesaria: false, presupuestoMensualCentavos: const Dinero.pesos(100))],
+        cuentas: [_tarjeta()],
+      );
+      final r = previsualizarImportacion(
+        contenidoCsv: csv,
+        calculadoraCiclo: _calculadora,
+        categoriasExistentes: const [],
+        cuentasExistentes: [_tarjeta()],
+      );
+      final leidos = (r as Exito<ResultadoImportacion>).valor.movimientos;
+      expect([for (final m in leidos) (m.mensualidad, m.meses, m.diferido)], [(1, 3, 3), (2, 3, 3), (3, 3, 3)]);
     });
   });
 }

@@ -56,6 +56,11 @@ final class Movimiento {
   final int? mensualidad;
   final int? meses;
 
+  /// "Compra hoy y empieza a pagar en N meses" (spec §7.3.1, 2026-11-27):
+  /// cuántos meses se difirió la primera mensualidad. `null` si no se
+  /// difirió. Con él, una compra puede ser de un solo pago ([meses] = 1).
+  final int? diferido;
+
   /// ¿Es una mensualidad de una compra a meses?
   bool get esAMeses => compraId != null;
 
@@ -81,6 +86,7 @@ final class Movimiento {
     this.compraId,
     this.mensualidad,
     this.meses,
+    this.diferido,
   });
 
   /// Copia con cambios — a propósito **no** acepta [cicloId] como
@@ -108,6 +114,7 @@ final class Movimiento {
     String? compraId,
     int? mensualidad,
     int? meses,
+    int? diferido,
   }) =>
       Movimiento(
         id: id ?? this.id,
@@ -131,6 +138,7 @@ final class Movimiento {
         compraId: compraId ?? this.compraId,
         mensualidad: mensualidad ?? this.mensualidad,
         meses: meses ?? this.meses,
+        diferido: diferido ?? this.diferido,
       );
 
   /// Nombres de campo iguales a los del documento `movimientos/{movId}`
@@ -158,6 +166,7 @@ final class Movimiento {
         if (compraId != null) 'compraId': compraId,
         if (mensualidad != null) 'mensualidad': mensualidad,
         if (meses != null) 'meses': meses,
+        if (diferido != null) 'diferido': diferido,
       };
 
   factory Movimiento.fromJson(Map<String, dynamic> json) => Movimiento(
@@ -185,6 +194,7 @@ final class Movimiento {
         compraId: json['compraId'] as String?,
         mensualidad: json['mensualidad'] as int?,
         meses: json['meses'] as int?,
+        diferido: json['diferido'] as int?,
       );
 
   @override
@@ -210,7 +220,8 @@ final class Movimiento {
       other.cuentaId == cuentaId &&
       other.compraId == compraId &&
       other.mensualidad == mensualidad &&
-      other.meses == meses;
+      other.meses == meses &&
+      other.diferido == diferido;
 
   @override
   int get hashCode => Object.hashAll([
@@ -235,6 +246,7 @@ final class Movimiento {
         compraId,
         mensualidad,
         meses,
+        diferido,
       ]);
 
   @override
