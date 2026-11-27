@@ -158,4 +158,78 @@ void main() {
     expect(guardados.every((m) => m.monto == const Dinero.pesos(1000) && m.cuentaId == 'platino'), isTrue);
     expect((resultado! as Movimiento).mensualidad, 1);
   });
+  testWidgets('compra hoy y empieza a pagar en 3 meses: la primera mensualidad llega después', (tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final movimientos = MovimientoRepositorioMemoria([]);
+    Object? resultado;
+    await tester.pumpWidget(MaterialApp(
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: TextButton(
+            onPressed: () async {
+              resultado = await Navigator.of(context).push<Object?>(MaterialPageRoute(
+                builder: (_) => PantallaCaptura(
+                  perfil: _perfil,
+                  categoriaRepositorio: CategoriaRepositorioMemoria([
+                    const CategoriaVariable(
+                      id: 'casa',
+                      nombre: 'Casa',
+                      emoji: '🏠',
+                      activa: true,
+                      esNecesaria: false,
+                      presupuestoMensualCentavos: Dinero.pesos(3000),
+                    ),
+                  ]),
+                  movimientoRepositorio: movimientos,
+                  reglasAprendidasRepositorio: ReglasAprendidasRepositorioMemoria(),
+                  cicloRepositorio: CicloRepositorioMemoria(),
+                  documentos: Directory.systemTemp,
+                  cuentaRepositorio: _Cuentas([
+                    Cuenta(
+                      id: 'platino',
+                      nombre: 'Platino',
+                      emoji: '💳',
+                      tipo: TipoCuenta.credito,
+                      llevaSaldo: false,
+                      saldoInicial: const Dinero.cero(),
+                      fechaSaldoInicial: DateTime(2026),
+                    ),
+                  ]),
+                ),
+              ));
+            },
+            child: const Text('abrir'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('abrir'));
+    await tester.pumpAndSettle();
+
+    for (final t in ['1', '2', '0', '0', '0']) {
+      await tester.tap(find.bySemanticsLabel(t));
+      await tester.pump();
+    }
+    await tester.tap(find.text('Meses'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('En 3 meses'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('el primer pago llega en'), findsOneWidget);
+    await tester.tap(find.text('6 meses'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(r'6 mensualidades de $2,000 desde'), findsOneWidget);
+    expect(find.textContaining('6 meses desde'), findsOneWidget);
+
+    await tester.tap(find.text('Casa'));
+    await tester.pumpAndSettle();
+    final guardados = await movimientos.listarTodos()
+      ..sort((a, b) => a.mensualidad!.compareTo(b.mensualidad!));
+    expect(guardados, hasLength(6));
+    expect(guardados.every((m) => m.diferido == 3 && m.monto == const Dinero.pesos(2000)), isTrue);
+    final hoy = DateTime.now();
+    expect(guardados.first.fecha.month, DateTime(hoy.year, hoy.month + 3).month);
+    expect(resultado, isNotNull);
+  });
 }

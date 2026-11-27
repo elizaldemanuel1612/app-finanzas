@@ -44,6 +44,7 @@ import '../../domain/presupuesto/cobertura_excesos.dart';
 import '../../domain/presupuesto/apartado_estimado.dart';
 import '../../domain/analisis/frases_conclusion.dart';
 import 'graficas_analisis.dart';
+import 'vista_a_meses.dart';
 import 'vista_ingresos.dart';
 import 'vista_periodo.dart';
 
@@ -154,7 +155,7 @@ class _Datos {
 
 /// Análisis › Resumen · Detalle · Historial (`docs/rediseno/plan-rediseno.md`,
 /// Etapa 5). Historial reemplaza a "Ciclos anteriores" de Inicio.
-enum _Vista { resumen, detalle, historial, periodo, ingresos }
+enum _Vista { resumen, detalle, historial, periodo, ingresos, aMeses }
 
 class _PantallaAnalisisState extends State<PantallaAnalisis> {
   _Datos? _datos;
@@ -302,10 +303,13 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
     final conIngresos = widget.categoriaIngresoRepositorio != null &&
         widget.cuentaRepositorio != null &&
         widget.movimientoCuentaRepositorio != null;
-    final vista = (!conHistorial && _vista == _Vista.historial) || (!conIngresos && _vista == _Vista.ingresos)
+    final conMeses = widget.cuentaRepositorio != null;
+    final vista = (!conHistorial && _vista == _Vista.historial) ||
+            (!conIngresos && _vista == _Vista.ingresos) ||
+            (!conMeses && _vista == _Vista.aMeses)
         ? _Vista.resumen
         : _vista;
-    // Cinco vistas: con relleno compacto caben en un teléfono normal; en uno
+    // Seis vistas: con relleno compacto caben en un teléfono normal; en uno
     // muy angosto (o con letra grande) la fila se desplaza en vez de cortarse.
     final segmentado = LayoutBuilder(
       builder: (context, limites) => SingleChildScrollView(
@@ -325,6 +329,7 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
               if (conHistorial) const ButtonSegment(value: _Vista.historial, label: Text('Historial')),
               const ButtonSegment(value: _Vista.periodo, label: Text('Periodo')),
               if (conIngresos) const ButtonSegment(value: _Vista.ingresos, label: Text('Ingresos')),
+              if (conMeses) const ButtonSegment(value: _Vista.aMeses, label: Text('A meses')),
             ],
             selected: {vista},
             onSelectionChanged: (s) => _elegirVista(s.first),
@@ -333,7 +338,13 @@ class _PantallaAnalisisState extends State<PantallaAnalisis> {
       ),
     );
     final Widget cuerpo;
-    if (vista == _Vista.ingresos) {
+    if (vista == _Vista.aMeses) {
+      cuerpo = VistaAMeses(
+        cuentaRepositorio: widget.cuentaRepositorio!,
+        movimientoRepositorio: widget.movimientoRepositorio,
+        ingreso: widget.perfil.ingresoBaseMensual,
+      );
+    } else if (vista == _Vista.ingresos) {
       cuerpo = VistaIngresos(
         ciclo: widget.ciclo,
         categoriaIngresoRepositorio: widget.categoriaIngresoRepositorio!,

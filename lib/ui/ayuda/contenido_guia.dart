@@ -409,6 +409,13 @@ const _temaCuentasYTarjetas = TemaGuia(
       'intereses**, con lo que falta de cada compra. Si eliminas una mensualidad, '
       'se elimina toda la compra.',
     ),
+    Parrafo(
+      'Si la promoción es de **compra hoy y empieza a pagar después**, en la misma '
+      'hoja elige **¿Cuándo empiezas a pagar?** (en 2, 3, 4 o 6 meses); también '
+      'puede ser un solo pago. Ya lo debes desde hoy, pero no toca tu presupuesto '
+      'hasta su primer pago. En **Análisis → A meses** ves cuánto debes a meses, '
+      'cuánto pagas al mes solo de eso y cómo va cada compra, por tarjeta.',
+    ),
     Nota(
       tono: TonoNota.tip,
       etiqueta: 'PAGAR NO ES GASTAR',

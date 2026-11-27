@@ -130,6 +130,14 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   /// Compra a meses sin intereses (spec §7.3.1): `null` = de contado. Solo
   /// con una tarjeta de crédito y al crear.
   int? _meses;
+
+  /// "Empieza a pagar en N meses" (2026-11-27): 0 = la primera mensualidad
+  /// va con la compra. Con [_meses] `null` y esto > 0, es un solo pago
+  /// diferido.
+  int _diferido = 0;
+
+  /// Cuándo llega el primer pago (o el único) si se difiere.
+  DateTime get _primerPago => fechaDeMensualidad(_fecha, _diferido + 1);
   late DateTime _fecha;
   String? _error;
   bool _guardando = false;
@@ -235,7 +243,10 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   void _elegirCuenta(Cuenta cuenta) {
     _cuentaId = cuenta.id;
     _medio = cuenta.tipo.medio;
-    if (cuenta.tipo != TipoCuenta.credito) _meses = null;
+    if (cuenta.tipo != TipoCuenta.credito) {
+      _meses = null;
+      _diferido = 0;
+    }
   }
 
   /// Una mensualidad: solo se cambian la categoría y la nota, para toda la
@@ -245,47 +256,89 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
   Future<void> _elegirMeses() async {
     final monto = _monto;
     final hayMonto = monto != null && monto.esPositivo;
-    final elegido = await mostrarHoja<int>(
+    var diferido = _diferido;
+    final hoy = DateTime.now();
+    final elegido = await mostrarHoja<(int?, int)>(
       context,
-      builder: (contexto) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('¿A meses sin intereses?', style: Theme.of(contexto).textTheme.seccion),
-              const SizedBox(height: 4),
-              Text(
-                'Cada mensualidad cuenta en su mes: en tu presupuesto y en el pago de tu tarjeta.',
-                style: Theme.of(contexto).textTheme.etiqueta,
-              ),
-              const SizedBox(height: 12),
-              TarjetaApp.lista(renglones: [
-                RenglonApp(
-                  icono: Icons.payments_outlined,
-                  titulo: 'De contado',
-                  subtitulo: 'Todo en este mes',
-                  derecha: _meses == null ? Icon(Icons.check_rounded, color: ColoresApp.texto) : null,
-                  onTap: () => Navigator.of(contexto).pop(0),
-                ),
-                for (final n in plazosAMeses)
-                  RenglonApp(
-                    icono: Icons.calendar_view_month_outlined,
-                    titulo: '$n meses',
-                    subtitulo: hayMonto && monto.centavos >= n
-                        ? '${enPesos(repartirEnMensualidades(monto, n).last)} al mes'
-                        : null,
-                    derecha: _meses == n ? Icon(Icons.check_rounded, color: ColoresApp.texto) : null,
-                    onTap: () => Navigator.of(contexto).pop(n),
+      builder: (contexto) => StatefulBuilder(
+        builder: (contexto, cambiar) {
+          final textos = Theme.of(contexto).textTheme;
+          final empieza = mesEnPalabras(fechaDeMensualidad(_fecha, diferido + 1), hoy: hoy);
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('¿A meses sin intereses?', style: textos.seccion),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Cada mensualidad cuenta en su mes: en tu presupuesto y en el pago de tu tarjeta.',
+                    style: textos.etiqueta,
                   ),
-              ]),
-            ],
-          ),
-        ),
+                  const SizedBox(height: 12),
+                  Text('¿Cuándo empiezas a pagar?', style: textos.cuerpoFuerte),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Desde ya'),
+                        selected: diferido == 0,
+                        onSelected: (_) => cambiar(() => diferido = 0),
+                      ),
+                      for (final d in plazosDiferidos)
+                        ChoiceChip(
+                          label: Text('En $d meses'),
+                          selected: diferido == d,
+                          onSelected: (_) => cambiar(() => diferido = d),
+                        ),
+                    ],
+                  ),
+                  if (diferido > 0) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'La promoción "compra hoy y empieza a pagar después": el primer pago llega en $empieza. '
+                      'Ya lo debes desde hoy.',
+                      style: textos.etiqueta,
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  TarjetaApp.lista(renglones: [
+                    RenglonApp(
+                      icono: Icons.payments_outlined,
+                      titulo: diferido == 0 ? 'De contado' : 'Un solo pago',
+                      subtitulo: diferido == 0 ? 'Todo en este mes' : 'Todo en $empieza',
+                      derecha: _meses == null && _diferido == diferido ? Icon(Icons.check_rounded, color: ColoresApp.texto) : null,
+                      onTap: () => Navigator.of(contexto).pop((null, diferido)),
+                    ),
+                    for (final n in plazosAMeses)
+                      RenglonApp(
+                        icono: Icons.calendar_view_month_outlined,
+                        titulo: '$n meses',
+                        subtitulo: hayMonto && monto.centavos >= n
+                            ? '${enPesos(repartirEnMensualidades(monto, n).last)} al mes'
+                                '${diferido == 0 ? '' : ' desde $empieza'}'
+                            : null,
+                        derecha: _meses == n && _diferido == diferido ? Icon(Icons.check_rounded, color: ColoresApp.texto) : null,
+                        onTap: () => Navigator.of(contexto).pop((n, diferido)),
+                      ),
+                  ]),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
-    if (elegido != null && mounted) setState(() => _meses = elegido == 0 ? null : elegido);
+    if (elegido != null && mounted) {
+      setState(() {
+        _meses = elegido.$1;
+        _diferido = elegido.$2;
+      });
+    }
   }
 
   /// Lo que dijo el dictado ("en efectivo"): la cuenta elegida si ya es de
@@ -499,9 +552,10 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
       return;
     }
 
-    final meses = _meses;
+    final meses = _meses ?? (_diferido > 0 ? 1 : null);
     if (meses != null) {
       final compra = crearCompraAMeses(
+        diferido: _diferido,
         compraId: _uuid.v4(),
         fecha: _fecha,
         calculadoraCiclo: calculadoraCiclo,
@@ -778,6 +832,25 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     if (widget.paraEditar == null) _registrar();
   }
 
+  /// El chip de Meses: "12 meses", "12 meses desde marzo" o "Pagas en marzo".
+  String get _textoMeses {
+    final meses = _meses;
+    if (_diferido == 0) return meses == null ? 'Meses' : '$meses meses';
+    final mes = mesEnPalabras(_primerPago, hoy: DateTime.now());
+    return meses == null ? 'Pagas en $mes' : '$meses meses desde $mes';
+  }
+
+  /// Lo que significa lo elegido en Meses; `null` de contado.
+  String? _notaMeses(Dinero monto) {
+    final meses = _meses ?? (_diferido > 0 ? 1 : null);
+    if (meses == null || monto.centavos < meses) return null;
+    final mensualidad = enPesos(repartirEnMensualidades(monto, meses).last);
+    if (_diferido == 0) return '$meses mensualidades de $mensualidad. A tu presupuesto de este ciclo solo va la primera.';
+    final mes = mesEnPalabras(_primerPago, hoy: DateTime.now());
+    final que = meses == 1 ? 'Un solo pago de $mensualidad en $mes' : '$meses mensualidades de $mensualidad desde $mes';
+    return '$que. Hasta entonces no toca tu presupuesto, pero ya lo debes.';
+  }
+
   String get _textoFecha {
     final hoy = DateTime.now();
     final f = DateTime(_fecha.year, _fecha.month, _fecha.day);
@@ -882,6 +955,7 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
     final editando = widget.paraEditar != null;
     final monto = _monto;
     final hayMonto = monto != null && monto.esPositivo;
+    final notaMeses = hayMonto ? _notaMeses(monto) : null;
     final cuenta = _cuentas.where((c) => c.id == _cuentaId).firstOrNull;
     final nota = _descripcionControlador.text.trim();
     final textoMonto = _montoControlador.text.isEmpty ? '0' : _montoControlador.text;
@@ -981,18 +1055,13 @@ class _PantallaCapturaState extends State<PantallaCaptura> {
                                 'Mensualidad ${widget.paraEditar!.mensualidad} de ${widget.paraEditar!.meses}', null,
                                 desplegable: false)
                           else if (!editando && cuenta?.tipo == TipoCuenta.credito)
-                            chip(Icons.calendar_view_month_outlined, _meses == null ? 'Meses' : '$_meses meses', _elegirMeses),
+                            chip(Icons.calendar_view_month_outlined, _textoMeses, _elegirMeses),
                           chip(Icons.edit_outlined, nota.isEmpty ? 'Nota' : nota, _escribirNota, desplegable: false),
                         ],
                       ),
-                      if (_meses case final n? when hayMonto && monto.centavos >= n) ...[
+                      if (notaMeses != null) ...[
                         const SizedBox(height: 10),
-                        Text(
-                          '$n mensualidades de ${enPesos(repartirEnMensualidades(monto, n).last)}. '
-                          'A tu presupuesto de este ciclo solo va la primera.',
-                          textAlign: TextAlign.center,
-                          style: textos.etiqueta,
-                        ),
+                        Text(notaMeses, textAlign: TextAlign.center, style: textos.etiqueta),
                       ],
                       if (_editandoAMeses) ...[
                         const SizedBox(height: 10),

@@ -89,7 +89,7 @@ String exportarMovimientosCsv({
       etiquetaEstado[m.estado]!,
       etiquetaOrigen[m.origenCaptura]!,
       _neutralizarFormula(m.clientId),
-      m.esAMeses ? textoDeMensualidad(m.mensualidad!, m.meses!) : '',
+      m.esAMeses ? textoDeMensualidad(m.mensualidad!, m.meses!, diferido: m.diferido) : '',
     ];
     buffer.writeln(fila.map(_celda).join(','));
   }
@@ -181,19 +181,26 @@ List<String> _columnasDeCategoria(Categoria? categoria, String idSiNoExiste) => 
 
 String _siNo(bool valor) => valor ? 'Sí' : 'No';
 
-/// "2 de 12": la columna Meses (spec §7.3.1). La importación la lee con
-/// [leerMensualidad].
-String textoDeMensualidad(int mensualidad, int meses) => '$mensualidad de $meses';
+/// "2 de 12": la columna Meses (spec §7.3.1). Si el primer pago se difirió
+/// ("empieza a pagar en 3 meses"), "1 de 12, diferido 3". La importación
+/// la lee con [leerMensualidad].
+String textoDeMensualidad(int mensualidad, int meses, {int? diferido}) =>
+    '$mensualidad de $meses${diferido == null || diferido == 0 ? '' : ', diferido $diferido'}';
 
-/// Lo inverso de [textoDeMensualidad]; `null` si no se entiende o no tiene
-/// sentido (la mensualidad pasa del plazo, o el plazo de 2 a 48).
-(int, int)? leerMensualidad(String texto) {
-  final m = RegExp(r'^\s*(\d+)\s*(?:de|/)\s*(\d+)\s*$').firstMatch(texto.toLowerCase());
+/// Lo inverso de [textoDeMensualidad]: (mensualidad, meses, diferido —0 si
+/// no—); `null` si no se entiende o no tiene sentido (la mensualidad pasa
+/// del plazo, el plazo de 2 a 48 —de 1 si es diferido— o el diferido pasa
+/// de 12).
+(int, int, int)? leerMensualidad(String texto) {
+  final m = RegExp(r'^\s*(\d+)\s*(?:de|/)\s*(\d+)\s*(?:,\s*diferido\s*(\d+)(?:\s*mes(?:es)?)?\s*)?$')
+      .firstMatch(texto.toLowerCase());
   if (m == null) return null;
   final n = int.parse(m.group(1)!);
   final de = int.parse(m.group(2)!);
-  if (n < 1 || n > de || de < 2 || de > 48) return null;
-  return (n, de);
+  final diferido = m.group(3) == null ? 0 : int.parse(m.group(3)!);
+  if (diferido > 12) return null;
+  if (n < 1 || n > de || de < (diferido > 0 ? 1 : 2) || de > 48) return null;
+  return (n, de, diferido);
 }
 
 /// `aaaa-mm-dd`, y la hora (`aaaa-mm-dd HH:mm`) solo si la tiene: así la

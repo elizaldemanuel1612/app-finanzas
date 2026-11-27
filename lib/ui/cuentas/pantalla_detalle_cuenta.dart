@@ -23,6 +23,7 @@ import '../../domain/reglas/creacion_ingreso_extra.dart';
 import '../categorias/editor_categoria_ingreso.dart';
 import '../comun/aviso.dart';
 import '../comun/formato_dinero.dart';
+import '../comun/formato_fecha.dart';
 import '../comun/renglon_app.dart';
 import '../comun/tarjeta_app.dart';
 import '../comun/tema.dart';
@@ -563,14 +564,20 @@ class _PantallaDetalleCuentaState extends State<PantallaDetalleCuenta> {
                       RenglonApp(
                         icono: Icons.calendar_view_month_outlined,
                         titulo: c.descripcion,
-                        subtitulo: '${enPesos(c.mensualidad)} al mes · van ${c.pagadas} de ${c.meses}',
+                        subtitulo: !c.porEmpezar
+                            ? '${enPesos(c.mensualidad)} al mes · van ${c.pagadas} de ${c.meses}'
+                            : c.unSoloPago
+                                ? 'Un solo pago en ${mesEnPalabras(c.primerPago, hoy: DateTime.now())}'
+                                : 'Empiezas en ${mesEnPalabras(c.primerPago, hoy: DateTime.now())} · '
+                                    '${c.meses} de ${enPesos(c.mensualidad)}',
                         monto: c.falta.formateado(),
                       ),
                   ]),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
                     child: Text(
-                      'Ya cuentan en lo que debes, pero cada corte solo te pide su mensualidad.',
+                      'Ya cuentan en lo que debes, pero cada corte solo te pide su mensualidad. '
+                      'El resumen de todas está en Análisis → A meses.',
                       style: textos.etiqueta,
                     ),
                   ),

@@ -371,7 +371,12 @@ Movimiento _conMeses(Movimiento m, String texto, void Function(String) avisar) {
     avisar('Meses "$texto" no se pudo ligar a una compra a meses; se importó de contado.');
     return m;
   }
-  return m.copyWith(compraId: id.group(1), mensualidad: leido.$1, meses: leido.$2);
+  return m.copyWith(
+    compraId: id.group(1),
+    mensualidad: leido.$1,
+    meses: leido.$2,
+    diferido: leido.$3 > 0 ? leido.$3 : null,
+  );
 }
 
 /// Una cuenta que el archivo nombra y no existía. El tipo sale del medio de
